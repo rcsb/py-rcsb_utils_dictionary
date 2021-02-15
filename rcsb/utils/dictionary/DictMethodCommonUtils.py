@@ -39,7 +39,7 @@ OutlierValue = namedtuple("OutlierValue", OutlierValueFields, defaults=(None,) *
 BoundEntityFields = ("targetCompId", "connectType", "partnerCompId", "partnerEntityId", "partnerEntityType")
 NonpolymerBoundEntity = namedtuple("NonpolymerBoundEntity", BoundEntityFields, defaults=(None,) * len(BoundEntityFields))
 
-BoundInstanceFields = ("targetCompId", "connectType", "partnerCompId", "partnerAsymId", "partnerEntityType", "partnerSeqId", "bondDistance", "bondOrder")
+BoundInstanceFields = ("targetCompId", "targetAtomId", "connectType", "partnerCompId", "partnerAsymId", "partnerEntityType", "partnerSeqId", "bondDistance", "bondOrder")
 NonpolymerBoundInstance = namedtuple("NonpolymerBoundInstance", BoundInstanceFields, defaults=(None,) * len(BoundInstanceFields))
 
 NonpolymerValidationFields = ("rsr", "rscc", "mogul_bonds_rmsz", "mogul_angles_rmsz", "missing_heavy_atom_count")
@@ -1984,6 +1984,7 @@ class DictMethodCommonUtils(object):
                     pCompId = cD["connect_partner_label_comp_id"]
                     pSeqId = cD["connect_partner_label_seq_id"]
                     tCompId = cD["connect_target_label_comp_id"]
+                    tAtomId = cD["connect_target_label_atom_id"]
                     bondOrder = cD["value_order"]
                     bondDist = cD["dist_value"]
                     pType = eTypeD[pEntityId]
@@ -1992,7 +1993,7 @@ class DictMethodCommonUtils(object):
                     boundNonpolymerInstanceD.setdefault(tAsymId, []).append(
                         NonpolymerBoundInstance(tCompId, cD["connect_type"], pCompId, pAsymId, pType, pSeqId, bondDist, bondOrder)
                     )
-                    boundNonpolymerEntityD.setdefault(tEntityId, []).append(NonpolymerBoundEntity(tCompId, cD["connect_type"], pCompId, pEntityId, pType))
+                    boundNonpolymerEntityD.setdefault(tEntityId, []).append(NonpolymerBoundEntity(tCompId, tAtomId, cD["connect_type"], pCompId, pEntityId, pType))
             #
             for asymId in boundNonpolymerInstanceD:
                 boundNonpolymerInstanceD[asymId] = sorted(set(boundNonpolymerInstanceD[asymId]))

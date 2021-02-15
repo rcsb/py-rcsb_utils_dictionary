@@ -1,3 +1,4 @@
 # File: HISTORY.txt
 #
 14-Feb-2021 - V0.11 Created module with content migrated from rcsb.db
+15-Feb-2021 - V0.12 Extend namedtuple "NonpolymerValidationInstance"
