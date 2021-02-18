@@ -1,0 +1,23 @@
+# File: pubchem-config-example.yml
+# Date: 27-Jul-2020 jdw
+#
+# Updates:
+---
+DEFAULT: {}
+#
+# Site specific path and server configuration options -
+#
+site_info_configuration:
+    CONFIG_SUPPORT_TOKEN: CONFIG_SUPPORT_TOKEN_ENV
+    #
+    # local|server
+    STASH_MODE: server
+    STASH_LOCAL_BASE_PATH: stash-storage
+    #
+    STASH_SERVER_URL: sftp://bl-east.rcsb.org
+    STASH_SERVER_FALLBACK_URL: sftp://bl-west.rcsb.org
+    _STASH_AUTH_USERNAME: 4Thjq6SFXelrqhyawXGkwNHQ2MJQRGjHpedv4mhpRlmIc7muS7YrlSQpS3Rao7EFskrZ
+    _STASH_AUTH_PASSWORD: FAQNnkUD6mjGTWeciRE7yQZu4/txndI6f4LBnGvmAbMT2/ndsmQ+xcUb7ShDnMhdurMbkH4i
+    _STASH_SERVER_BASE_PATH: 9Hdw+MvKcF+zwv4yr+n61fYuVey6nTu7JRMpFbDuSjqVDYQEh8NCS23GpJJJMDKVIw==
+    #
+    REPO_UTIL_CACHE_DIR: repo_util

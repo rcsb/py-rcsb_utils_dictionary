@@ -9,6 +9,7 @@
 #                 Add general processing of intermolecular and other connections.
 # 19-Sep-2019 jdw Add method getEntityReferenceAlignments()
 # 13-Oct-2019 jdw add isoform support
+# 17-Feb-2021 jdw add non-polymer neighbor calculation
 ##
 """
 Helper class implements common utility external method references supporting the RCSB dictionary extension.
@@ -26,7 +27,12 @@ import itertools
 import logging
 import re
 import sys
-from collections import OrderedDict, namedtuple
+import time
+from collections import OrderedDict, namedtuple, defaultdict
+from operator import itemgetter
+
+import numpy as np
+from scipy import spatial
 
 from rcsb.utils.io.CacheUtils import CacheUtils
 from rcsb.utils.seq.SeqAlign import SeqAlign
@@ -39,11 +45,40 @@ OutlierValue = namedtuple("OutlierValue", OutlierValueFields, defaults=(None,) *
 BoundEntityFields = ("targetCompId", "connectType", "partnerCompId", "partnerEntityId", "partnerEntityType")
 NonpolymerBoundEntity = namedtuple("NonpolymerBoundEntity", BoundEntityFields, defaults=(None,) * len(BoundEntityFields))
 
-BoundInstanceFields = ("targetCompId", "targetAtomId", "connectType", "partnerCompId", "partnerAsymId", "partnerEntityType", "partnerSeqId", "bondDistance", "bondOrder")
+BoundInstanceFields = (
+    "targetCompId",
+    "targetAtomId",
+    "connectType",
+    "partnerEntityType",
+    "partnerEntityId",
+    "partnerCompId",
+    "partnerAsymId",
+    "partnerSeqId",
+    "partnerAtomId",
+    "bondDistance",
+    "bondOrder",
+)
 NonpolymerBoundInstance = namedtuple("NonpolymerBoundInstance", BoundInstanceFields, defaults=(None,) * len(BoundInstanceFields))
 
-NonpolymerValidationFields = ("rsr", "rscc", "mogul_bonds_rmsz", "mogul_angles_rmsz", "missing_heavy_atom_count")
+NonpolymerValidationFields = ("rsr", "rscc", "mogul_bonds_rmsz", "mogul_angles_rmsz", "missing_heavy_atom_count", "intermolecular_clashes")
 NonpolymerValidationInstance = namedtuple("NonpolymerValidationInstance", NonpolymerValidationFields, defaults=(None,) * len(NonpolymerValidationFields))
+
+LigandTargetFields = (
+    "ligandCompId",
+    "ligandAtomName",
+    "connectType",
+    "partnerEntityType",
+    "partnerEntityId",
+    "partnerCompId",
+    "partnerAsymId",
+    "partnerSeqId",
+    "partnerAtomName",
+    "distance",
+)
+LigandTargetInstance = namedtuple("LigandTargetInstance", LigandTargetFields, defaults=(None,) * len(LigandTargetFields))
+
+ReferenceFields = ("entityId", "entityType", "asymId", "compId", "seqId", "atomName")
+ReferenceInstance = namedtuple("ReferenceInstance", ReferenceFields, defaults=(None,) * len(ReferenceFields))
 
 
 class DictMethodCommonUtils(object):
@@ -1776,7 +1811,8 @@ class DictMethodCommonUtils(object):
             dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
 
         Returns:
-            dict: {<asymId>: NonpolymerBoundInstance("targetCompId", "connectType", "partnerCompId", "partnerAsymId", "partnerEntityType", "bondDistance", "bondOrder"), }
+            dict: {<asymId>: NonpolymerBoundInstance( "targetCompId", "targetAtomId", "connectType", "partnerEntityType", "partnerEntityId",
+                                                      "partnerCompId","partnerAsymId", "partnerSeqId", "partnerAtomId", "bondDistance", "bondOrder"), }
 
         """
         if not dataContainer or not dataContainer.getName():
@@ -1985,15 +2021,16 @@ class DictMethodCommonUtils(object):
                     pSeqId = cD["connect_partner_label_seq_id"]
                     tCompId = cD["connect_target_label_comp_id"]
                     tAtomId = cD["connect_target_label_atom_id"]
+                    pAtomId = cD["connect_partner_label_atom_id"]
                     bondOrder = cD["value_order"]
                     bondDist = cD["dist_value"]
-                    pType = eTypeD[pEntityId]
+                    eType = eTypeD[pEntityId]
                     #
                     ts.add(tCompId)
                     boundNonpolymerInstanceD.setdefault(tAsymId, []).append(
-                        NonpolymerBoundInstance(tCompId, cD["connect_type"], pCompId, pAsymId, pType, pSeqId, bondDist, bondOrder)
+                        NonpolymerBoundInstance(tCompId, tAtomId, cD["connect_type"], eType, pEntityId, pCompId, pAsymId, pSeqId, pAtomId, bondDist, bondOrder)
                     )
-                    boundNonpolymerEntityD.setdefault(tEntityId, []).append(NonpolymerBoundEntity(tCompId, tAtomId, cD["connect_type"], pCompId, pEntityId, pType))
+                    boundNonpolymerEntityD.setdefault(tEntityId, []).append(NonpolymerBoundEntity(tCompId, cD["connect_type"], pCompId, pEntityId, eType))
             #
             for asymId in boundNonpolymerInstanceD:
                 boundNonpolymerInstanceD[asymId] = sorted(set(boundNonpolymerInstanceD[asymId]))
@@ -3695,7 +3732,7 @@ class DictMethodCommonUtils(object):
             dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
 
         Returns:
-            dict: {(modelId, asymId): NonpolymerValidationInstance(rsr, rsrCc, bondsRmsZ, anglesRmsZ, missingAtomCount)}
+            dict: {(modelId, asymId): NonpolymerValidationInstance(rsr, rsrCc, bondsRmsZ, anglesRmsZ, missingAtomCount, intermolecular_clashes)}
 
         """
         if not dataContainer or not dataContainer.getName():
@@ -3776,6 +3813,7 @@ class DictMethodCommonUtils(object):
                 or dataContainer.exists("pdbx_vrpt_angle_outliers")
                 or dataContainer.exists("pdbx_vrpt_mogul_bond_outliers")
                 or dataContainer.exists("pdbx_vrpt_mogul_angle_outliers")
+                or dataContainer.exists("pdbx_vrpt_clashes")
             ):
                 return rD
             # ------- --------- ------- --------- ------- --------- ------- --------- ------- ---------
@@ -3905,6 +3943,36 @@ class DictMethodCommonUtils(object):
                 logger.debug("length instanceModelOutlierD %d", len(instanceModelOutlierD))
                 #
                 #
+            # ----  Capture/evaluate non-polymer intermolecular clashes ... here filter internal molecule clashes ...
+            instanceTypeD = self.getInstanceTypes(dataContainer)
+            npClashD = defaultdict(int)
+            tClashD = {}
+            vObj = None
+            if dataContainer.exists("pdbx_vrpt_clashes"):
+                vObj = dataContainer.getObj("pdbx_vrpt_clashes")
+            if vObj:
+                logger.debug("Row count for %s: %d", vObj.getName(), vObj.getRowCount())
+                for ii in range(vObj.getRowCount()):
+                    seqId = vObj.getValueOrDefault("label_seq_id", ii, defaultValue=None)
+                    asymId = vObj.getValueOrDefault("label_asym_id", ii, defaultValue=None)
+                    if asymId in instanceTypeD and instanceTypeD[asymId] == "non-polymer":
+                        clashId = vObj.getValueOrDefault("cid", ii, defaultValue=None)
+                        modelId = vObj.getValueOrDefault("PDB_model_num", ii, defaultValue=None)
+                        asymId = vObj.getValueOrDefault("label_asym_id", ii, defaultValue=None)
+                        compId = vObj.getValueOrDefault("label_comp_id", ii, defaultValue=None)
+                        # if compId not in ["HOH"]:
+                        tClashD.setdefault((modelId, asymId, compId), []).append(clashId)
+                    #
+                for ky, clashIdL in tClashD.items():
+                    cD = defaultdict(int)
+                    for clashId in clashIdL:
+                        cD[clashId] += 1
+                    for clashId, clashCount in cD.items():
+                        if clashCount == 1:
+                            npClashD[ky] += 1
+            #
+            logger.debug("%s npClashD %r", dataContainer.getName(), npClashD)
+            # ----
             vObj = None
             if dataContainer.exists("pdbx_vrpt_instance_results"):
                 vObj = dataContainer.getObj("pdbx_vrpt_instance_results")
@@ -3982,6 +4050,7 @@ class DictMethodCommonUtils(object):
                             float(bondsRmsZ) if bondsRmsZ else None,
                             float(anglesRmsZ) if anglesRmsZ else None,
                             missingAtomCount,
+                            npClashD[(modelId, asymId, compId)] if (modelId, asymId, compId) in npClashD else 0,
                         )
                         if missingAtomCount > 0:
                             logger.debug("%s %s missing atom count %d", dataContainer.getName(), compId, missingAtomCount)
@@ -3993,3 +4062,127 @@ class DictMethodCommonUtils(object):
         except Exception as e:
             logger.exception("%s failing with %s", dataContainer.getName(), str(e))
         return rD
+
+    def getNonpolymerInstanceNeighbors(self, dataContainer, distLimit=5.0):
+        """Get bound and unbound neighbors for each non-polymer instance.
+
+        Args:
+            dataContainer (obj): DataContainer object
+            distLimit (float, optional): neighbor distance limit (Angstroms). Defaults to 5.0.
+
+        Returns:
+              (dict): {asymId: [LigandTargetInstance()]}
+        """
+        try:
+            startTime = time.time()
+            ligandTargetInstanceD = {}
+            instanceTypeD = self.getInstanceTypes(dataContainer)
+            if "non-polymer" not in instanceTypeD.values():
+                return ligandTargetInstanceD
+            #
+            entryId = dataContainer.getName()
+            logger.info("Starting with entry %s", entryId)
+            nonPolymerBoundD = self.getBoundNonpolymersByInstance(dataContainer)
+            #
+            instanceTypeD = self.getInstanceTypes(dataContainer)
+            instancePolymerTypeD = self.getInstancePolymerTypes(dataContainer)
+            instanceEntityD = self.getInstanceEntityMap(dataContainer)
+            # -----
+            targetXyzL = []
+            targetRefL = []
+            ligandXyzD = {}
+            ligandRefD = {}
+            # partition the cooordinates between ligands and candidate targets
+            aObj = dataContainer.getObj("atom_site")
+            for ii in range(aObj.getRowCount()):
+                selectType = None
+                asymId = aObj.getValue("label_asym_id", ii)
+                instanceType = instanceTypeD[asymId]
+                polymerType = instancePolymerTypeD[asymId] if asymId in instancePolymerTypeD else None
+                if (instanceType == "polymer" and polymerType in ["Protein", "DNA", "RNA", "NA-hybrid"]) or instanceType == "branched":
+                    selectType = "target"
+                elif instanceType == "non-polymer":
+                    selectType = "ligand"
+                if selectType not in ["target", "ligand"]:
+                    continue
+                #
+                atomName = aObj.getValue("label_atom_id", ii)
+                seqId = aObj.getValue("label_seq_id", ii)
+                compId = aObj.getValue("label_comp_id", ii)
+                xC = aObj.getValue("Cartn_x", ii)
+                yC = aObj.getValue("Cartn_y", ii)
+                zC = aObj.getValue("Cartn_z", ii)
+                entityId = instanceEntityD[asymId]
+                #
+                if selectType == "target":
+                    targetXyzL.append((float(xC), float(yC), float(zC)))
+                    targetRefL.append(ReferenceInstance(entityId, instanceType, asymId, compId, int(seqId) if seqId not in [".", "?"] else None, atomName))
+                elif selectType == "ligand":
+                    ligandXyzD.setdefault(asymId, []).append((float(xC), float(yC), float(zC)))
+                    ligandRefD.setdefault(asymId, []).append(ReferenceInstance(entityId, instanceType, asymId, compId, None, atomName))
+            #
+            # ------
+            logger.debug("%s targetXyzL (%d) targetRef (%d) ligandXyzD (%d) ", entryId, len(targetXyzL), len(targetXyzL), len(ligandXyzD))
+            if not targetXyzL:
+                return ligandTargetInstanceD
+            tArr = np.array(targetXyzL, order="F")
+            logger.debug("targetXyzL[0] %r tArr.shape %r tArr[0] %r", targetXyzL[0], tArr.shape, tArr[0])
+            tree = spatial.cKDTree(tArr)
+            #
+            for asymId, ligXyzL in ligandXyzD.items():
+                #
+                if asymId in nonPolymerBoundD:
+                    # Process bound ligands
+                    for tup in nonPolymerBoundD[asymId]:
+                        if tup.partnerEntityType not in ["non-polymer", "water"]:
+                            ligandTargetInstanceD.setdefault(asymId, []).append(
+                                LigandTargetInstance(
+                                    tup.targetCompId,
+                                    tup.targetAtomId,
+                                    tup.connectType,
+                                    tup.partnerEntityType,
+                                    tup.partnerEntityId,
+                                    tup.partnerCompId,
+                                    tup.partnerAsymId,
+                                    tup.partnerSeqId,
+                                    tup.partnerAtomId,
+                                    float(tup.bondDistance) if tup.bondDistance else None,
+                                )
+                            )
+                else:
+                    # Calculate ligand - target interactions
+                    lArr = np.array(ligXyzL, order="F")
+                    distance, index = tree.query(lArr, distance_upper_bound=distLimit)
+                    logger.debug("%s lig asymId %s distance %r  index %r", entryId, asymId, distance, index)
+                    for ligIndex, (dist, ind) in enumerate(zip(distance, index)):
+                        if dist == np.inf:
+                            continue
+                        # ----
+                        ligandTargetInstanceD.setdefault(asymId, []).append(
+                            LigandTargetInstance(
+                                ligandRefD[asymId][ligIndex].compId,
+                                ligandRefD[asymId][ligIndex].atomName,
+                                "non-bonded",
+                                targetRefL[ind].entityType,
+                                targetRefL[ind].entityId,
+                                targetRefL[ind].compId,
+                                targetRefL[ind].asymId,
+                                targetRefL[ind].seqId,
+                                targetRefL[ind].atomName,
+                                round(dist, 3),
+                            )
+                        )
+                        # ----
+                    if not (asymId in ligandTargetInstanceD and len(ligandTargetInstanceD[asymId])):
+                        logger.debug("%s no neighbors for ligand asymId %s within %.2f", entryId, asymId, distLimit)
+                        continue
+            #
+            # re-sort by distance -
+            for asymId in ligandTargetInstanceD:
+                ligandTargetInstanceD[asymId] = sorted(ligandTargetInstanceD[asymId], key=itemgetter(-1))
+            # ------
+        except Exception as e:
+            logger.exception("Failing for %r with %r", dataContainer.getName() if dataContainer else None, str(e))
+        #
+        logger.info("Completed %s at %s (%.4f seconds)", dataContainer.getName(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), time.time() - startTime)
+        return ligandTargetInstanceD

@@ -1642,6 +1642,7 @@ class DictMethodEntityInstanceHelper(object):
             _rcsb_nonpolymer_instance_validation_score.mogul_bonds_RMSZ
             _rcsb_nonpolymer_instance_validation_score.RSR
             _rcsb_nonpolymer_instance_validation_score.RSCC
+            _rcsb_nonpolymer_instance_validation_score.intermolecular_clashes_per_atom
             _rcsb_nonpolymer_instance_validation_score.score_model_fit
             _rcsb_nonpolymer_instance_validation_score.score_model_geometry
             _rcsb_nonpolymer_instance_validation_score.ranking_model_fit
@@ -1689,7 +1690,8 @@ class DictMethodEntityInstanceHelper(object):
                 numHeavyAtoms = self.__ccP.getAtomCountHeavy(compId)
                 if not numHeavyAtoms:
                     continue
-                completeness = float(numHeavyAtoms - vTup.missing_heavy_atom_count) / float(numHeavyAtoms)
+                reportedAtoms = numHeavyAtoms - vTup.missing_heavy_atom_count
+                completeness = float(reportedAtoms) / float(numHeavyAtoms)
                 logger.debug("compId %s numHeavyAtoms %d completeness %0.2f", compId, numHeavyAtoms, completeness)
                 #
                 fitScore, fitRanking = self.__calculateFitScore(vTup.rsr, vTup.rscc, completeness, meanD, stdD, loadingD)
@@ -1697,7 +1699,7 @@ class DictMethodEntityInstanceHelper(object):
                 #
                 rankD[compId] = (max(fitRanking, rankD[compId][0]), asymId) if compId in rankD else (fitRanking, asymId)
 
-                scoreD[(modelId, asymId, compId)] = (fitScore, fitRanking, geoScore, geoRanking)
+                scoreD[(modelId, asymId, compId)] = (fitScore, fitRanking, geoScore, geoRanking, reportedAtoms)
             #
             for (modelId, asymId, compId), vTup in instanceModelValidationD.items():
                 if (modelId, asymId, compId) not in scoreD:
@@ -1721,10 +1723,13 @@ class DictMethodEntityInstanceHelper(object):
                 cObj.setValue(vTup.mogul_bonds_rmsz, "mogul_bonds_RMSZ", ii)
                 #
                 sTup = scoreD[(modelId, asymId, compId)]
-                cObj.setValue(sTup[0], "score_model_fit", ii)
-                cObj.setValue(sTup[1], "ranking_model_fit", ii)
-                cObj.setValue(sTup[2], "score_model_geometry", ii)
-                cObj.setValue(sTup[3], "ranking_model_geometry", ii)
+                tS = "%.4f" % (float(vTup.intermolecular_clashes) / float(sTup[4])) if vTup.intermolecular_clashes else "0.0"
+                cObj.setValue(tS, "intermolecular_clashes_per_atom", ii)
+                #
+                cObj.setValue("%.4f" % sTup[0] if sTup[0] else None, "score_model_fit", ii)
+                cObj.setValue("%.4f" % sTup[1] if sTup[1] else None, "ranking_model_fit", ii)
+                cObj.setValue("%.4f" % sTup[2] if sTup[2] else None, "score_model_geometry", ii)
+                cObj.setValue("%.4f" % sTup[3] if sTup[3] else None, "ranking_model_geometry", ii)
                 isBest = "Y" if rankD[compId][1] == asymId else "N"
                 cObj.setValue(isBest, "is_best_instance", ii)
                 #
