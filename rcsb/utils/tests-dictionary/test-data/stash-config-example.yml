@@ -21,3 +21,4 @@ site_info_configuration:
     _STASH_SERVER_BASE_PATH: 9Hdw+MvKcF+zwv4yr+n61fYuVey6nTu7JRMpFbDuSjqVDYQEh8NCS23GpJJJMDKVIw==
     #
     REPO_UTIL_CACHE_DIR: repo_util
+    PDBX_REPO_PATH: MOCK_PDBX_SANDBOX

@@ -16,6 +16,7 @@
 #  29-Jul-2020 jdw add PubChemProvider() from  rcsb.utils.chemref.
 #  30-Jul-2020 jdw add PharosProvider() from  rcsb.utils.chemref.
 #  29-Oct-2020 jdw add method getReferenceSequenceAlignmentOpt()
+#  18-Feb-2021 jdw add TargerInteractionProvider()
 ##
 ##
 """
@@ -35,6 +36,7 @@ import time
 
 from rcsb.utils.dictionary.DictionaryApiProviderWrapper import DictionaryApiProviderWrapper
 from rcsb.utils.dictionary.DictMethodCommonUtils import DictMethodCommonUtils
+from rcsb.utils.dictionary.TargetInteractionProvider import TargetInteractionProvider
 from rcsb.utils.chemref.AtcProvider import AtcProvider
 from rcsb.utils.chemref.ChemCompModelProvider import ChemCompModelProvider
 from rcsb.utils.chemref.ChemCompProvider import ChemCompProvider
@@ -97,6 +99,7 @@ class DictMethodResourceProvider(SingletonClass):
         self.__pcP = None
         self.__phP = None
         self.__rlsP = None
+        self.__tiP = None
         #
         #
         # self.__wsPattern = re.compile(r"\s+", flags=re.UNICODE | re.MULTILINE)
@@ -122,6 +125,7 @@ class DictMethodResourceProvider(SingletonClass):
             "PubChemProvider instance": self.__fetchPubChemProvider,
             "PharosProvider instance": self.__fetchPharosProvider,
             "RcsbLigandScoreProvider instance": self.__fetchRcsbLigandScoreProvider,
+            "TargetInteractionProvider instance": self.__fetchTargetInteractionProvider,
         }
         logger.debug("Dictionary resource provider init completed")
         #
@@ -391,3 +395,20 @@ class DictMethodResourceProvider(SingletonClass):
         if not self.__rlsP:
             self.__rlsP = RcsbLigandScoreProvider(cachePath=cachePath, useCache=useCache)
         return self.__rlsP
+
+    def __fetchTargetInteractionProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
+        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
+        if not self.__tiP:
+            # --
+            try:
+                minCount = 10
+                tiP = TargetInteractionProvider(cfgOb, configName, cachePath=cachePath, useCache=useCache)
+                ok = tiP.fromStash()
+                ok = tiP.reload()
+                ok = tiP.testCache(minCount=minCount)
+                if ok:
+                    self.__tiP = tiP
+            except Exception as e:
+                logger.warning("Failing with %s", str(e))
+            #
+        return self.__tiP

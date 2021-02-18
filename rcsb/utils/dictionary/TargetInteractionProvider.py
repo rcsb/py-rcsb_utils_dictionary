@@ -14,6 +14,7 @@ import logging
 import os.path
 import time
 
+from rcsb.utils.dictionary import __version__
 from rcsb.utils.dictionary.DictMethodCommonUtils import DictMethodCommonUtils
 from rcsb.utils.io.MarshalUtil import MarshalUtil
 from rcsb.utils.io.StashUtil import StashUtil
@@ -73,10 +74,11 @@ class TargetInteractionWorker(object):
 class TargetInteractionProvider:
     """Generators and accessors for non-polymer instance target interactions."""
 
-    def __init__(self, cfgOb, cachePath, **kwargs):
+    def __init__(self, cfgOb, configName, cachePath, **kwargs):
         #
-        self.__version = "0.50"
+        self.__version = __version__
         self.__cfgOb = cfgOb
+        self.__configName = configName
         self.__cachePath = cachePath
         self.__fileLimit = kwargs.get("fileLimit", None)
         self.__dirPath = os.path.join(cachePath, "target-interactions")
@@ -99,6 +101,7 @@ class TargetInteractionProvider:
             if minCount == 0:
                 return True
             if self.__targetD and minCount and len(self.__targetD["interactions"]) >= minCount:
+                logger.info("Target interactions (%d) created %r version %r", len(self.__targetD["interactions"]), self.__targetD["created"], self.__targetD["version"])
                 return True
         except Exception:
             pass
@@ -185,7 +188,21 @@ class TargetInteractionProvider:
         #
         return rD
 
-    def toStash(self, url, stashRemoteDirPath, userName=None, password=None, remoteStashPrefix=None):
+    def toStash(self):
+        ok = False
+        try:
+            userName = self.__cfgOb.get("_STASH_AUTH_USERNAME", sectionName=self.__configName)
+            password = self.__cfgOb.get("_STASH_AUTH_PASSWORD", sectionName=self.__configName)
+            basePath = self.__cfgOb.get("_STASH_SERVER_BASE_PATH", sectionName=self.__configName)
+            url = self.__cfgOb.get("STASH_SERVER_URL", sectionName=self.__configName)
+            urlFallBack = self.__cfgOb.get("STASH_SERVER_FALLBACK_URL", sectionName=self.__configName)
+            ok = self.__toStash(url, basePath, userName=userName, password=password)
+            ok = self.__toStash(urlFallBack, basePath, userName=userName, password=password)
+        except Exception as e:
+            logger.exception("Failing with %s", str(e))
+        return ok
+
+    def __toStash(self, url, stashRemoteDirPath, userName=None, password=None, remoteStashPrefix=None):
         """Copy tar and gzipped bundled cache data to remote server/location.
 
         Args:
@@ -208,7 +225,28 @@ class TargetInteractionProvider:
             logger.error("Failing with url %r stashDirPath %r: %s", url, stashRemoteDirPath, str(e))
         return ok
 
-    def fromStash(self, url, stashRemoteDirPath, userName=None, password=None, remoteStashPrefix=None):
+    def fromStash(self):
+        try:
+            minCount = 10
+            userName = self.__cfgOb.get("_STASH_AUTH_USERNAME", sectionName=self.__configName)
+            password = self.__cfgOb.get("_STASH_AUTH_PASSWORD", sectionName=self.__configName)
+            basePath = self.__cfgOb.get("_STASH_SERVER_BASE_PATH", sectionName=self.__configName)
+            url = self.__cfgOb.get("STASH_SERVER_URL", sectionName=self.__configName)
+            #
+            ok = self.__fromStash(url, basePath, userName=userName, password=password)
+            ok = self.reload()
+            ok = self.testCache(minCount=minCount)
+            if not ok:
+                urlFallBack = self.__cfgOb.get("STASH_SERVER_FALLBACK_URL", sectionName=self.__configName)
+                ok = self.__fromStash(urlFallBack, basePath, userName=userName, password=password)
+                ok = self.testCache(minCount=minCount)
+                ok = self.reload()
+        except Exception as e:
+            logger.exception("Failing with %s", str(e))
+
+        return ok
+
+    def __fromStash(self, url, stashRemoteDirPath, userName=None, password=None, remoteStashPrefix=None):
         """Restore local cache from a tar and gzipped bundle to fetched from a remote server/location.
 
         Args:
