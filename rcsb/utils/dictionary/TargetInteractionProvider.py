@@ -15,7 +15,7 @@ import os.path
 import time
 
 from rcsb.utils.dictionary import __version__
-from rcsb.utils.dictionary.DictMethodCommonUtils import DictMethodCommonUtils
+from rcsb.utils.dictionary.DictMethodCommonUtils import DictMethodCommonUtils, LigandTargetInstance
 from rcsb.utils.io.MarshalUtil import MarshalUtil
 from rcsb.utils.io.StashUtil import StashUtil
 from rcsb.utils.multiproc.MultiProcUtil import MultiProcUtil
@@ -107,6 +107,48 @@ class TargetInteractionProvider:
             pass
         return False
 
+    def getInteractions(self, entryId):
+        """Return the target interactions for the non-polymer instances for the input entry.
+
+        Args:
+            entryId (str): entry identifier
+
+        Returns:
+            (dict): {asymId: [LigandTargetInstance(), LigandTargetInstance(), ...]}
+        """
+        try:
+            return self.__targetD["interactions"][entryId.upper()]
+        except Exception:
+            pass
+        return {}
+
+    def hasEntry(self, entryId):
+        """Return if the input entry is stored in the cache of non-polymer instance target interactions.
+
+        Args:
+            entryId (str): entry identifier
+
+        Returns:
+            (bool): True if entry is in the cache or False otherwise
+        """
+        try:
+            return entryId in self.__targetD["interactions"]
+        except Exception:
+            pass
+        return False
+
+    def getEntries(self):
+        """Return a list of entry identifier for which non-polymer instance target interactions are stored.
+
+        Returns:
+            (list): [entryId, entryId, ... ]
+        """
+        try:
+            return list(self.__targetD["interactions"].keys())
+        except Exception:
+            pass
+        return []
+
     def generate(self, distLimit=5.0, fmt="json", indent=3):
         """Generate and export non-polymer target interactions for all of the structures in the repository.
 
@@ -121,7 +163,7 @@ class TargetInteractionProvider:
         ok = False
         try:
             tS = time.strftime("%Y %m %d %H:%M:%S", time.localtime())
-            tD = self.calculateNeighbors(distLimit=distLimit, numProc=self.__numProc, chunkSize=self.__chunkSize)
+            tD = self.__calculateNeighbors(distLimit=distLimit, numProc=self.__numProc, chunkSize=self.__chunkSize)
             self.__targetD = {"version": self.__version, "created": tS, "interactions": tD}
             kwargs = {"indent": indent} if fmt == "json" else {}
             targetFilePath = self.__getTargetFilePath(fmt=fmt)
@@ -145,6 +187,9 @@ class TargetInteractionProvider:
             #
             if useCache and self.__mU.exists(targetFilePath):
                 targetD = self.__mU.doImport(targetFilePath, fmt=fmt)
+                for _, neighborD in targetD["interactions"].items():
+                    for asymId in neighborD:
+                        neighborD[asymId] = [LigandTargetInstance(*neighbor) for neighbor in neighborD[asymId]]
 
         except Exception as e:
             logger.exception("Failing with %s", str(e))
@@ -155,7 +200,7 @@ class TargetInteractionProvider:
         pth = os.path.join(self.__dirPath, "nonpolymer-target-interactions", "inst-target-interactions." + fmt)
         return pth
 
-    def calculateNeighbors(self, distLimit=5.0, numProc=2, chunkSize=10):
+    def __calculateNeighbors(self, distLimit=5.0, numProc=2, chunkSize=10):
         """Calculate non-polymer target interactions for all repository structure files.
 
         Args:

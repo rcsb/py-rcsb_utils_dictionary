@@ -51,32 +51,50 @@ class TargetInteractionProviderTests(unittest.TestCase):
         pass
 
     def testTargetInteractionProviderBootstrap(self):
-        tiP = TargetInteractionProvider(self.__cfgOb, self.__configName, self.__cachePath, useCache=False)
-        ok = tiP.generate(distLimit=5.0, fmt="json", indent=3)
-        self.assertTrue(ok)
-        ok = tiP.reload()
-        self.assertTrue(ok)
-        ok = tiP.testCache(minCount=85)
-        self.assertTrue(ok)
-        #
-        tiP = TargetInteractionProvider(self.__cfgOb, self.__configName, self.__cachePath, useCache=True)
-        ok = tiP.testCache(minCount=85)
-        self.assertTrue(ok)
+        try:
+            tiP = TargetInteractionProvider(self.__cfgOb, self.__configName, self.__cachePath, useCache=False)
+            ok = tiP.generate(distLimit=5.0, fmt="json", indent=3)
+            self.assertTrue(ok)
+            ok = tiP.reload()
+            self.assertTrue(ok)
+            ok = tiP.testCache(minCount=85)
+            self.assertTrue(ok)
+            #
+            tiP = TargetInteractionProvider(self.__cfgOb, self.__configName, self.__cachePath, useCache=True)
+            ok = tiP.testCache(minCount=85)
+            self.assertTrue(ok)
+            for entryId in tiP.getEntries():
+                intD = tiP.getInteractions(entryId)
+                for asymId, neighborL in intD.items():
+                    tD = {}
+                    for neighbor in neighborL:
+                        logger.debug("%s %s %r", entryId, asymId, neighbor)
+                        if neighbor.distance < 5.0:
+                            tD.setdefault(asymId, set()).add((neighbor.partnerEntityId, neighbor.partnerAsymId, neighbor.connectType))
+                    if len(tD) > 1:
+                        logger.info("%s %s (%d) %r", entryId, asymId, len(tD), tD)
+        except Exception as e:
+            logger.exception("Failing with %s", str(e))
+            self.fail()
 
-    @unittest.skipIf(skipFlag, "Private test")
+    @unittest.skipIf(skipFlag, "Requires internal configuration")
     def testStashRemote(self):
-        #
-        tiP = TargetInteractionProvider(self.__cfgOb, self.__configName, self.__cachePath, useCache=True)
-        ok = tiP.testCache()
-        self.assertTrue(ok)
-        ok = tiP.toStash()
-        self.assertTrue(ok)
-        #
-        ok = tiP.fromStash()
-        self.assertTrue(ok)
-        ok = tiP.reload()
-        self.assertTrue(ok)
-        #
+        try:
+            #
+            tiP = TargetInteractionProvider(self.__cfgOb, self.__configName, self.__cachePath, useCache=True)
+            ok = tiP.testCache()
+            self.assertTrue(ok)
+            ok = tiP.toStash()
+            self.assertTrue(ok)
+            #
+            ok = tiP.fromStash()
+            self.assertTrue(ok)
+            ok = tiP.reload()
+            self.assertTrue(ok)
+            #
+        except Exception as e:
+            logger.exception("Failing with %s", str(e))
+            self.fail()
 
 
 def targetInteractionSuite():
