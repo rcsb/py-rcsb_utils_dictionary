@@ -40,6 +40,8 @@ setup(
     entry_points={},
     #
     install_requires=[
+        "scipy",
+        "numpy",
         "mmcif >= 0.57",
         "rcsb.utils.io >= 0.97",
         "rcsb.utils.config >= 0.35",
