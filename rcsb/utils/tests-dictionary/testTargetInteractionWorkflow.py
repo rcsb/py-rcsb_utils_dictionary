@@ -38,7 +38,7 @@ class TargetInteractionWorkflowTests(unittest.TestCase):
         self.__cachePath = os.path.join(TOPDIR, "CACHE")
         self.__configPath = os.path.join(HERE, "test-data", "stash-config-example.yml")
         self.__configName = "site_info_configuration"
-        self.__useCache = next_fast_len
+        self.__useCache = False
         self.__startTime = time.time()
         logger.info("Starting %s at %s", self.id(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()))
 
