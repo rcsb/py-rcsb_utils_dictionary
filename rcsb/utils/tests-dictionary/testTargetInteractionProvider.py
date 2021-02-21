@@ -19,11 +19,12 @@ __license__ = "Apache 2.0"
 
 import logging
 import os
+import time
 import unittest
+
 
 from rcsb.utils.dictionary.TargetInteractionProvider import TargetInteractionProvider
 from rcsb.utils.config.ConfigUtil import ConfigUtil
-from rcsb.utils.io.MarshalUtil import MarshalUtil
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 TOPDIR = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
@@ -37,23 +38,24 @@ class TargetInteractionProviderTests(unittest.TestCase):
 
     def setUp(self):
         mockTopPath = os.path.join(TOPDIR, "rcsb", "mock-data")
-        self.__cachePath = os.path.join(HERE, "test-output", "CACHE")
-        # configPath = os.path.join(mockTopPath, "config", "dbload-setup-example.yml")
+        self.__cachePath = os.path.join(TOPDIR, "CACHE")
         configPath = os.path.join(HERE, "test-data", "stash-config-example.yml")
         self.__configName = "site_info_configuration"
+        self.__startTime = time.time()
+        logger.info("Starting %s at %s", self.id(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()))
+        #
         self.__cfgOb = ConfigUtil(configPath=configPath, defaultSectionName=self.__configName, mockTopPath=mockTopPath)
-        self.__dataPath = os.path.join(HERE, "test-data")
-        self.__mU = MarshalUtil(workPath=self.__cachePath)
-        self.__stashUrl = None
-        self.__stashRemotePath = os.path.join(self.__cachePath, "stash-remote")
 
     def tearDown(self):
-        pass
+        endTime = time.time()
+        logger.info("Completed %s at %s (%.4f seconds)", self.id(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - self.__startTime)
 
     def testTargetInteractionProviderBootstrap(self):
         try:
             tiP = TargetInteractionProvider(self.__cfgOb, self.__configName, self.__cachePath, useCache=False)
-            ok = tiP.generate(distLimit=5.0, fmt="json", indent=3)
+            ok = tiP.generate(distLimit=5.0, updateOnly=False, fmt="json", indent=3)
+            self.assertTrue(ok)
+            ok = tiP.generate(distLimit=5.0, updateOnly=True, fmt="json", indent=3)
             self.assertTrue(ok)
             ok = tiP.reload()
             self.assertTrue(ok)
@@ -69,8 +71,7 @@ class TargetInteractionProviderTests(unittest.TestCase):
                     tD = {}
                     for neighbor in neighborL:
                         logger.debug("%s %s %r", entryId, asymId, neighbor)
-                        if neighbor.distance < 5.0:
-                            tD.setdefault(asymId, set()).add((neighbor.partnerEntityId, neighbor.partnerAsymId, neighbor.connectType))
+                        tD.setdefault(asymId, set()).add((neighbor.partnerEntityId, neighbor.partnerAsymId, neighbor.connectType))
                     if len(tD) > 1:
                         logger.info("%s %s (%d) %r", entryId, asymId, len(tD), tD)
         except Exception as e:

@@ -43,13 +43,13 @@ class TargetInteractionWorker(object):
         diagList = []
         #
         try:
-            distLimit = optionsD.get("distLimit", 5.0)
+            distLimit = optionsD.get("distLimit", 6.0)
             for locatorObj in dataList:
                 dataContainerList = self.__rpP.getContainerList([locatorObj])
                 for dataContainer in dataContainerList:
                     entryId = dataContainer.getName()
-                    instD = self.__buildTargetInteractions(procName, dataContainer, distLimit)
-                    retList.append((entryId, instD))
+                    instD, countD = self.__buildTargetInteractions(procName, dataContainer, distLimit)
+                    retList.append((entryId, instD, countD))
             #
             successList = sorted(set(dataList) - set(failList))
             if failList:
@@ -65,13 +65,13 @@ class TargetInteractionWorker(object):
         """Internal method return a dictionary target interactions."""
         rD = {}
         try:
-            rD = self.__commonU.getNonpolymerInstanceNeighbors(dataContainer, distLimit=distLimit)
+            rD, countD = self.__commonU.getNonpolymerInstanceNeighborInfo(dataContainer, distLimit=distLimit)
         except Exception as e:
             logger.exception("%s failing with %s", procName, str(e))
-        return rD
+        return rD, countD
 
 
-class TargetInteractionProvider:
+class TargetInteractionProvider(object):
     """Generators and accessors for non-polymer instance target interactions."""
 
     def __init__(self, cfgOb, configName, cachePath, **kwargs):
@@ -122,6 +122,21 @@ class TargetInteractionProvider:
             pass
         return {}
 
+    def getAtomCounts(self, entryId):
+        """Return the non-polymer instance occupancy weighted atome counts for the input entry.
+
+        Args:
+            entryId (str): entry identifier
+
+        Returns:
+            (dict): {asymId: {'FL': count, 'altA': occ*count, 'altB': occ*count, ... }}
+        """
+        try:
+            return self.__targetD["atomCounts"][entryId.upper()]
+        except Exception:
+            pass
+        return {}
+
     def hasEntry(self, entryId):
         """Return if the input entry is stored in the cache of non-polymer instance target interactions.
 
@@ -149,13 +164,14 @@ class TargetInteractionProvider:
             pass
         return []
 
-    def generate(self, distLimit=5.0, fmt="json", indent=3):
+    def generate(self, distLimit=5.0, updateOnly=False, fmt="json", indent=0):
         """Generate and export non-polymer target interactions for all of the structures in the repository.
 
         Args:
             distLimit (float, optional): interaction distance. Defaults to 5.0.
+            updateOnly (bool):  only calculate interactions for new entries.  Defaults to False.
             fmt (str, optional): export file format. Defaults to "json".
-            indent (int, optional): json format indent. Defaults to 3.
+            indent (int, optional): json format indent. Defaults to 0.
 
         Returns:
             bool: True for success or False otherwise
@@ -163,8 +179,8 @@ class TargetInteractionProvider:
         ok = False
         try:
             tS = time.strftime("%Y %m %d %H:%M:%S", time.localtime())
-            tD = self.__calculateNeighbors(distLimit=distLimit, numProc=self.__numProc, chunkSize=self.__chunkSize)
-            self.__targetD = {"version": self.__version, "created": tS, "interactions": tD}
+            tD, cD = self.__calculateNeighbors(distLimit=distLimit, numProc=self.__numProc, chunkSize=self.__chunkSize, updateOnly=updateOnly)
+            self.__targetD = {"version": self.__version, "created": tS, "interactions": tD, "atomCounts": cD}
             kwargs = {"indent": indent} if fmt == "json" else {}
             targetFilePath = self.__getTargetFilePath(fmt=fmt)
             ok = self.__mU.doExport(targetFilePath, self.__targetD, fmt=fmt, **kwargs)
@@ -182,15 +198,14 @@ class TargetInteractionProvider:
         try:
             targetFilePath = self.__getTargetFilePath(fmt=fmt)
             tS = time.strftime("%Y %m %d %H:%M:%S", time.localtime())
-            targetD = {"version": self.__version, "created": tS, "interactions": {}}
-            logger.info("useCache %r targetFilePath %r", useCache, targetFilePath)
+            targetD = {"version": self.__version, "created": tS, "interactions": {}, "atomCounts": {}}
+            logger.debug("useCache %r targetFilePath %r", useCache, targetFilePath)
             #
             if useCache and self.__mU.exists(targetFilePath):
                 targetD = self.__mU.doImport(targetFilePath, fmt=fmt)
                 for _, neighborD in targetD["interactions"].items():
                     for asymId in neighborD:
                         neighborD[asymId] = [LigandTargetInstance(*neighbor) for neighbor in neighborD[asymId]]
-
         except Exception as e:
             logger.exception("Failing with %s", str(e))
         #
@@ -200,7 +215,7 @@ class TargetInteractionProvider:
         pth = os.path.join(self.__dirPath, "nonpolymer-target-interactions", "inst-target-interactions." + fmt)
         return pth
 
-    def __calculateNeighbors(self, distLimit=5.0, numProc=2, chunkSize=10):
+    def __calculateNeighbors(self, distLimit=5.0, numProc=2, chunkSize=10, updateOnly=False):
         """Calculate non-polymer target interactions for all repository structure files.
 
         Args:
@@ -213,11 +228,19 @@ class TargetInteractionProvider:
         """
 
         rD = {}
+        cD = {}
         contentType = "pdbx"
         mergeContent = None
+        exD = None
+        if updateOnly:
+            if not self.testCache(minCount=10):
+                ok = self.reload()
+            exD = {k: True for k in self.getEntries()}
+            rD = self.__targetD["interactions"] if "interactions" in self.__targetD else {}
+            cD = self.__targetD["atomCounts"] if "atomCounts" in self.__targetD else {}
         #
-        locatorObjList = self.__rpP.getLocatorObjList(contentType=contentType, mergeContentTypes=mergeContent)
-        logger.info("Starting with %d numProc %d =", len(locatorObjList), self.__numProc)
+        locatorObjList = self.__rpP.getLocatorObjList(contentType=contentType, mergeContentTypes=mergeContent, excludeIds=exD)
+        logger.info("Starting with %d numProc %d updateOnly (%r)", len(locatorObjList), self.__numProc, updateOnly)
         #
         rWorker = TargetInteractionWorker(self.__rpP)
         mpu = MultiProcUtil(verbose=True)
@@ -227,11 +250,13 @@ class TargetInteractionProvider:
         ok, failList, resultList, _ = mpu.runMulti(dataList=locatorObjList, numProc=numProc, numResults=1, chunkSize=chunkSize)
         if failList:
             logger.info("Target interaction build failures (%d): %r", len(failList), failList)
-        logger.info("Multi-proc status %r failures %r result length %r", ok, len(failList), len(resultList[0]))
-        for (entryId, tD) in resultList[0]:
-            rD[entryId] = tD
         #
-        return rD
+        for (entryId, tD, qD) in resultList[0]:
+            rD[entryId] = tD
+            cD[entryId] = qD
+        #
+        logger.info("Completed with multi-proc status %r failures %r total entry interactions (%d) atom counts (%d)", ok, len(failList), len(rD), len(cD))
+        return rD, cD
 
     def toStash(self):
         ok = False

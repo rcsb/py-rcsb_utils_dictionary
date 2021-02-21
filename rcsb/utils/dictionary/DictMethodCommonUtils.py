@@ -48,6 +48,7 @@ NonpolymerBoundEntity = namedtuple("NonpolymerBoundEntity", BoundEntityFields, d
 BoundInstanceFields = (
     "targetCompId",
     "targetAtomId",
+    "targetAltId",
     "connectType",
     "partnerEntityType",
     "partnerEntityId",
@@ -55,29 +56,43 @@ BoundInstanceFields = (
     "partnerAsymId",
     "partnerSeqId",
     "partnerAtomId",
+    "partnerAltId",
     "bondDistance",
     "bondOrder",
 )
 NonpolymerBoundInstance = namedtuple("NonpolymerBoundInstance", BoundInstanceFields, defaults=(None,) * len(BoundInstanceFields))
 
-NonpolymerValidationFields = ("rsr", "rscc", "mogul_bonds_rmsz", "mogul_angles_rmsz", "missing_heavy_atom_count", "intermolecular_clashes")
+NonpolymerValidationFields = (
+    "rsr",
+    "rscc",
+    "mogul_bonds_rmsz",
+    "mogul_angles_rmsz",
+    "missing_heavy_atom_count",
+    "intermolecular_clashes",
+    "mogul_bond_outliers",
+    "mogul_angle_outliers",
+    "stereo_outliers",
+)
 NonpolymerValidationInstance = namedtuple("NonpolymerValidationInstance", NonpolymerValidationFields, defaults=(None,) * len(NonpolymerValidationFields))
 
 LigandTargetFields = (
     "ligandCompId",
-    "ligandAtomName",
+    "ligandAtomId",
+    "ligandAltId",
     "connectType",
+    "partnerModelId",
     "partnerEntityType",
     "partnerEntityId",
     "partnerCompId",
     "partnerAsymId",
     "partnerSeqId",
-    "partnerAtomName",
+    "partnerAtomId",
+    "partnerAltId",
     "distance",
 )
 LigandTargetInstance = namedtuple("LigandTargetInstance", LigandTargetFields, defaults=(None,) * len(LigandTargetFields))
 
-ReferenceFields = ("entityId", "entityType", "asymId", "compId", "seqId", "atomName")
+ReferenceFields = ("entityId", "entityType", "asymId", "compId", "seqId", "atomId", "altId")
 ReferenceInstance = namedtuple("ReferenceInstance", ReferenceFields, defaults=(None,) * len(ReferenceFields))
 
 
@@ -1811,8 +1826,8 @@ class DictMethodCommonUtils(object):
             dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
 
         Returns:
-            dict: {<asymId>: NonpolymerBoundInstance( "targetCompId", "targetAtomId", "connectType", "partnerEntityType", "partnerEntityId",
-                                                      "partnerCompId","partnerAsymId", "partnerSeqId", "partnerAtomId", "bondDistance", "bondOrder"), }
+            dict: {<asymId>: NonpolymerBoundInstance( "targetCompId", "targetAtomId", "targetAltId", "connectType", "partnerEntityType", "partnerEntityId",
+                                                      "partnerCompId","partnerAsymId", "partnerSeqId", "partnerAtomId", "targetAltId", "bondDistance", "bondOrder"), }
 
         """
         if not dataContainer or not dataContainer.getName():
@@ -2022,13 +2037,15 @@ class DictMethodCommonUtils(object):
                     tCompId = cD["connect_target_label_comp_id"]
                     tAtomId = cD["connect_target_label_atom_id"]
                     pAtomId = cD["connect_partner_label_atom_id"]
+                    tAltId = cD["connect_target_label_alt_id"]
+                    pAltId = cD["connect_partner_label_alt_id"]
                     bondOrder = cD["value_order"]
                     bondDist = cD["dist_value"]
                     eType = eTypeD[pEntityId]
                     #
                     ts.add(tCompId)
                     boundNonpolymerInstanceD.setdefault(tAsymId, []).append(
-                        NonpolymerBoundInstance(tCompId, tAtomId, cD["connect_type"], eType, pEntityId, pCompId, pAsymId, pSeqId, pAtomId, bondDist, bondOrder)
+                        NonpolymerBoundInstance(tCompId, tAtomId, tAltId, cD["connect_type"], eType, pEntityId, pCompId, pAsymId, pSeqId, pAtomId, pAltId, bondDist, bondOrder)
                     )
                     boundNonpolymerEntityD.setdefault(tEntityId, []).append(NonpolymerBoundEntity(tCompId, cD["connect_type"], pCompId, pEntityId, eType))
             #
@@ -3732,7 +3749,8 @@ class DictMethodCommonUtils(object):
             dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
 
         Returns:
-            dict: {(modelId, asymId): NonpolymerValidationInstance(rsr, rsrCc, bondsRmsZ, anglesRmsZ, missingAtomCount, intermolecular_clashes)}
+            dict: {(modelId, asymId): NonpolymerValidationInstance(rsr, rsrCc, bondsRmsZ, anglesRmsZ, missingAtomCount,
+                                             intermolecular_clashes, mogul_bond_outliers, mogul_angle_outliers, stereo_outliers)}
 
         """
         if not dataContainer or not dataContainer.getName():
@@ -3813,14 +3831,21 @@ class DictMethodCommonUtils(object):
                 or dataContainer.exists("pdbx_vrpt_angle_outliers")
                 or dataContainer.exists("pdbx_vrpt_mogul_bond_outliers")
                 or dataContainer.exists("pdbx_vrpt_mogul_angle_outliers")
+                or dataContainer.exists("pdbx_vrpt_stereo_outliers")
                 or dataContainer.exists("pdbx_vrpt_clashes")
             ):
                 return rD
             # ------- --------- ------- --------- ------- --------- ------- --------- ------- ---------
             nonPolyMissingAtomD = self.getUnobservedNonPolymerAtomInfo(dataContainer)
+            instanceTypeD = self.getInstanceTypes(dataContainer)
             #
             instanceModelOutlierD = {}
             instanceModelValidationD = {}
+            #
+            npMogulBondOutlierD = defaultdict(int)
+            npMogulAngleOutlierD = defaultdict(int)
+            npStereoOutlierD = defaultdict(int)
+            #
             vObj = None
             if dataContainer.exists("pdbx_vrpt_bond_outliers"):
                 vObj = dataContainer.getObj("pdbx_vrpt_bond_outliers")
@@ -3831,14 +3856,15 @@ class DictMethodCommonUtils(object):
                         modelId = vObj.getValueOrDefault("PDB_model_num", ii, defaultValue=None)
                         asymId = vObj.getValueOrDefault("label_asym_id", ii, defaultValue=None)
                         compId = vObj.getValueOrDefault("label_comp_id", ii, defaultValue=None)
+                        altId = vObj.getValueOrDefault("label_alt_id", ii, defaultValue=None)
                         #
                         atomI = vObj.getValueOrDefault("atom0", ii, defaultValue=None)
                         atomJ = vObj.getValueOrDefault("atom1", ii, defaultValue=None)
                         obsDist = vObj.getValueOrDefault("obs", ii, defaultValue=None)
                         zVal = vObj.getValueOrDefault("Z", ii, defaultValue=None)
-                        tS = "%s-%s dist=%s Z=%s" % (atomI, atomJ, obsDist, zVal)
+                        tS = "%s-%s (altId=%s) dist=%s Z=%s" % (atomI, atomJ, altId, obsDist, zVal) if altId else "%s-%s dist=%s Z=%s" % (atomI, atomJ, obsDist, zVal)
                         #
-                        instanceModelOutlierD.setdefault((modelId, asymId, True), []).append(
+                        instanceModelOutlierD.setdefault((modelId, asymId, altId, True), []).append(
                             OutlierValue(
                                 compId,
                                 int(seqId),
@@ -3846,6 +3872,7 @@ class DictMethodCommonUtils(object):
                                 tS,
                             )
                         )
+
                 #
                 logger.debug("length instanceModelOutlierD %d", len(instanceModelOutlierD))
             # ----
@@ -3859,15 +3886,20 @@ class DictMethodCommonUtils(object):
                         modelId = vObj.getValueOrDefault("PDB_model_num", ii, defaultValue=None)
                         asymId = vObj.getValueOrDefault("label_asym_id", ii, defaultValue=None)
                         compId = vObj.getValueOrDefault("label_comp_id", ii, defaultValue=None)
+                        altId = vObj.getValueOrDefault("label_alt_id", ii, defaultValue=None)
                         #
                         atomI = vObj.getValueOrDefault("atom0", ii, defaultValue=None)
                         atomJ = vObj.getValueOrDefault("atom1", ii, defaultValue=None)
                         atomK = vObj.getValueOrDefault("atom2", ii, defaultValue=None)
                         obsDist = vObj.getValueOrDefault("obs", ii, defaultValue=None)
                         zVal = vObj.getValueOrDefault("Z", ii, defaultValue=None)
-                        tS = "%s-%s-%s angle=%s Z=%s" % (atomI, atomJ, atomK, obsDist, zVal)
+                        tS = (
+                            "%s-%s-%s (altId %s) angle=%s Z=%s" % (atomI, atomJ, atomK, altId, obsDist, zVal)
+                            if altId
+                            else "%s-%s-%s angle=%s Z=%s" % (atomI, atomJ, atomK, obsDist, zVal)
+                        )
                         #
-                        instanceModelOutlierD.setdefault((modelId, asymId, True), []).append(
+                        instanceModelOutlierD.setdefault((modelId, asymId, altId, True), []).append(
                             OutlierValue(
                                 compId,
                                 int(seqId),
@@ -3875,6 +3907,7 @@ class DictMethodCommonUtils(object):
                                 tS,
                             )
                         )
+
                 #
                 logger.debug("length instanceModelOutlierD %d", len(instanceModelOutlierD))
             # ----
@@ -3888,15 +3921,16 @@ class DictMethodCommonUtils(object):
                     modelId = vObj.getValueOrDefault("PDB_model_num", ii, defaultValue=None)
                     asymId = vObj.getValueOrDefault("label_asym_id", ii, defaultValue=None)
                     compId = vObj.getValueOrDefault("label_comp_id", ii, defaultValue=None)
+                    altId = vObj.getValueOrDefault("label_alt_id", ii, defaultValue=None)
                     #
                     atoms = vObj.getValueOrDefault("atoms", ii, defaultValue=None)
                     obsDist = vObj.getValueOrDefault("obsval", ii, defaultValue=None)
                     meanValue = vObj.getValueOrDefault("mean", ii, defaultValue=None)
                     zVal = vObj.getValueOrDefault("Zscore", ii, defaultValue=None)
-                    tS = "%s angle=%s Z=%s" % (atoms, obsDist, zVal)
+                    tS = "%s (altIt %s) angle=%s Z=%s" % (atoms, altId, obsDist, zVal) if altId else "%s angle=%s Z=%s" % (atoms, obsDist, zVal)
                     # OutlierValue = collections.namedtuple("OutlierValue", "compId, seqId, outlierType, description, reported, reference, uncertaintyValue, uncertaintyType")
                     if seqId:
-                        instanceModelOutlierD.setdefault((modelId, asymId, True), []).append(
+                        instanceModelOutlierD.setdefault((modelId, asymId, altId, True), []).append(
                             OutlierValue(
                                 compId,
                                 int(seqId),
@@ -3905,9 +3939,10 @@ class DictMethodCommonUtils(object):
                             )
                         )
                     else:
-                        instanceModelOutlierD.setdefault((modelId, asymId, False), []).append(
+                        instanceModelOutlierD.setdefault((modelId, asymId, altId, False), []).append(
                             OutlierValue(compId, None, "MOGUL_BOND_OUTLIER", tS, obsDist, meanValue, zVal, "Z-Score")
                         )
+                        npMogulBondOutlierD[(modelId, asymId, altId, compId)] += 1
                 #
                 logger.debug("length instanceModelOutlierD %d", len(instanceModelOutlierD))
 
@@ -3921,14 +3956,15 @@ class DictMethodCommonUtils(object):
                     modelId = vObj.getValueOrDefault("PDB_model_num", ii, defaultValue=None)
                     asymId = vObj.getValueOrDefault("label_asym_id", ii, defaultValue=None)
                     compId = vObj.getValueOrDefault("label_comp_id", ii, defaultValue=None)
+                    altId = vObj.getValueOrDefault("label_alt_id", ii, defaultValue=None)
                     #
                     atoms = vObj.getValueOrDefault("atoms", ii, defaultValue=None)
                     obsDist = vObj.getValueOrDefault("obsval", ii, defaultValue=None)
                     meanValue = vObj.getValueOrDefault("mean", ii, defaultValue=None)
                     zVal = vObj.getValueOrDefault("Zscore", ii, defaultValue=None)
-                    tS = "%s angle=%s Z=%s" % (atoms, obsDist, zVal)
+                    tS = "%s (altId %s) angle=%s Z=%s" % (atoms, altId, obsDist, zVal) if altId else "%s angle=%s Z=%s" % (atoms, obsDist, zVal)
                     if seqId:
-                        instanceModelOutlierD.setdefault((modelId, asymId, True), []).append(
+                        instanceModelOutlierD.setdefault((modelId, asymId, altId, True), []).append(
                             OutlierValue(
                                 compId,
                                 int(seqId),
@@ -3937,9 +3973,37 @@ class DictMethodCommonUtils(object):
                             )
                         )
                     else:
-                        instanceModelOutlierD.setdefault((modelId, asymId, False), []).append(
+                        instanceModelOutlierD.setdefault((modelId, asymId, altId, False), []).append(
                             OutlierValue(compId, None, "MOGUL_ANGLE_OUTLIER", tS, obsDist, meanValue, zVal, "Z-Score")
                         )
+                        npMogulAngleOutlierD[(modelId, asymId, altId, compId)] += 1
+                logger.debug("length instanceModelOutlierD %d", len(instanceModelOutlierD))
+                #
+            # --
+            vObj = None
+            if dataContainer.exists("pdbx_vrpt_stereo_outliers"):
+                vObj = dataContainer.getObj("pdbx_vrpt_stereo_outliers")
+            if vObj:
+                for ii in range(vObj.getRowCount()):
+                    seqId = vObj.getValueOrDefault("label_seq_id", ii, defaultValue=None)
+                    modelId = vObj.getValueOrDefault("PDB_model_num", ii, defaultValue=None)
+                    asymId = vObj.getValueOrDefault("label_asym_id", ii, defaultValue=None)
+                    compId = vObj.getValueOrDefault("label_comp_id", ii, defaultValue=None)
+                    altId = vObj.getValueOrDefault("label_alt_id", ii, defaultValue=None)
+                    description = vObj.getValueOrDefault("problem", ii, defaultValue=None)
+                    #
+                    if seqId:
+                        instanceModelOutlierD.setdefault((modelId, asymId, altId, True), []).append(
+                            OutlierValue(
+                                compId,
+                                int(seqId),
+                                "STEREO_OUTLIER",
+                                description,
+                            )
+                        )
+                    else:
+                        instanceModelOutlierD.setdefault((modelId, asymId, altId, False), []).append(OutlierValue(compId, None, "STEREO_OUTLIER", description))
+                        npStereoOutlierD[(modelId, asymId, altId, compId)] += 1
                 logger.debug("length instanceModelOutlierD %d", len(instanceModelOutlierD))
                 #
                 #
@@ -3960,8 +4024,8 @@ class DictMethodCommonUtils(object):
                         modelId = vObj.getValueOrDefault("PDB_model_num", ii, defaultValue=None)
                         asymId = vObj.getValueOrDefault("label_asym_id", ii, defaultValue=None)
                         compId = vObj.getValueOrDefault("label_comp_id", ii, defaultValue=None)
-                        # if compId not in ["HOH"]:
-                        tClashD.setdefault((modelId, asymId, compId), []).append(clashId)
+                        altId = vObj.getValueOrDefault("label_alt_id", ii, defaultValue=None)
+                        tClashD.setdefault((modelId, asymId, altId, compId), []).append(clashId)
                     #
                 for ky, clashIdL in tClashD.items():
                     cD = defaultdict(int)
@@ -3984,6 +4048,7 @@ class DictMethodCommonUtils(object):
                     modelId = vObj.getValueOrDefault("PDB_model_num", ii, defaultValue=None)
                     asymId = vObj.getValueOrDefault("label_asym_id", ii, defaultValue=None)
                     compId = vObj.getValueOrDefault("label_comp_id", ii, defaultValue=None)
+                    altId = vObj.getValueOrDefault("label_alt_id", ii, defaultValue=None)
                     #
                     rotamerClass = vObj.getValueOrDefault("rotamer_class", ii, defaultValue=None)
                     ramaClass = vObj.getValueOrDefault("ramachandran_class", ii, defaultValue=None)
@@ -3993,10 +4058,12 @@ class DictMethodCommonUtils(object):
                     #
                     anglesRmsZ = vObj.getValueOrDefault("mogul_angles_RMSZ", ii, defaultValue=None)
                     bondsRmsZ = vObj.getValueOrDefault("mogul_bonds_RMSZ", ii, defaultValue=None)
-                    #
+                    # ---
+
+                    # ---
                     if seqId:
                         if rotamerClass and rotamerClass.upper() == "OUTLIER":
-                            instanceModelOutlierD.setdefault((modelId, asymId, True), []).append(
+                            instanceModelOutlierD.setdefault((modelId, asymId, altId, True), []).append(
                                 OutlierValue(
                                     compId,
                                     int(seqId),
@@ -4005,7 +4072,7 @@ class DictMethodCommonUtils(object):
                                 )
                             )
                         if ramaClass and ramaClass.upper() == "OUTLIER":
-                            instanceModelOutlierD.setdefault((modelId, asymId, True), []).append(
+                            instanceModelOutlierD.setdefault((modelId, asymId, altId, True), []).append(
                                 OutlierValue(
                                     compId,
                                     int(seqId),
@@ -4014,8 +4081,8 @@ class DictMethodCommonUtils(object):
                                 )
                             )
                         if rsrZ and float(rsrZ) > 2.0:
-                            tS = "%s > 2.0" % rsrZ
-                            instanceModelOutlierD.setdefault((modelId, asymId, True), []).append(
+                            tS = "%s > 2.0 (altId %s)" % (rsrZ, altId) if altId else "%s > 2.0 " % rsrZ
+                            instanceModelOutlierD.setdefault((modelId, asymId, altId, True), []).append(
                                 OutlierValue(
                                     compId,
                                     int(seqId),
@@ -4024,8 +4091,8 @@ class DictMethodCommonUtils(object):
                                 )
                             )
                         if rsrCc and float(rsrCc) < 0.650:
-                            tS = "RSCC < 0.65"
-                            instanceModelOutlierD.setdefault((modelId, asymId, True), []).append(
+                            tS = "RSCC < 0.65 (altId %s)" % altId if altId else "RSCC < 0.65"
+                            instanceModelOutlierD.setdefault((modelId, asymId, altId, True), []).append(
                                 OutlierValue(
                                     compId,
                                     int(seqId),
@@ -4035,25 +4102,27 @@ class DictMethodCommonUtils(object):
                             )
                     else:
                         if rsrZ and float(rsrZ) > 2.0:
-                            tS = "%s > 2.0" % rsrZ
-                            instanceModelOutlierD.setdefault((modelId, asymId, False), []).append(OutlierValue(compId, None, "RSRZ_OUTLIER", tS, rsr, None, rsrZ, "Z-Score"))
+                            tS = "%s > 2.0 (altId %s)" % (rsrZ, altId) if altId else "%s > 2.0" % rsrZ
+                            instanceModelOutlierD.setdefault((modelId, asymId, altId, False), []).append(OutlierValue(compId, None, "RSRZ_OUTLIER", tS, rsr, None, rsrZ, "Z-Score"))
                         if rsrCc and float(rsrCc) < 0.650:
-                            tS = "RSCC < 0.65"
-                            instanceModelOutlierD.setdefault((modelId, asymId, False), []).append(OutlierValue(compId, None, "RSCC_OUTLIER", tS, rsrCc))
-                        # NonpolymerValidationFields = ("rsr", "rscc",  "mogul_bonds_rmsz", "mogul_angles_rmsz", "heavy_atom_count", "modeled_heavy_atom_count")
-                        # "nonPolyMissingAtomD": {(modelId, compId, asymId, zeroOccFlag): [atomId,...], },
-                        missingAtomCount = len(nonPolyMissingAtomD[(modelId, compId, asymId, 0)]) if (modelId, compId, asymId, 0) in nonPolyMissingAtomD else 0
-                        missingAtomCount += len(nonPolyMissingAtomD[(modelId, compId, asymId, 1)]) if (modelId, compId, asymId, 1) in nonPolyMissingAtomD else 0
-                        instanceModelValidationD[(modelId, asymId, compId)] = NonpolymerValidationInstance(
-                            float(rsr) if rsr else None,
-                            float(rsrCc) if rsrCc else None,
-                            float(bondsRmsZ) if bondsRmsZ else None,
-                            float(anglesRmsZ) if anglesRmsZ else None,
-                            missingAtomCount,
-                            npClashD[(modelId, asymId, compId)] if (modelId, asymId, compId) in npClashD else 0,
-                        )
-                        if missingAtomCount > 0:
-                            logger.debug("%s %s missing atom count %d", dataContainer.getName(), compId, missingAtomCount)
+                            tS = "RSCC < 0.65 (altId %s)" % altId if altId else "RSCC < 0.65"
+                            instanceModelOutlierD.setdefault((modelId, asymId, altId, False), []).append(OutlierValue(compId, None, "RSCC_OUTLIER", tS, rsrCc))
+                        if asymId in instanceTypeD and instanceTypeD[asymId] == "non-polymer":
+                            missingAtomCount = len(nonPolyMissingAtomD[(modelId, compId, asymId, 0)]) if (modelId, compId, asymId, 0) in nonPolyMissingAtomD else 0
+                            missingAtomCount += len(nonPolyMissingAtomD[(modelId, compId, asymId, 1)]) if (modelId, compId, asymId, 1) in nonPolyMissingAtomD else 0
+                            instanceModelValidationD[(modelId, asymId, altId, compId)] = NonpolymerValidationInstance(
+                                float(rsr) if rsr else None,
+                                float(rsrCc) if rsrCc else None,
+                                float(bondsRmsZ) if bondsRmsZ else None,
+                                float(anglesRmsZ) if anglesRmsZ else None,
+                                missingAtomCount,
+                                npClashD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npClashD else 0,
+                                npMogulBondOutlierD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npMogulBondOutlierD else 0,
+                                npMogulAngleOutlierD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npMogulAngleOutlierD else 0,
+                                npStereoOutlierD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npStereoOutlierD else 0,
+                            )
+                            if missingAtomCount > 0:
+                                logger.debug("%s %s missing atom count %d", dataContainer.getName(), compId, missingAtomCount)
                 #
             logger.debug("instanceModelOutlierD %r", instanceModelOutlierD)
             logger.debug("instanceModelValidationD %r", instanceModelValidationD)
@@ -4063,28 +4132,29 @@ class DictMethodCommonUtils(object):
             logger.exception("%s failing with %s", dataContainer.getName(), str(e))
         return rD
 
-    def getNonpolymerInstanceNeighbors(self, dataContainer, distLimit=5.0):
-        """Get bound and unbound neighbors for each non-polymer instance.
+    def getNonpolymerInstanceNeighborInfo(self, dataContainer, distLimit=5.0, targetModelId="1"):
+        """Get bound and unbound neighbors for each non-polymer instance and occupancy weighted ligand counts.
 
         Args:
             dataContainer (obj): DataContainer object
             distLimit (float, optional): neighbor distance limit (Angstroms). Defaults to 5.0.
+            targetModelId (str, optional):  select only for this model identifier.  Defaults to 1.
 
         Returns:
-              (dict): {asymId: [LigandTargetInstance()]}
+              (dict, dict): {asymId: [LigandTargetInstance()]}, {asymId: {altId: occ*count}, }
         """
         try:
             startTime = time.time()
             ligandTargetInstanceD = {}
+            ligandAtomCountD = {}
             instanceTypeD = self.getInstanceTypes(dataContainer)
             if "non-polymer" not in instanceTypeD.values():
-                return ligandTargetInstanceD
+                return ligandTargetInstanceD, ligandAtomCountD
             #
             entryId = dataContainer.getName()
-            logger.info("Starting with entry %s", entryId)
+            logger.debug("Starting with entry %s", entryId)
             nonPolymerBoundD = self.getBoundNonpolymersByInstance(dataContainer)
             #
-            instanceTypeD = self.getInstanceTypes(dataContainer)
             instancePolymerTypeD = self.getInstancePolymerTypes(dataContainer)
             instanceEntityD = self.getInstanceEntityMap(dataContainer)
             # -----
@@ -4092,13 +4162,18 @@ class DictMethodCommonUtils(object):
             targetRefL = []
             ligandXyzD = {}
             ligandRefD = {}
+
             # partition the cooordinates between ligands and candidate targets
             aObj = dataContainer.getObj("atom_site")
             for ii in range(aObj.getRowCount()):
-                selectType = None
+                modelId = aObj.getValue("pdbx_PDB_model_num", ii)
+                if modelId != targetModelId:
+                    continue
+
                 asymId = aObj.getValue("label_asym_id", ii)
                 instanceType = instanceTypeD[asymId]
                 polymerType = instancePolymerTypeD[asymId] if asymId in instancePolymerTypeD else None
+                selectType = None
                 if (instanceType == "polymer" and polymerType in ["Protein", "DNA", "RNA", "NA-hybrid"]) or instanceType == "branched":
                     selectType = "target"
                 elif instanceType == "non-polymer":
@@ -4106,25 +4181,33 @@ class DictMethodCommonUtils(object):
                 if selectType not in ["target", "ligand"]:
                     continue
                 #
-                atomName = aObj.getValue("label_atom_id", ii)
+                atomId = aObj.getValue("label_atom_id", ii)
                 seqId = aObj.getValue("label_seq_id", ii)
                 compId = aObj.getValue("label_comp_id", ii)
+                altId = aObj.getValueOrDefault("label_alt_id", ii, None)
                 xC = aObj.getValue("Cartn_x", ii)
                 yC = aObj.getValue("Cartn_y", ii)
                 zC = aObj.getValue("Cartn_z", ii)
+                occupancy = aObj.getValueOrDefault("occupancy", ii, "1.0")
                 entityId = instanceEntityD[asymId]
+
                 #
                 if selectType == "target":
                     targetXyzL.append((float(xC), float(yC), float(zC)))
-                    targetRefL.append(ReferenceInstance(entityId, instanceType, asymId, compId, int(seqId) if seqId not in [".", "?"] else None, atomName))
+                    targetRefL.append(ReferenceInstance(entityId, instanceType, asymId, compId, int(seqId) if seqId not in [".", "?"] else None, atomId, altId))
                 elif selectType == "ligand":
                     ligandXyzD.setdefault(asymId, []).append((float(xC), float(yC), float(zC)))
-                    ligandRefD.setdefault(asymId, []).append(ReferenceInstance(entityId, instanceType, asymId, compId, None, atomName))
+                    ligandRefD.setdefault(asymId, []).append(ReferenceInstance(entityId, instanceType, asymId, compId, None, atomId, altId))
+
+                    if not altId:
+                        ligandAtomCountD.setdefault(asymId, defaultdict(float))["FL"] += 1
+                    else:
+                        ligandAtomCountD.setdefault(asymId, defaultdict(float))[altId] += float(occupancy)
             #
             # ------
             logger.debug("%s targetXyzL (%d) targetRef (%d) ligandXyzD (%d) ", entryId, len(targetXyzL), len(targetXyzL), len(ligandXyzD))
             if not targetXyzL:
-                return ligandTargetInstanceD
+                return ligandTargetInstanceD, ligandAtomCountD
             tArr = np.array(targetXyzL, order="F")
             logger.debug("targetXyzL[0] %r tArr.shape %r tArr[0] %r", targetXyzL[0], tArr.shape, tArr[0])
             tree = spatial.cKDTree(tArr)
@@ -4139,13 +4222,16 @@ class DictMethodCommonUtils(object):
                                 LigandTargetInstance(
                                     tup.targetCompId,
                                     tup.targetAtomId,
+                                    tup.targetAltId,
                                     tup.connectType,
+                                    targetModelId,
                                     tup.partnerEntityType,
                                     tup.partnerEntityId,
                                     tup.partnerCompId,
                                     tup.partnerAsymId,
                                     tup.partnerSeqId,
                                     tup.partnerAtomId,
+                                    tup.partnerAltId,
                                     float(tup.bondDistance) if tup.bondDistance else None,
                                 )
                             )
@@ -4161,14 +4247,17 @@ class DictMethodCommonUtils(object):
                         ligandTargetInstanceD.setdefault(asymId, []).append(
                             LigandTargetInstance(
                                 ligandRefD[asymId][ligIndex].compId,
-                                ligandRefD[asymId][ligIndex].atomName,
+                                ligandRefD[asymId][ligIndex].atomId,
+                                ligandRefD[asymId][ligIndex].altId,
                                 "non-bonded",
+                                targetModelId,
                                 targetRefL[ind].entityType,
                                 targetRefL[ind].entityId,
                                 targetRefL[ind].compId,
                                 targetRefL[ind].asymId,
                                 targetRefL[ind].seqId,
-                                targetRefL[ind].atomName,
+                                targetRefL[ind].atomId,
+                                targetRefL[ind].altId,
                                 round(dist, 3),
                             )
                         )
@@ -4185,4 +4274,4 @@ class DictMethodCommonUtils(object):
             logger.exception("Failing for %r with %r", dataContainer.getName() if dataContainer else None, str(e))
         #
         logger.info("Completed %s at %s (%.4f seconds)", dataContainer.getName(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), time.time() - startTime)
-        return ligandTargetInstanceD
+        return ligandTargetInstanceD, ligandAtomCountD

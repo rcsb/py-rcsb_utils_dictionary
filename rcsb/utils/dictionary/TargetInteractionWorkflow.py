@@ -36,26 +36,30 @@ class TargetInteractionWorkflow(object):
         self.__configName = kwargs.get("configName", "site_info_remote_configuration")
         self.__configPath = kwargs.get("configPath", os.path.join(HERE, "exdb-config-example.yml"))
         self.__cachePath = kwargs.get("cachePath", os.path.join(HERE, "CACHE"))
+        self.__mockTopPath = kwargs.get("mockTopPath", None)
         self.__numProc = kwargs.get("numProc", 10)
-        self.__chunkSize = kwargs.get("chunkSize", 100)
+        self.__chunkSize = kwargs.get("chunkSize", 10)
+        self.__useCache = kwargs.get("useCache", False)
         #
-        self.__cfgOb = ConfigUtil(configPath=self.__configPath, defaultSectionName=self.__configName)
+        self.__cfgOb = ConfigUtil(configPath=self.__configPath, defaultSectionName=self.__configName, mockTopPath=self.__mockTopPath)
         logger.info("Configuration file path %s", self.__configPath)
+        self.__tiP = TargetInteractionProvider(self.__cfgOb, self.__configName, self.__cachePath, useCache=self.__useCache, numProc=self.__numProc, chunkSize=self.__chunkSize)
 
-    def update(self):
-        tiP = TargetInteractionProvider(self.__cfgOb, self.__configName, self.__cachePath, useCache=False, numProc=self.__numProc, chunkSize=self.__chunkSize)
-        ok1 = tiP.generate(distLimit=5.0, fmt="json", indent=3)
-        ok2 = tiP.toStash()
-        return ok1 & ok2
+    def update(self, incremental=True):
+        ok = self.__tiP.generate(distLimit=5.0, updateOnly=incremental, fmt="json", indent=0)
+        return ok
+
+    def backup(self):
+        ok = self.__tiP.toStash()
+        return ok
 
     def restore(self):
-        tiP = TargetInteractionProvider(self.__cfgOb, self.__configName, self.__cachePath, useCache=False)
-        ok1 = tiP.fromStash()
-        ok2 = tiP.reload()
-        ok3 = tiP.testCache(minCount=80)
+        ok1 = self.__tiP.fromStash()
+        ok2 = self.__tiP.reload()
+        ok3 = self.__tiP.testCache(minCount=80)
         return ok1 and ok2 and ok3
 
 
 if __name__ == "__main__":
     tiWf = TargetInteractionWorkflow()
-    tiWf.update()
+    tiWf.update(incremental=False)

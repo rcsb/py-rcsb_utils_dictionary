@@ -46,6 +46,7 @@ class DictMethodEntityInstanceHelper(object):
         self.__dApi = rP.getResource("Dictionary API instance (pdbx_core)") if rP else None
         self.__ccP = rP.getResource("ChemCompProvider instance") if rP else None
         self.__rlsP = rP.getResource("RcsbLigandScoreProvider instance") if rP else None
+        self.__tiP = rP.getResource("TargetInteractionProvider instance") if rP else None
         #
         logger.debug("Dictionary entity-instance level method helper init")
 
@@ -958,8 +959,7 @@ class DictMethodEntityInstanceHelper(object):
             #
             logger.debug("Length instanceModelOutlierD %d", len(instanceModelOutlierD))
             #
-            # (modelId, asymId), []).append((compId, int(seqId), "RSCC_OUTLIER", tS)
-            for (modelId, asymId, hasSeq), pTupL in instanceModelOutlierD.items():
+            for (modelId, asymId, altId, hasSeq), pTupL in instanceModelOutlierD.items():
                 fTypeL = sorted(set([pTup.outlierType for pTup in pTupL]))
                 jj = 1
                 for fType in fTypeL:
@@ -983,13 +983,17 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue(tFn, "feature_id", ii)
                     #
                     if hasSeq:
-                        descriptionS = tN + " in instance %s model %s" % (asymId, modelId)
+                        descriptionS = tN + " in instance %s (altId %s) model %s" % (asymId, altId, modelId) if altId else tN + " in instance %s model %s" % (asymId, modelId)
                         cObj.setValue(";".join([pTup.compId for pTup in pTupL if pTup.outlierType == fType]), "feature_positions_beg_comp_id", ii)
                         cObj.setValue(";".join([str(pTup.seqId) for pTup in pTupL if pTup.outlierType == fType]), "feature_positions_beg_seq_id", ii)
 
                     else:
                         cObj.setValue(pTupL[0].compId, "comp_id", ii)
-                        descriptionS = tN + " in %s instance %s model %s" % (pTupL[0].compId, asymId, modelId)
+                        descriptionS = (
+                            tN + " in %s instance %s (altId %s) model %s" % (pTupL[0].compId, asymId, altId, modelId)
+                            if altId
+                            else tN + " in %s instance %s model %s" % (pTupL[0].compId, asymId, modelId)
+                        )
                         cObj.setValue(";".join([pTup.compId if pTup.compId else "?" for pTup in pTupL if pTup.outlierType == fType]), "feature_value_comp_id", ii)
                         cObj.setValue(";".join([pTup.description if pTup.description else "?" for pTup in pTupL if pTup.outlierType == fType]), "feature_value_details", ii)
                         cObj.setValue(";".join([pTup.reported if pTup.reported else "?" for pTup in pTupL if pTup.outlierType == fType]), "feature_value_reported", ii)
@@ -1649,6 +1653,9 @@ class DictMethodEntityInstanceHelper(object):
             _rcsb_nonpolymer_instance_validation_score.ranking_model_geometry
             _rcsb_nonpolymer_instance_validation_score.is_best_instance
             _rcsb_nonpolymer_instance_validation_score.is_subject_of_investigation
+            _rcsb_nonpolymer_instance_validation_score.target_interactions_entity_id
+            _rcsb_nonpolymer_instance_validation_score.target_interactions_asym_id
+            _rcsb_nonpolymer_instance_validation_score.target_interactions_is_bound
             #
         """
         logger.debug("Starting with %s %r %r", dataContainer.getName(), catName, kwargs)
@@ -1683,26 +1690,62 @@ class DictMethodEntityInstanceHelper(object):
             excludeList = self.__rlsP.getLigandExcludeList()
             rankD = {}
             scoreD = {}
+            # -- Get existing interactions or calculate on the fly
+            if self.__tiP.hasEntry(entryId):
+                intD = self.__tiP.getInteractions(entryId)
+                ligandAtomCountD = self.__tiP.getAtomCounts(entryId)
+            else:
+                intD, ligandAtomCountD = self.__commonU.getNonpolymerInstanceNeighbors(dataContainer)
+
+            intTargetD = {}
+            intNeighborD = {}
+            for asymId, neighborL in intD.items():
+                for neighbor in neighborL:
+                    intTargetD.setdefault(asymId, set()).add((neighbor.partnerEntityId, neighbor.partnerAsymId, neighbor.connectType))
+                    intNeighborD.setdefault((neighbor.partnerEntityId, neighbor.partnerAsymId, neighbor.connectType), []).append(neighbor)
+            # --
             # calculate scores and ranks and find best ranking
-            for (modelId, asymId, compId), vTup in instanceModelValidationD.items():
+            for (modelId, asymId, altId, compId), vTup in instanceModelValidationD.items():
                 if (asymId not in asymIdD) or (asymId not in asymAuthIdD):
                     continue
                 numHeavyAtoms = self.__ccP.getAtomCountHeavy(compId)
+                numAtoms = self.__ccP.getAtomCount(compId)
                 if not numHeavyAtoms:
                     continue
-                reportedAtoms = numHeavyAtoms - vTup.missing_heavy_atom_count
-                completeness = float(reportedAtoms) / float(numHeavyAtoms)
-                logger.debug("compId %s numHeavyAtoms %d completeness %0.2f", compId, numHeavyAtoms, completeness)
+                try:
+                    if altId:
+                        reportedAtoms = ligandAtomCountD[asymId][altId] + (ligandAtomCountD[asymId]["FL"] if "FL" in ligandAtomCountD[asymId] else 0)
+                    else:
+                        reportedAtoms = ligandAtomCountD[asymId]["FL"]
+                except Exception as e:
+                    logger.exception("Failing for entry %s asymId %s altId %r with %s", entryId, asymId, altId, str(e))
+
+                completeness = (float(reportedAtoms) / float(numHeavyAtoms)) if reportedAtoms <= numHeavyAtoms else (float(reportedAtoms) / float(numAtoms))
+                if completeness > 1.0:
+                    logger.info("%s ligandAtomCountD %r", entryId, ligandAtomCountD)
+                    logger.info(
+                        "%s asymId %s compId %s altId %r numHeavyAtoms %d reported %.3f calculated completeness %0.3f",
+                        entryId,
+                        asymId,
+                        compId,
+                        altId,
+                        numHeavyAtoms,
+                        reportedAtoms,
+                        completeness,
+                    )
+                #
+                if completeness > 1.0:
+                    completeness = 1.0
                 #
                 fitScore, fitRanking = self.__calculateFitScore(vTup.rsr, vTup.rscc, completeness, meanD, stdD, loadingD)
                 geoScore, geoRanking = self.__calculateGeometryScore(vTup.mogul_bonds_rmsz, vTup.mogul_angles_rmsz, meanD, stdD, loadingD)
                 #
                 rankD[compId] = (max(fitRanking, rankD[compId][0]), asymId) if compId in rankD else (fitRanking, asymId)
 
-                scoreD[(modelId, asymId, compId)] = (fitScore, fitRanking, geoScore, geoRanking, reportedAtoms)
+                scoreD[(modelId, asymId, altId, compId)] = (fitScore, fitRanking, geoScore, geoRanking, reportedAtoms, completeness)
             #
-            for (modelId, asymId, compId), vTup in instanceModelValidationD.items():
-                if (modelId, asymId, compId) not in scoreD:
+            for (modelId, asymId, altId, compId), vTup in instanceModelValidationD.items():
+                if (modelId, asymId, altId, compId) not in scoreD:
                     continue
                 #
                 entityId = asymIdD[asymId]
@@ -1714,18 +1757,24 @@ class DictMethodEntityInstanceHelper(object):
                 cObj.setValue(entityId, "entity_id", ii)
                 cObj.setValue(asymId, "asym_id", ii)
                 cObj.setValue(authAsymId, "auth_asym_id", ii)
+                cObj.setValue(altId, "alt_id", ii)
+
                 cObj.setValue(compId, "comp_id", ii)
-                cObj.setValue("RCSB_LIGAND_QUALITY_2021", "type", ii)
+                cObj.setValue("RCSB_LIGAND_QUALITY_SCORE_2021", "type", ii)
                 #
                 cObj.setValue(vTup.rsr, "RSR", ii)
                 cObj.setValue(vTup.rscc, "RSCC", ii)
                 cObj.setValue(vTup.mogul_angles_rmsz, "mogul_angles_RMSZ", ii)
                 cObj.setValue(vTup.mogul_bonds_rmsz, "mogul_bonds_RMSZ", ii)
                 #
-                sTup = scoreD[(modelId, asymId, compId)]
-                tS = "%.4f" % (float(vTup.intermolecular_clashes) / float(sTup[4])) if vTup.intermolecular_clashes else "0.0"
-                cObj.setValue(tS, "intermolecular_clashes_per_atom", ii)
+                cObj.setValue(vTup.mogul_bond_outliers, "mogul_bond_outliers", ii)
+                cObj.setValue(vTup.mogul_angle_outliers, "mogul_angle_outliers", ii)
+                cObj.setValue(vTup.stereo_outliers, "stereo_outliers", ii)
                 #
+                sTup = scoreD[(modelId, asymId, altId, compId)]
+                cObj.setValue(vTup.intermolecular_clashes if vTup.intermolecular_clashes else 0, "intermolecular_clashes", ii)
+                #
+                cObj.setValue("%.4f" % sTup[5], "completeness", ii)
                 cObj.setValue("%.4f" % sTup[0] if sTup[0] else None, "score_model_fit", ii)
                 cObj.setValue("%.4f" % sTup[1] if sTup[1] else None, "ranking_model_fit", ii)
                 cObj.setValue("%.4f" % sTup[2] if sTup[2] else None, "score_model_geometry", ii)
@@ -1742,6 +1791,20 @@ class DictMethodEntityInstanceHelper(object):
                     isTarget = "Y"
                 cObj.setValue(isTarget, "is_subject_of_investigation", ii)
                 #
+                # ----  get the nearest neighbor for each ligand asymId
+                nL = []
+                if asymId in intTargetD:
+                    for pEntityId, pAsymId, pConnectType in intTargetD[asymId]:
+                        neighborL = intNeighborD[(pEntityId, pAsymId, pConnectType)]
+                        nL.append(neighborL[0])
+                if nL:
+                    cObj.setValue(",".join([neighbor.partnerEntityId for neighbor in nL]), "target_interactions_entity_id", ii)
+                    cObj.setValue(",".join([neighbor.partnerAsymId for neighbor in nL]), "target_interactions_asym_id", ii)
+                    cObj.setValue(",".join([str(neighbor.partnerSeqId) for neighbor in nL]), "target_interactions_seq_id", ii)
+                    cObj.setValue(",".join([neighbor.partnerCompId for neighbor in nL]), "target_interactions_comp_id", ii)
+                    cObj.setValue(",".join([neighbor.partnerAtomId for neighbor in nL]), "target_interactions_atom_id", ii)
+                    cObj.setValue(",".join(["N" if neighbor.connectType == "non-bonded" else "Y" for neighbor in nL]), "target_interactions_is_bound", ii)
+                # ----
                 ii += 1
                 #
             ##
@@ -1757,7 +1820,7 @@ class DictMethodEntityInstanceHelper(object):
         fitRanking = 0.0
         try:
             if rsr and rscc:
-                if completeness < 1.0:
+                if False and completeness < 1.0:
                     rsr = rsr + 0.08235 * (1.0 - completeness)
                     rscc = rscc - 0.09652 * (1.0 - completeness)
                 fitScore = ((rsr - meanD["rsr"]) / stdD["rsr"]) * loadingD["rsr"] + ((rscc - meanD["rscc"]) / stdD["rscc"]) * loadingD["rscc"]
