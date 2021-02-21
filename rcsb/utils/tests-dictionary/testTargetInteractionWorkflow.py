@@ -21,8 +21,6 @@ import os
 import time
 import unittest
 
-from scipy.fft import next_fast_len
-
 from rcsb.utils.dictionary.TargetInteractionWorkflow import TargetInteractionWorkflow
 
 HERE = os.path.abspath(os.path.dirname(__file__))

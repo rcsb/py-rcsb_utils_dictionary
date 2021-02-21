@@ -5,3 +5,4 @@
 18-Feb-2021 - V0.13 Added TargetInteractionProvider() related tests, getNonpolymerInstanceNeighbors() in DictMethodCommonUtils()
 18-Feb-2021 - V0.14 Add further accessors to TargetInteractionProvider()
 21-Feb-2021 - V0.15 Update handling of completeness/disorder in calculating validation scores, add TargetInteractionWorkflow() and t
+21-Feb-2021 - V0.16 Update test conditions
