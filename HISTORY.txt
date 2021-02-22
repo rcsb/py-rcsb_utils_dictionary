@@ -7,3 +7,4 @@
 21-Feb-2021 - V0.15 Update handling of completeness/disorder in calculating validation scores, add TargetInteractionWorkflow() and t
 21-Feb-2021 - V0.16 Update test conditions
 21-Feb-2021 - V0.17 Separate the computation and presentation of validation scores and target interactions
+22-Feb-2021 - V0.18 Tweak sorting of unique target interactions and interaction and score attributes

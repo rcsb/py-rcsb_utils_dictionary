@@ -1724,7 +1724,7 @@ class DictMethodEntityInstanceHelper(object):
             # --
             # calculate scores and ranks and find best ranking
             for (modelId, asymId, altId, compId), vTup in instanceModelValidationD.items():
-                if (asymId not in asymIdD) or (asymId not in asymAuthIdD):
+                if (asymId not in asymIdD) or (asymId not in asymAuthIdD) or (modelId not in ["1"]):
                     continue
                 isBound = intIsBoundD[asymId] if asymId in intIsBoundD else False
                 numHeavyAtoms = self.__ccP.getAtomCountHeavy(compId)
@@ -1953,6 +1953,7 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue(neighbor.partnerSeqId, "target_seq_id", ii)
                     cObj.setValue(neighbor.partnerAtomId, "target_atom_id", ii)
                     cObj.setValue("N" if neighbor.connectType == "non-bonded" else "Y", "target_is_bound", ii)
+                    cObj.setValue("%.3f" % neighbor.distance, "distance", ii)
                     # ----
                     ii += 1
                 #
