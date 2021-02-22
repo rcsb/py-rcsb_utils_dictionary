@@ -76,6 +76,8 @@ NonpolymerValidationFields = (
 NonpolymerValidationInstance = namedtuple("NonpolymerValidationInstance", NonpolymerValidationFields, defaults=(None,) * len(NonpolymerValidationFields))
 
 LigandTargetFields = (
+    "ligandModelId",
+    "ligandAsymId",
     "ligandCompId",
     "ligandAtomId",
     "ligandAltId",
@@ -4141,7 +4143,7 @@ class DictMethodCommonUtils(object):
             targetModelId (str, optional):  select only for this model identifier.  Defaults to 1.
 
         Returns:
-              (dict, dict): {asymId: [LigandTargetInstance()]}, {asymId: {altId: occ*count}, }
+              (dict, dict): {asymId: [LigandTargetInstance()]}, {asymId: {altId: atomcount}, }
         """
         try:
             startTime = time.time()
@@ -4188,7 +4190,7 @@ class DictMethodCommonUtils(object):
                 xC = aObj.getValue("Cartn_x", ii)
                 yC = aObj.getValue("Cartn_y", ii)
                 zC = aObj.getValue("Cartn_z", ii)
-                occupancy = aObj.getValueOrDefault("occupancy", ii, "1.0")
+                # occupancy = aObj.getValueOrDefault("occupancy", ii, "1.0")
                 entityId = instanceEntityD[asymId]
 
                 #
@@ -4200,9 +4202,10 @@ class DictMethodCommonUtils(object):
                     ligandRefD.setdefault(asymId, []).append(ReferenceInstance(entityId, instanceType, asymId, compId, None, atomId, altId))
 
                     if not altId:
-                        ligandAtomCountD.setdefault(asymId, defaultdict(float))["FL"] += 1
+                        ligandAtomCountD.setdefault(asymId, defaultdict(int))["FL"] += 1
                     else:
-                        ligandAtomCountD.setdefault(asymId, defaultdict(float))[altId] += float(occupancy)
+                        # ligandAtomCountD.setdefault(asymId, defaultdict(float))[altId] += float(occupancy)
+                        ligandAtomCountD.setdefault(asymId, defaultdict(int))[altId] += 1
             #
             # ------
             logger.debug("%s targetXyzL (%d) targetRef (%d) ligandXyzD (%d) ", entryId, len(targetXyzL), len(targetXyzL), len(ligandXyzD))
@@ -4220,6 +4223,8 @@ class DictMethodCommonUtils(object):
                         if tup.partnerEntityType not in ["non-polymer", "water"]:
                             ligandTargetInstanceD.setdefault(asymId, []).append(
                                 LigandTargetInstance(
+                                    modelId,
+                                    asymId,
                                     tup.targetCompId,
                                     tup.targetAtomId,
                                     tup.targetAltId,
@@ -4246,6 +4251,8 @@ class DictMethodCommonUtils(object):
                         # ----
                         ligandTargetInstanceD.setdefault(asymId, []).append(
                             LigandTargetInstance(
+                                modelId,
+                                asymId,
                                 ligandRefD[asymId][ligIndex].compId,
                                 ligandRefD[asymId][ligIndex].atomId,
                                 ligandRefD[asymId][ligIndex].altId,

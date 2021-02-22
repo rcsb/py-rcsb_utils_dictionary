@@ -1640,23 +1640,36 @@ class DictMethodEntityInstanceHelper(object):
             _rcsb_nonpolymer_instance_validation_score.asym_id
             _rcsb_nonpolymer_instance_validation_score.auth_asym_id
             _rcsb_nonpolymer_instance_validation_score.comp_id
+            _rcsb_nonpolymer_instance_validation_score.alt_id
             _rcsb_nonpolymer_instance_validation_score.model_id
             _rcsb_nonpolymer_instance_validation_score.type
             _rcsb_nonpolymer_instance_validation_score.mogul_angles_RMSZ
             _rcsb_nonpolymer_instance_validation_score.mogul_bonds_RMSZ
             _rcsb_nonpolymer_instance_validation_score.RSR
             _rcsb_nonpolymer_instance_validation_score.RSCC
-            _rcsb_nonpolymer_instance_validation_score.intermolecular_clashes_per_atom
+            _rcsb_nonpolymer_instance_validation_score.intermolecular_clashes
+            _rcsb_nonpolymer_instance_validation_score.mogul_bond_outliers
+            _rcsb_nonpolymer_instance_validation_score.mogul_angle_outliers
+            _rcsb_nonpolymer_instance_validation_score.stereo_outliers
+            _rcsb_nonpolymer_instance_validation_score.completeness
             _rcsb_nonpolymer_instance_validation_score.score_model_fit
             _rcsb_nonpolymer_instance_validation_score.score_model_geometry
             _rcsb_nonpolymer_instance_validation_score.ranking_model_fit
             _rcsb_nonpolymer_instance_validation_score.ranking_model_geometry
-            _rcsb_nonpolymer_instance_validation_score.is_best_instance
             _rcsb_nonpolymer_instance_validation_score.is_subject_of_investigation
-            _rcsb_nonpolymer_instance_validation_score.target_interactions_entity_id
-            _rcsb_nonpolymer_instance_validation_score.target_interactions_asym_id
-            _rcsb_nonpolymer_instance_validation_score.target_interactions_is_bound
+            _rcsb_nonpolymer_instance_validation_score.is_best_instance
+            1  6TTM 2 B A PEG A 1 RCSB_LIGAND_QUALITY_SCORE_2021 0.76 0.64 0.154 0.914 0 0  0 0 1.0000 -0.3579 -0.6297 0.5259 0.6292 N N
+            2  6TTM 2 B A PEG B 1 RCSB_LIGAND_QUALITY_SCORE_2021 0.97 0.68 0.154 0.914 1 0  0 0 1.0000 -0.3579 -0.4587 0.5259 0.5669 N Y
+            3  6TTM 3 C A HYO . 1 RCSB_LIGAND_QUALITY_SCORE_2021 2.18 4.96 0.108 0.947 0 14 9 0 1.0000 -0.9789 3.1116  0.7676 0.0215 Y Y
+            4  6TTM 4 D A NI  . 1 RCSB_LIGAND_QUALITY_SCORE_2021 ?    ?    0.096 0.999 0 0  0 0 1.0000 -1.4779 ?       0.9474 ?      N Y
+            5  6TTM 5 E A OGA . 1 RCSB_LIGAND_QUALITY_SCORE_2021 1.87 3.23 0.104 0.976 0 2  1 0 1.0000 -1.2359 1.7925  0.8690 0.0703 Y Y
+            6  6TTM 6 F A EDO . 1 RCSB_LIGAND_QUALITY_SCORE_2021 0.32 0.8  0.097 0.941 0 0  0 0 1.0000 -1.0195 -0.8324 0.7842 0.7146 N N
+            7  6TTM 6 G A EDO . 1 RCSB_LIGAND_QUALITY_SCORE_2021 0.73 0.61 0.252 0.797 0 0  0 0 1.0000 1.3278  -0.6697 0.1356 0.6463 N Y
+            8  6TTM 7 H A SR  . 1 RCSB_LIGAND_QUALITY_SCORE_2021 ?    ?    0.143 1.0   0 0  0 0 1.0000 -1.1131 ?       0.8223 ?      N Y
+            9  6TTM 8 I A UNX . 1 RCSB_LIGAND_QUALITY_SCORE_2021 ?    ?    0.321 0.94  0 0  0 0 1.0000 0.7640  ?       0.2225 ?      N N
+            10 6TTM 8 J A UNX . 1 RCSB_LIGAND_QUALITY_SCORE_2021 ?    ?    0.611 0.922 0 0  0 0 1.0000 3.2028  ?       0.0251 ?      N Y
             #
+                        #
         """
         logger.debug("Starting with %s %r %r", dataContainer.getName(), catName, kwargs)
         startTime = time.time()
@@ -1699,50 +1712,42 @@ class DictMethodEntityInstanceHelper(object):
 
             intTargetD = {}
             intNeighborD = {}
+            intIsBoundD = {}
             for asymId, neighborL in intD.items():
+                isBound = False
                 for neighbor in neighborL:
                     intTargetD.setdefault(asymId, set()).add((neighbor.partnerEntityId, neighbor.partnerAsymId, neighbor.connectType))
                     intNeighborD.setdefault((neighbor.partnerEntityId, neighbor.partnerAsymId, neighbor.connectType), []).append(neighbor)
+                    if neighbor.connectType != "non-bonded":
+                        isBound = True
+                intIsBoundD[asymId] = isBound
             # --
             # calculate scores and ranks and find best ranking
             for (modelId, asymId, altId, compId), vTup in instanceModelValidationD.items():
                 if (asymId not in asymIdD) or (asymId not in asymAuthIdD):
                     continue
+                isBound = intIsBoundD[asymId] if asymId in intIsBoundD else False
                 numHeavyAtoms = self.__ccP.getAtomCountHeavy(compId)
                 numAtoms = self.__ccP.getAtomCount(compId)
+                numReportedAtoms = 0
                 if not numHeavyAtoms:
                     continue
                 try:
                     if altId:
-                        reportedAtoms = ligandAtomCountD[asymId][altId] + (ligandAtomCountD[asymId]["FL"] if "FL" in ligandAtomCountD[asymId] else 0)
+                        numReportedAtoms = ligandAtomCountD[asymId][altId] + (ligandAtomCountD[asymId]["FL"] if "FL" in ligandAtomCountD[asymId] else 0)
                     else:
-                        reportedAtoms = ligandAtomCountD[asymId]["FL"]
+                        numReportedAtoms = ligandAtomCountD[asymId]["FL"]
                 except Exception as e:
                     logger.exception("Failing for entry %s asymId %s altId %r with %s", entryId, asymId, altId, str(e))
 
-                completeness = (float(reportedAtoms) / float(numHeavyAtoms)) if reportedAtoms <= numHeavyAtoms else (float(reportedAtoms) / float(numAtoms))
-                if completeness > 1.0:
-                    logger.info("%s ligandAtomCountD %r", entryId, ligandAtomCountD)
-                    logger.info(
-                        "%s asymId %s compId %s altId %r numHeavyAtoms %d reported %.3f calculated completeness %0.3f",
-                        entryId,
-                        asymId,
-                        compId,
-                        altId,
-                        numHeavyAtoms,
-                        reportedAtoms,
-                        completeness,
-                    )
                 #
-                if completeness > 1.0:
-                    completeness = 1.0
-                #
-                fitScore, fitRanking = self.__calculateFitScore(vTup.rsr, vTup.rscc, completeness, meanD, stdD, loadingD)
+                completeness = self.__calculateModeledCompleteness(entryId, asymId, compId, altId, isBound, ligandAtomCountD, numReportedAtoms, numHeavyAtoms, numAtoms)
+                fitScore, fitRanking, completeness = self.__calculateFitScore(vTup.rsr, vTup.rscc, meanD, stdD, loadingD, completeness)
                 geoScore, geoRanking = self.__calculateGeometryScore(vTup.mogul_bonds_rmsz, vTup.mogul_angles_rmsz, meanD, stdD, loadingD)
                 #
-                rankD[compId] = (max(fitRanking, rankD[compId][0]), asymId) if compId in rankD else (fitRanking, asymId)
+                rankD[compId] = (max(fitRanking, rankD[compId][0]), asymId, altId) if compId in rankD else (fitRanking, asymId, altId)
 
-                scoreD[(modelId, asymId, altId, compId)] = (fitScore, fitRanking, geoScore, geoRanking, reportedAtoms, completeness)
+                scoreD[(modelId, asymId, altId, compId)] = (fitScore, fitRanking, geoScore, geoRanking, numReportedAtoms, completeness)
             #
             for (modelId, asymId, altId, compId), vTup in instanceModelValidationD.items():
                 if (modelId, asymId, altId, compId) not in scoreD:
@@ -1757,7 +1762,7 @@ class DictMethodEntityInstanceHelper(object):
                 cObj.setValue(entityId, "entity_id", ii)
                 cObj.setValue(asymId, "asym_id", ii)
                 cObj.setValue(authAsymId, "auth_asym_id", ii)
-                cObj.setValue(altId, "alt_id", ii)
+                cObj.setValue(altId if altId else ".", "alt_id", ii)
 
                 cObj.setValue(compId, "comp_id", ii)
                 cObj.setValue("RCSB_LIGAND_QUALITY_SCORE_2021", "type", ii)
@@ -1779,7 +1784,7 @@ class DictMethodEntityInstanceHelper(object):
                 cObj.setValue("%.4f" % sTup[1] if sTup[1] else None, "ranking_model_fit", ii)
                 cObj.setValue("%.4f" % sTup[2] if sTup[2] else None, "score_model_geometry", ii)
                 cObj.setValue("%.4f" % sTup[3] if sTup[3] else None, "ranking_model_geometry", ii)
-                isBest = "Y" if rankD[compId][1] == asymId else "N"
+                isBest = "Y" if (rankD[compId][1] == asymId and rankD[compId][2] == altId) else "N"
                 cObj.setValue(isBest, "is_best_instance", ii)
                 #
                 isTarget = "N"
@@ -1791,20 +1796,6 @@ class DictMethodEntityInstanceHelper(object):
                     isTarget = "Y"
                 cObj.setValue(isTarget, "is_subject_of_investigation", ii)
                 #
-                # ----  get the nearest neighbor for each ligand asymId
-                nL = []
-                if asymId in intTargetD:
-                    for pEntityId, pAsymId, pConnectType in intTargetD[asymId]:
-                        neighborL = intNeighborD[(pEntityId, pAsymId, pConnectType)]
-                        nL.append(neighborL[0])
-                if nL:
-                    cObj.setValue(",".join([neighbor.partnerEntityId for neighbor in nL]), "target_interactions_entity_id", ii)
-                    cObj.setValue(",".join([neighbor.partnerAsymId for neighbor in nL]), "target_interactions_asym_id", ii)
-                    cObj.setValue(",".join([str(neighbor.partnerSeqId) for neighbor in nL]), "target_interactions_seq_id", ii)
-                    cObj.setValue(",".join([neighbor.partnerCompId for neighbor in nL]), "target_interactions_comp_id", ii)
-                    cObj.setValue(",".join([neighbor.partnerAtomId for neighbor in nL]), "target_interactions_atom_id", ii)
-                    cObj.setValue(",".join(["N" if neighbor.connectType == "non-bonded" else "Y" for neighbor in nL]), "target_interactions_is_bound", ii)
-                # ----
                 ii += 1
                 #
             ##
@@ -1815,19 +1806,44 @@ class DictMethodEntityInstanceHelper(object):
             logger.exception("For %s %r failing with %s", dataContainer.getName(), catName, str(e))
         return False
 
-    def __calculateFitScore(self, rsr, rscc, completeness, meanD, stdD, loadingD):
+    def __calculateModeledCompleteness(self, entryId, asymId, compId, altId, isBound, ligandAtomCountD, numReportedAtoms, numHeavyAtoms, numAtoms):
+        # Ignore a single missing leaving ato if we are bound
+        if numReportedAtoms > numHeavyAtoms:
+            # Has hydrogens
+            completeness = 1.0 if isBound and (numAtoms - numReportedAtoms) == 1 else (float(numReportedAtoms) / float(numAtoms))
+        else:
+            completeness = 1.0 if isBound and (numHeavyAtoms - numReportedAtoms) == 1 else (float(numReportedAtoms) / float(numHeavyAtoms))
+        #
+        if completeness > 1.0:
+            logger.info("%s %s ligandAtomCountD %r", entryId, asymId, ligandAtomCountD[asymId])
+            logger.info(
+                "%s asymId %s compId %s altId %r numHeavyAtoms %d reported %.3f completeness %0.3f",
+                entryId,
+                asymId,
+                compId,
+                altId,
+                numHeavyAtoms,
+                numReportedAtoms,
+                completeness,
+            )
+        #
+        if completeness > 1.0:
+            completeness = 1.0
+        return completeness
+
+    def __calculateFitScore(self, rsr, rscc, meanD, stdD, loadingD, completeness):
         fitScore = None
         fitRanking = 0.0
         try:
             if rsr and rscc:
-                if False and completeness < 1.0:
+                if completeness < 1.0:
                     rsr = rsr + 0.08235 * (1.0 - completeness)
                     rscc = rscc - 0.09652 * (1.0 - completeness)
                 fitScore = ((rsr - meanD["rsr"]) / stdD["rsr"]) * loadingD["rsr"] + ((rscc - meanD["rscc"]) / stdD["rscc"]) * loadingD["rscc"]
                 fitRanking = self.__rlsP.getFitScoreRanking(fitScore)
         except Exception as e:
             logger.exception("Failing for rsr %r rscc %r with %s", rsr, rscc, str(e))
-        return fitScore, fitRanking
+        return fitScore, fitRanking, completeness
 
     def __calculateGeometryScore(self, bondsRmsZ, anglesRmsZ, meanD, stdD, loadingD):
         geoScore = None
@@ -1842,3 +1858,108 @@ class DictMethodEntityInstanceHelper(object):
             logger.exception("Failing for bondsRmsZ %r anglesRmsZ %r with %r", bondsRmsZ, anglesRmsZ, str(e))
 
         return geoScore, geoRanking
+
+    def buildInstanceTargetInteractions(self, dataContainer, catName, **kwargs):
+        """Build category rcsb_nonpolymer_instance_target_interactions ...
+
+        Example:
+         loop_
+            _rcsb_nonpolymer_instance_target_interactions.ordinal
+            _rcsb_nonpolymer_instance_target_interactions.entry_id
+            _rcsb_nonpolymer_instance_target_interactions.model_id
+            _rcsb_nonpolymer_instance_target_interactions.entity_id
+            _rcsb_nonpolymer_instance_target_interactions.asym_id
+            _rcsb_nonpolymer_instance_target_interactions.auth_asym_id
+            _rcsb_nonpolymer_instance_target_interactions.comp_id
+            _rcsb_nonpolymer_instance_target_interactions.atom_id
+            _rcsb_nonpolymer_instance_target_interactions.alt_id
+            _rcsb_nonpolymer_instance_target_interactions.target_model_id
+            _rcsb_nonpolymer_instance_target_interactions.target_entity_id
+            _rcsb_nonpolymer_instance_target_interactions.target_asym_id
+            _rcsb_nonpolymer_instance_target_interactions.target_seq_id
+            _rcsb_nonpolymer_instance_target_interactions.target_comp_id
+            _rcsb_nonpolymer_instance_target_interactions.target_atom_id
+            _rcsb_nonpolymer_instance_target_interactions.target_is_bound
+            1 6TTM 1 2 B A PEG O4  A 1 1 A 270 GLU O   N
+            2 6TTM 1 3 C A HYO N04 . 1 1 A 119 GLU OE2 N
+            3 6TTM 1 4 D A NI  NI  . 1 1 A 277 HIS NE2 Y
+            4 6TTM 1 6 F A EDO O1  . 1 1 A 232 ASP OD2 N
+            5 6TTM 1 6 G A EDO C1  . 1 1 A 102 GLU OE2 N
+            6 6TTM 1 7 H A SR  SR  . 1 1 A 101 GLY O   Y
+            7 6TTM 1 8 I A UNX UNK . 1 1 A 148 ASN O   N
+            8 6TTM 1 8 J A UNX UNK . 1 1 A 344 LYS NZ  N
+            #
+        """
+        logger.debug("Starting with %s %r %r", dataContainer.getName(), catName, kwargs)
+        startTime = time.time()
+        try:
+            if catName != "rcsb_nonpolymer_instance_target_interactions":
+                return False
+            if not dataContainer.exists("entry"):
+                return False
+            #
+            eObj = dataContainer.getObj("entry")
+            entryId = eObj.getValue("id", 0)
+            #
+            # Create the new target category
+            if not dataContainer.exists(catName):
+                dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
+            cObj = dataContainer.getObj(catName)
+            ii = cObj.getRowCount()
+            #
+            asymIdD = self.__commonU.getInstanceEntityMap(dataContainer)
+            asymAuthIdD = self.__commonU.getAsymAuthIdMap(dataContainer)
+            # -- Get existing interactions or calculate on the fly
+            if self.__tiP.hasEntry(entryId):
+                intD = self.__tiP.getInteractions(entryId)
+            else:
+                intD, _ = self.__commonU.getNonpolymerInstanceNeighborInfo(dataContainer)
+
+            #  intD[asymId for each ligand] -> [LigandTargetInstance(),]
+            intTargetD = {}
+            intNeighborD = {}
+            intIsBoundD = {}
+            for asymId, neighborL in intD.items():
+                isBound = False
+                for neighbor in neighborL:
+                    intTargetD.setdefault(asymId, set()).add((neighbor.partnerEntityId, neighbor.partnerAsymId, neighbor.connectType))
+                    intNeighborD.setdefault(asymId, {}).setdefault((neighbor.partnerEntityId, neighbor.partnerAsymId, neighbor.connectType), []).append(neighbor)
+                    if neighbor.connectType != "non-bonded":
+                        isBound = True
+                intIsBoundD[asymId] = isBound
+            #
+            for asymId, nS in intTargetD.items():
+                for (partnerEntityId, partnerAsymId, pConnectType) in nS:
+                    neighbor = intNeighborD[asymId][(partnerEntityId, partnerAsymId, pConnectType)][0]
+                    #
+                    entityId = asymIdD[asymId]
+                    authAsymId = asymAuthIdD[asymId]
+                    #
+                    cObj.setValue(ii + 1, "ordinal", ii)
+                    cObj.setValue(neighbor.ligandModelId, "model_id", ii)
+                    cObj.setValue(entryId, "entry_id", ii)
+                    cObj.setValue(entityId, "entity_id", ii)
+                    cObj.setValue(asymId, "asym_id", ii)
+                    cObj.setValue(authAsymId, "auth_asym_id", ii)
+                    #
+                    cObj.setValue(neighbor.ligandAtomId, "atom_id", ii)
+                    cObj.setValue(neighbor.ligandAltId if neighbor.ligandAltId and neighbor.ligandAltId not in ["?"] else ".", "alt_id", ii)
+                    cObj.setValue(neighbor.ligandCompId, "comp_id", ii)
+                    #
+                    cObj.setValue(neighbor.partnerEntityId, "target_model_id", ii)
+                    cObj.setValue(neighbor.partnerEntityId, "target_entity_id", ii)
+                    cObj.setValue(neighbor.partnerAsymId, "target_asym_id", ii)
+                    cObj.setValue(neighbor.partnerCompId, "target_comp_id", ii)
+                    cObj.setValue(neighbor.partnerSeqId, "target_seq_id", ii)
+                    cObj.setValue(neighbor.partnerAtomId, "target_atom_id", ii)
+                    cObj.setValue("N" if neighbor.connectType == "non-bonded" else "Y", "target_is_bound", ii)
+                    # ----
+                    ii += 1
+                #
+            ##
+            endTime = time.time()
+            logger.debug("Completed at %s (%.4f seconds)", time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - startTime)
+            return True
+        except Exception as e:
+            logger.exception("For %s %r failing with %s", dataContainer.getName(), catName, str(e))
+        return False
