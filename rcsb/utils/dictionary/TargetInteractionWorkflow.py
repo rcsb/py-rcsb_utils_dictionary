@@ -46,7 +46,7 @@ class TargetInteractionWorkflow(object):
         self.__tiP = TargetInteractionProvider(self.__cfgOb, self.__configName, self.__cachePath, useCache=self.__useCache, numProc=self.__numProc, chunkSize=self.__chunkSize)
 
     def update(self, incremental=True):
-        ok = self.__tiP.generate(distLimit=5.0, updateOnly=incremental, fmt="json", indent=0)
+        ok = self.__tiP.generate(distLimit=5.0, updateOnly=incremental, fmt="pickle")
         return ok
 
     def backup(self):
