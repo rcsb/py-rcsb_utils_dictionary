@@ -53,9 +53,9 @@ class TargetInteractionProviderTests(unittest.TestCase):
     def testTargetInteractionProviderBootstrap(self):
         try:
             tiP = TargetInteractionProvider(self.__cfgOb, self.__configName, self.__cachePath, useCache=False)
-            ok = tiP.generate(distLimit=5.0, updateOnly=False, fmt="json", indent=3)
+            ok = tiP.generate(distLimit=5.0, updateOnly=False, fmt="pickle")
             self.assertTrue(ok)
-            ok = tiP.generate(distLimit=5.0, updateOnly=True, fmt="json", indent=3)
+            ok = tiP.generate(distLimit=5.0, updateOnly=True, fmt="pickle")
             self.assertTrue(ok)
             ok = tiP.reload()
             self.assertTrue(ok)
