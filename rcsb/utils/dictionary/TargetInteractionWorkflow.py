@@ -60,7 +60,7 @@ class TargetInteractionWorkflow(object):
         return ok1 and ok2 and ok3
 
     def convert(self, fmt1="json", fmt2="pickle"):
-        ok = self.__tiP.convert(fmt1=fmt1, fmt2=fmt2)a
+        ok = self.__tiP.convert(fmt1=fmt1, fmt2=fmt2)
         return ok
 
 
