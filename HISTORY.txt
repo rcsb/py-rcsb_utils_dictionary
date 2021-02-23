@@ -9,3 +9,4 @@
 21-Feb-2021 - V0.17 Separate the computation and presentation of validation scores and target interactions
 22-Feb-2021 - V0.18 Tweak sorting of unique target interactions and interaction and score attributes
 23-Feb-2021 - V0.19 Change the default serialization and provide and format conversion method.
+24-Feb-2021 - V0.20 Avoid reload with target updates when updateOnly=True

@@ -227,15 +227,15 @@ class TargetInteractionProvider(object):
         Returns:
             (dict): {entryId: {asymId: [TargetLigandInteraction()], ...}, ...}
         """
-
-        rD = {}
-        cD = {}
         contentType = "pdbx"
         mergeContent = None
-        exD = None
+        rD = {}
+        cD = {}
+        exD = {}
+        #
+        # updateOnly - will reuse any existing data loaded when this is instantiated
+        #              otherwise the cache context is cleared before the calculation.
         if updateOnly:
-            if not self.testCache(minCount=10):
-                ok = self.reload()
             exD = {k: True for k in self.getEntries()}
             rD = self.__targetD["interactions"] if "interactions" in self.__targetD else {}
             cD = self.__targetD["atomCounts"] if "atomCounts" in self.__targetD else {}
