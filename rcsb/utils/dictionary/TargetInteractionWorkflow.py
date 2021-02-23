@@ -59,6 +59,10 @@ class TargetInteractionWorkflow(object):
         ok3 = self.__tiP.testCache(minCount=80)
         return ok1 and ok2 and ok3
 
+    def convert(self, fmt1="json", fmt2="pickle"):
+        ok = self.__tiP.convert(fmt1=fmt1, fmt2=fmt2)a
+        return ok
+
 
 if __name__ == "__main__":
     tiWf = TargetInteractionWorkflow()

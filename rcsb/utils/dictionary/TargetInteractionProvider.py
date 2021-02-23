@@ -93,7 +93,7 @@ class TargetInteractionProvider(object):
         #
         self.__mU = MarshalUtil(workPath=self.__dirPath)
         self.__rpP = RepositoryProvider(cfgOb=self.__cfgOb, numProc=self.__numProc, fileLimit=self.__fileLimit, cachePath=self.__cachePath)
-        self.__targetD = self.__reload(fmt="json", useCache=useCache)
+        self.__targetD = self.__reload(fmt="pickle", useCache=useCache)
         #
 
     def testCache(self, minCount=0):
@@ -164,13 +164,13 @@ class TargetInteractionProvider(object):
             pass
         return []
 
-    def generate(self, distLimit=5.0, updateOnly=False, fmt="json", indent=0):
+    def generate(self, distLimit=5.0, updateOnly=False, fmt="pickle", indent=0):
         """Generate and export non-polymer target interactions for all of the structures in the repository.
 
         Args:
             distLimit (float, optional): interaction distance. Defaults to 5.0.
             updateOnly (bool):  only calculate interactions for new entries.  Defaults to False.
-            fmt (str, optional): export file format. Defaults to "json".
+            fmt (str, optional): export file format. Defaults to "pickle".
             indent (int, optional): json format indent. Defaults to 0.
 
         Returns:
@@ -189,11 +189,11 @@ class TargetInteractionProvider(object):
             logger.exception("Failing with %s", str(e))
         return ok
 
-    def reload(self):
-        self.__targetD = self.__reload(fmt="json", useCache=True)
+    def reload(self, fmt="pickle"):
+        self.__targetD = self.__reload(fmt=fmt, useCache=True)
         return self.__targetD is not None
 
-    def __reload(self, fmt="json", useCache=True):
+    def __reload(self, fmt="pickle", useCache=True):
         """Reload from the current cache file."""
         try:
             targetFilePath = self.__getTargetFilePath(fmt=fmt)
@@ -211,8 +211,9 @@ class TargetInteractionProvider(object):
         #
         return targetD
 
-    def __getTargetFilePath(self, fmt="json"):
-        pth = os.path.join(self.__dirPath, "nonpolymer-target-interactions", "inst-target-interactions." + fmt)
+    def __getTargetFilePath(self, fmt="pickle"):
+        ext = "pic" if fmt == "pickle" else "json"
+        pth = os.path.join(self.__dirPath, "nonpolymer-target-interactions", "inst-target-interactions." + ext)
         return pth
 
     def __calculateNeighbors(self, distLimit=5.0, numProc=2, chunkSize=10, updateOnly=False):
@@ -335,4 +336,13 @@ class TargetInteractionProvider(object):
             ok = stU.fetchBundle(self.__dirPath, url, stashRemoteDirPath, remoteStashPrefix=remoteStashPrefix, userName=userName, password=password)
         except Exception as e:
             logger.error("Failing with url %r stashDirPath %r: %s", url, stashRemoteDirPath, str(e))
+        return ok
+
+    def convert(self, fmt1="json", fmt2="pickle"):
+        #
+        targetFilePath = self.__getTargetFilePath(fmt=fmt1)
+        self.__targetD = self.__mU.doImport(targetFilePath, fmt=fmt1)
+        #
+        targetFilePath = self.__getTargetFilePath(fmt=fmt2)
+        ok = self.__mU.doExport(targetFilePath, self.__targetD, fmt=fmt2)
         return ok
