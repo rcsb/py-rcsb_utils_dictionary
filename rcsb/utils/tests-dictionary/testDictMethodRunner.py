@@ -79,6 +79,8 @@ class DictMethodRunnerTests(unittest.TestCase):
             self.assertGreaterEqual(len(locatorObjList), mockLength)
             for container in containerList:
                 cName = container.getName()
+                # if cName not in ["6TTM"]:
+                #    continue
                 logger.debug("Processing container %s", cName)
                 dmh.apply(container)
                 savePath = os.path.join(HERE, "test-output", cName + "-with-method.cif")

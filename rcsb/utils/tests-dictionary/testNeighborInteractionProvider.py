@@ -1,5 +1,5 @@
 ##
-# File:    TargetInteractionProviderTests.py
+# File:    NeighborInteractionProviderTests.py
 # Author:  J. Westbrook
 # Date:    18-Feb-2021
 #
@@ -23,7 +23,7 @@ import time
 import unittest
 
 
-from rcsb.utils.dictionary.TargetInteractionProvider import TargetInteractionProvider
+from rcsb.utils.dictionary.NeighborInteractionProvider import NeighborInteractionProvider
 from rcsb.utils.config.ConfigUtil import ConfigUtil
 
 HERE = os.path.abspath(os.path.dirname(__file__))
@@ -33,7 +33,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s]-%(mo
 logger = logging.getLogger()
 
 
-class TargetInteractionProviderTests(unittest.TestCase):
+class NeighborInteractionProviderTests(unittest.TestCase):
     skipFlag = True
 
     def setUp(self):
@@ -50,9 +50,9 @@ class TargetInteractionProviderTests(unittest.TestCase):
         endTime = time.time()
         logger.info("Completed %s at %s (%.4f seconds)", self.id(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - self.__startTime)
 
-    def testTargetInteractionProviderBootstrap(self):
+    def testNeighborInteractionProviderBootstrap(self):
         try:
-            tiP = TargetInteractionProvider(self.__cfgOb, self.__configName, self.__cachePath, useCache=False)
+            tiP = NeighborInteractionProvider(self.__cfgOb, self.__configName, self.__cachePath, useCache=False)
             ok = tiP.generate(distLimit=5.0, updateOnly=False, fmt="pickle")
             self.assertTrue(ok)
             ok = tiP.generate(distLimit=5.0, updateOnly=True, fmt="pickle")
@@ -62,18 +62,9 @@ class TargetInteractionProviderTests(unittest.TestCase):
             ok = tiP.testCache(minCount=85)
             self.assertTrue(ok)
             #
-            tiP = TargetInteractionProvider(self.__cfgOb, self.__configName, self.__cachePath, useCache=True)
+            tiP = NeighborInteractionProvider(self.__cfgOb, self.__configName, self.__cachePath, useCache=True)
             ok = tiP.testCache(minCount=85)
             self.assertTrue(ok)
-            for entryId in tiP.getEntries():
-                intD = tiP.getInteractions(entryId)
-                for asymId, neighborL in intD.items():
-                    tD = {}
-                    for neighbor in neighborL:
-                        logger.debug("%s %s %r", entryId, asymId, neighbor)
-                        tD.setdefault(asymId, set()).add((neighbor.partnerEntityId, neighbor.partnerAsymId, neighbor.connectType))
-                    if len(tD) > 1:
-                        logger.info("%s %s (%d) %r", entryId, asymId, len(tD), tD)
         except Exception as e:
             logger.exception("Failing with %s", str(e))
             self.fail()
@@ -82,7 +73,7 @@ class TargetInteractionProviderTests(unittest.TestCase):
     def testStashRemote(self):
         try:
             #
-            tiP = TargetInteractionProvider(self.__cfgOb, self.__configName, self.__cachePath, useCache=True)
+            tiP = NeighborInteractionProvider(self.__cfgOb, self.__configName, self.__cachePath, useCache=True)
             ok = tiP.testCache()
             self.assertTrue(ok)
             ok = tiP.toStash()
@@ -100,7 +91,7 @@ class TargetInteractionProviderTests(unittest.TestCase):
 
 def targetInteractionSuite():
     suiteSelect = unittest.TestSuite()
-    suiteSelect.addTest(TargetInteractionProviderTests("testTargetInteractionProviderBootstrap"))
+    suiteSelect.addTest(NeighborInteractionProviderTests("testNeighborInteractionProviderBootstrap"))
     return suiteSelect
 
 

@@ -1,5 +1,5 @@
 ##
-# File:    TargetInteractionWorkflow.py
+# File:    NeighborInteractionWorkflow.py
 # Author:  J. Westbrook
 # Date:    18-Feb-2021
 #
@@ -8,7 +8,7 @@
 #
 ##
 """
-Worflow for generating and stashing non-polymer instance target interactions
+Worflow for generating and stashing ligand and target neighbor interactions
 
 """
 
@@ -20,7 +20,7 @@ __license__ = "Apache 2.0"
 import logging
 import os
 
-from rcsb.utils.dictionary.TargetInteractionProvider import TargetInteractionProvider
+from rcsb.utils.dictionary.NeighborInteractionProvider import NeighborInteractionProvider
 from rcsb.utils.config.ConfigUtil import ConfigUtil
 
 HERE = os.path.abspath(os.path.dirname(__file__))
@@ -30,7 +30,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s]-%(mo
 logger = logging.getLogger()
 
 
-class TargetInteractionWorkflow(object):
+class NeighborInteractionWorkflow(object):
     def __init__(self, **kwargs):
         # - edit as needed -
         self.__configName = kwargs.get("configName", "site_info_remote_configuration")
@@ -43,7 +43,7 @@ class TargetInteractionWorkflow(object):
         #
         self.__cfgOb = ConfigUtil(configPath=self.__configPath, defaultSectionName=self.__configName, mockTopPath=self.__mockTopPath)
         logger.info("Configuration file path %s", self.__configPath)
-        self.__tiP = TargetInteractionProvider(self.__cfgOb, self.__configName, self.__cachePath, useCache=self.__useCache, numProc=self.__numProc, chunkSize=self.__chunkSize)
+        self.__tiP = NeighborInteractionProvider(self.__cfgOb, self.__configName, self.__cachePath, useCache=self.__useCache, numProc=self.__numProc, chunkSize=self.__chunkSize)
 
     def update(self, incremental=True):
         ok = self.__tiP.generate(distLimit=5.0, updateOnly=incremental, fmt="pickle")
@@ -65,5 +65,5 @@ class TargetInteractionWorkflow(object):
 
 
 if __name__ == "__main__":
-    tiWf = TargetInteractionWorkflow()
+    tiWf = NeighborInteractionWorkflow()
     tiWf.update(incremental=False)

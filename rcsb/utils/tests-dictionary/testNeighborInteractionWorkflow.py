@@ -1,5 +1,5 @@
 ##
-# File:    TargetInteractionWorkflowTests.py
+# File:    NeighborInteractionWorkflowTests.py
 # Author:  J. Westbrook
 # Date:    21-Feb-2021
 #
@@ -8,7 +8,7 @@
 #
 ##
 """
-Tests for target interaction generation/update workflow
+Tests for ligand and target interaction generation/update workflow
 """
 
 __docformat__ = "restructuredtext en"
@@ -21,7 +21,7 @@ import os
 import time
 import unittest
 
-from rcsb.utils.dictionary.TargetInteractionWorkflow import TargetInteractionWorkflow
+from rcsb.utils.dictionary.NeighborInteractionWorkflow import NeighborInteractionWorkflow
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 TOPDIR = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
@@ -30,7 +30,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s]-%(mo
 logger = logging.getLogger()
 
 
-class TargetInteractionWorkflowTests(unittest.TestCase):
+class NeighborInteractionWorkflowTests(unittest.TestCase):
     skipFlag = True
 
     def setUp(self):
@@ -48,7 +48,7 @@ class TargetInteractionWorkflowTests(unittest.TestCase):
 
     def testTargetInteractionUpdate(self):
         try:
-            tiWf = TargetInteractionWorkflow(
+            tiWf = NeighborInteractionWorkflow(
                 configPath=self.__configPath,
                 configName=self.__configName,
                 cachePath=self.__cachePath,
@@ -66,7 +66,7 @@ class TargetInteractionWorkflowTests(unittest.TestCase):
     @unittest.skipIf(skipFlag, "Internal test")
     def testTargetInteractionRestore(self):
         try:
-            tiWf = TargetInteractionWorkflow(
+            tiWf = NeighborInteractionWorkflow(
                 configPath=self.__configPath,
                 configName=self.__configName,
                 cachePath=self.__cachePath,
@@ -84,8 +84,8 @@ class TargetInteractionWorkflowTests(unittest.TestCase):
 
 def targetInteractionSuite():
     suiteSelect = unittest.TestSuite()
-    suiteSelect.addTest(TargetInteractionWorkflowTests("testTargetInteractionUpdate"))
-    suiteSelect.addTest(TargetInteractionWorkflowTests("testTargetInteractionRestore"))
+    suiteSelect.addTest(NeighborInteractionWorkflowTests("testTargetInteractionUpdate"))
+    suiteSelect.addTest(NeighborInteractionWorkflowTests("testTargetInteractionRestore"))
     return suiteSelect
 
 

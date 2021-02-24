@@ -1693,7 +1693,7 @@ class DictMethodEntityInstanceHelper(object):
             #
             instanceModelValidationD = self.__commonU.getInstanceNonpolymerValidationInfo(dataContainer)
             #
-            # NonpolymerValidationFields = ("rsr", "rscc", "mogul_bonds_rmsz", "mogul_angles_rmsz", "missing_heavy_atom_count")
+            # NonpolymerValidationFields = ("rsr", "rscc", "mogul_bonds_rmsz", "mogul_angles_rmsz")
             #
             logger.debug("Length instanceModelValidationD %d", len(instanceModelValidationD))
             #
@@ -1704,23 +1704,15 @@ class DictMethodEntityInstanceHelper(object):
             rankD = {}
             scoreD = {}
             # -- Get existing interactions or calculate on the fly
-            if self.__tiP.hasEntry(entryId):
-                intD = self.__tiP.getInteractions(entryId)
-                ligandAtomCountD = self.__tiP.getAtomCounts(entryId)
+            if False and self.__tiP.hasEntry(entryId):
+                pass
+                # intD = self.__tiP.getInteractions(entryId)
+                # ligandAtomCountD = self.__tiP.getAtomCounts(entryId)
             else:
-                intD, ligandAtomCountD = self.__commonU.getNonpolymerInstanceNeighbors(dataContainer)
+                # intD, ligandAtomCountD = self.__commonU.getNonpolymerInstanceNeighbors(dataContainer)
+                ligandAtomCountD = self.__commonU.getLigandAtomCountD(dataContainer)
+                intIsBoundD = self.__commonU.getLigandNeighborBoundState(dataContainer)
 
-            intTargetD = {}
-            intNeighborD = {}
-            intIsBoundD = {}
-            for asymId, neighborL in intD.items():
-                isBound = False
-                for neighbor in neighborL:
-                    intTargetD.setdefault(asymId, set()).add((neighbor.partnerEntityId, neighbor.partnerAsymId, neighbor.connectType))
-                    intNeighborD.setdefault((neighbor.partnerEntityId, neighbor.partnerAsymId, neighbor.connectType), []).append(neighbor)
-                    if neighbor.connectType != "non-bonded":
-                        isBound = True
-                intIsBoundD[asymId] = isBound
             # --
             # calculate scores and ranks and find best ranking
             for (modelId, asymId, altId, compId), vTup in instanceModelValidationD.items():
@@ -1859,41 +1851,16 @@ class DictMethodEntityInstanceHelper(object):
 
         return geoScore, geoRanking
 
-    def buildInstanceTargetInteractions(self, dataContainer, catName, **kwargs):
-        """Build category rcsb_nonpolymer_instance_target_interactions ...
+    def buildInstanceTargetNeighbors(self, dataContainer, catName, **kwargs):
+        """Build category rcsb_target_neighbors ...
 
         Example:
-         loop_
-            _rcsb_nonpolymer_instance_target_interactions.ordinal
-            _rcsb_nonpolymer_instance_target_interactions.entry_id
-            _rcsb_nonpolymer_instance_target_interactions.model_id
-            _rcsb_nonpolymer_instance_target_interactions.entity_id
-            _rcsb_nonpolymer_instance_target_interactions.asym_id
-            _rcsb_nonpolymer_instance_target_interactions.auth_asym_id
-            _rcsb_nonpolymer_instance_target_interactions.comp_id
-            _rcsb_nonpolymer_instance_target_interactions.atom_id
-            _rcsb_nonpolymer_instance_target_interactions.alt_id
-            _rcsb_nonpolymer_instance_target_interactions.target_model_id
-            _rcsb_nonpolymer_instance_target_interactions.target_entity_id
-            _rcsb_nonpolymer_instance_target_interactions.target_asym_id
-            _rcsb_nonpolymer_instance_target_interactions.target_seq_id
-            _rcsb_nonpolymer_instance_target_interactions.target_comp_id
-            _rcsb_nonpolymer_instance_target_interactions.target_atom_id
-            _rcsb_nonpolymer_instance_target_interactions.target_is_bound
-            1 6TTM 1 2 B A PEG O4  A 1 1 A 270 GLU O   N
-            2 6TTM 1 3 C A HYO N04 . 1 1 A 119 GLU OE2 N
-            3 6TTM 1 4 D A NI  NI  . 1 1 A 277 HIS NE2 Y
-            4 6TTM 1 6 F A EDO O1  . 1 1 A 232 ASP OD2 N
-            5 6TTM 1 6 G A EDO C1  . 1 1 A 102 GLU OE2 N
-            6 6TTM 1 7 H A SR  SR  . 1 1 A 101 GLY O   Y
-            7 6TTM 1 8 I A UNX UNK . 1 1 A 148 ASN O   N
-            8 6TTM 1 8 J A UNX UNK . 1 1 A 344 LYS NZ  N
-            #
+
         """
         logger.debug("Starting with %s %r %r", dataContainer.getName(), catName, kwargs)
         startTime = time.time()
         try:
-            if catName != "rcsb_nonpolymer_instance_target_interactions":
+            if catName != "rcsb_target_neighbors":
                 return False
             if not dataContainer.exists("entry"):
                 return False
@@ -1910,27 +1877,22 @@ class DictMethodEntityInstanceHelper(object):
             asymIdD = self.__commonU.getInstanceEntityMap(dataContainer)
             asymAuthIdD = self.__commonU.getAsymAuthIdMap(dataContainer)
             # -- Get existing interactions or calculate on the fly
-            if self.__tiP.hasEntry(entryId):
-                intD = self.__tiP.getInteractions(entryId)
+            # TODO
+            if False and self.__tiP.hasEntry(entryId):
+                # intD = self.__tiP.getInteractions(entryId)
+                pass
             else:
-                intD, _ = self.__commonU.getNonpolymerInstanceNeighborInfo(dataContainer)
-
-            #  intD[asymId for each ligand] -> [LigandTargetInstance(),]
-            intTargetD = {}
-            intNeighborD = {}
-            intIsBoundD = {}
-            for asymId, neighborL in intD.items():
-                isBound = False
-                for neighbor in neighborL:
-                    intTargetD.setdefault(asymId, set()).add((neighbor.partnerEntityId, neighbor.partnerAsymId, neighbor.connectType))
-                    intNeighborD.setdefault(asymId, {}).setdefault((neighbor.partnerEntityId, neighbor.partnerAsymId, neighbor.connectType), []).append(neighbor)
-                    if neighbor.connectType != "non-bonded":
-                        isBound = True
-                intIsBoundD[asymId] = isBound
+                ligandIndexD = self.__commonU.getLigandNeighborIndex(dataContainer)
+                nearestNeighborL = self.__commonU.getNearestNeighborList(dataContainer)
             #
-            for asymId, nS in intTargetD.items():
-                for (partnerEntityId, partnerAsymId, pConnectType) in nS:
-                    neighbor = intNeighborD[asymId][(partnerEntityId, partnerAsymId, pConnectType)][0]
+            logger.debug("%s (%d) ligandIndexD %r", entryId, len(nearestNeighborL), ligandIndexD)
+            #
+            for asymId, nD in ligandIndexD.items():
+                for (partnerAsymId, partnerAuthSeqId), nIndex in nD.items():
+                    logger.debug("%s pAsym %r pAuthSeqId %r nIndex %d", entryId, partnerAsymId, partnerAuthSeqId, nIndex)
+                    #
+                    neighbor = nearestNeighborL[nIndex]
+                    # neighbor = intNeighborD[asymId][(partnerEntityId, partnerAsymId, pConnectType)][0]
                     #
                     entityId = asymIdD[asymId]
                     authAsymId = asymAuthIdD[asymId]
@@ -1946,11 +1908,12 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue(neighbor.ligandAltId if neighbor.ligandAltId and neighbor.ligandAltId not in ["?"] else ".", "alt_id", ii)
                     cObj.setValue(neighbor.ligandCompId, "comp_id", ii)
                     #
-                    cObj.setValue(neighbor.partnerEntityId, "target_model_id", ii)
+                    cObj.setValue(neighbor.partnerModelId, "target_model_id", ii)
                     cObj.setValue(neighbor.partnerEntityId, "target_entity_id", ii)
                     cObj.setValue(neighbor.partnerAsymId, "target_asym_id", ii)
                     cObj.setValue(neighbor.partnerCompId, "target_comp_id", ii)
                     cObj.setValue(neighbor.partnerSeqId, "target_seq_id", ii)
+                    cObj.setValue(neighbor.partnerAuthSeqId, "target_auth_seq_id", ii)
                     cObj.setValue(neighbor.partnerAtomId, "target_atom_id", ii)
                     cObj.setValue("N" if neighbor.connectType == "non-bonded" else "Y", "target_is_bound", ii)
                     cObj.setValue("%.3f" % neighbor.distance, "distance", ii)
@@ -1958,6 +1921,87 @@ class DictMethodEntityInstanceHelper(object):
                     ii += 1
                 #
             ##
+            endTime = time.time()
+            logger.debug("Completed at %s (%.4f seconds)", time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - startTime)
+            return True
+        except Exception as e:
+            logger.exception("For %s %r failing with %s", dataContainer.getName(), catName, str(e))
+        return False
+
+    def buildInstanceLigandNeighbors(self, dataContainer, catName, **kwargs):
+        """Build category rcsb_target_neighbors ...
+
+        Example:
+
+        """
+        logger.debug("Starting with %s %r %r", dataContainer.getName(), catName, kwargs)
+        startTime = time.time()
+        try:
+            if catName != "rcsb_ligand_neighbors":
+                return False
+            if not dataContainer.exists("entry"):
+                return False
+            #
+            eObj = dataContainer.getObj("entry")
+            entryId = eObj.getValue("id", 0)
+            #
+            # Create the new target category
+            if not dataContainer.exists(catName):
+                dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
+            cObj = dataContainer.getObj(catName)
+            ii = cObj.getRowCount()
+            #
+            asymIdD = self.__commonU.getInstanceEntityMap(dataContainer)
+            asymAuthIdD = self.__commonU.getAsymAuthIdMap(dataContainer)
+            # -- Get existing interactions or calculate on the fly
+            # TODO
+            if False and self.__tiP.hasEntry(entryId):
+                # intD = self.__tiP.getInteractions(entryId)
+                pass
+            else:
+                targetIndexD = self.__commonU.getTargetNeighborIndex(dataContainer)
+                nearestNeighborL = self.__commonU.getNearestNeighborList(dataContainer)
+            #
+            logger.debug("%s (%d) targetIndexD %r", entryId, len(nearestNeighborL), targetIndexD)
+            #
+            for (asymId, authSeqId), nD in targetIndexD.items():
+                for ligandAsymId, nIndex in nD.items():
+                    logger.debug("%s asymId %s authSeqId %s ligandAsym %rnIndex %d", entryId, asymId, authSeqId, ligandAsymId, nIndex)
+                    #
+                    neighbor = nearestNeighborL[nIndex]
+                    #
+                    entityId = asymIdD[asymId]
+                    authAsymId = asymAuthIdD[asymId]
+                    #
+                    cObj.setValue(ii + 1, "ordinal", ii)
+                    cObj.setValue(neighbor.ligandModelId, "model_id", ii)
+                    cObj.setValue(entryId, "entry_id", ii)
+                    cObj.setValue(entityId, "entity_id", ii)
+                    cObj.setValue(asymId, "asym_id", ii)
+                    cObj.setValue(authAsymId, "auth_asym_id", ii)
+                    cObj.setValue(neighbor.partnerCompId, "comp_id", ii)
+                    #
+                    cObj.setValue(neighbor.partnerSeqId, "seq_id", ii)
+                    cObj.setValue(neighbor.partnerAuthSeqId, "auth_seq_id", ii)
+
+                    cObj.setValue(neighbor.partnerAtomId, "atom_id", ii)
+                    cObj.setValue(neighbor.partnerAltId if neighbor.partnerAltId and neighbor.partnerAltId not in ["?"] else ".", "alt_id", ii)
+                    #
+                    cObj.setValue(neighbor.ligandModelId, "ligand_model_id", ii)
+                    cObj.setValue(asymIdD[neighbor.ligandAsymId], "ligand_entity_id", ii)
+                    cObj.setValue(neighbor.ligandAsymId, "ligand_asym_id", ii)
+                    cObj.setValue(neighbor.ligandCompId, "ligand_comp_id", ii)
+                    cObj.setValue(neighbor.ligandAtomId, "ligand_atom_id", ii)
+                    cObj.setValue(neighbor.ligandAltId, "ligand_alt_id", ii)
+                    cObj.setValue(neighbor.ligandAltId if neighbor.ligandAltId and neighbor.ligandAltId not in ["?"] else ".", "ligand_alt_id", ii)
+                    cObj.setValue("N" if neighbor.connectType == "non-bonded" else "Y", "ligand_is_bound", ii)
+                    cObj.setValue("%.3f" % neighbor.distance, "distance", ii)
+                    # ----
+                    ii += 1
+                #
+            ##
+
+            #
             endTime = time.time()
             logger.debug("Completed at %s (%.4f seconds)", time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - startTime)
             return True

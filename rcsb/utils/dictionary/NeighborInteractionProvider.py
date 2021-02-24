@@ -1,12 +1,12 @@
 ##
-#  File:           TargetInteractionProvider.py
+#  File:           NeighborInteractionProvider.py
 #  Date:           17-Feb-2021 jdw
 #
 #  Updated:
 #
 ##
 """
-Generators and accessors for non-polymer instance target interactions
+Generators and accessors for target and ligand neighbor interactions
 
 """
 
@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 class TargetInteractionWorker(object):
     """A skeleton class that implements the interface expected by the multiprocessing
-    for calculating non-polymer instance target interactions --
+    for calculating non-polymer instance ligand and target neighbor interactions --
     """
 
     def __init__(self, repositoryProviderObj, **kwargs):
@@ -48,8 +48,8 @@ class TargetInteractionWorker(object):
                 dataContainerList = self.__rpP.getContainerList([locatorObj])
                 for dataContainer in dataContainerList:
                     entryId = dataContainer.getName()
-                    instD, countD = self.__buildTargetInteractions(procName, dataContainer, distLimit)
-                    retList.append((entryId, instD, countD))
+                    rD = self.__getNeighborInfo(procName, dataContainer, distLimit)
+                    retList.append((entryId, rD))
             #
             successList = sorted(set(dataList) - set(failList))
             if failList:
@@ -61,17 +61,18 @@ class TargetInteractionWorker(object):
         #
         return successList, retList, diagList
 
-    def __buildTargetInteractions(self, procName, dataContainer, distLimit):
+    def __getNeighborInfo(self, procName, dataContainer, distLimit):
         """Internal method return a dictionary target interactions."""
         rD = {}
         try:
-            rD, countD = self.__commonU.getNonpolymerInstanceNeighborInfo(dataContainer, distLimit=distLimit)
+            rD = self.__commonU.getNeighborInfo(dataContainer, distLimit=distLimit)
+
         except Exception as e:
             logger.exception("%s failing with %s", procName, str(e))
-        return rD, countD
+        return rD
 
 
-class TargetInteractionProvider(object):
+class NeighborInteractionProvider(object):
     """Generators and accessors for non-polymer instance target interactions."""
 
     def __init__(self, cfgOb, configName, cachePath, **kwargs):
@@ -81,7 +82,7 @@ class TargetInteractionProvider(object):
         self.__configName = configName
         self.__cachePath = cachePath
         self.__fileLimit = kwargs.get("fileLimit", None)
-        self.__dirPath = os.path.join(cachePath, "target-interactions")
+        self.__dirPath = os.path.join(cachePath, "neighbor-interactions")
         self.__numProc = kwargs.get("numProc", 2)
         self.__chunkSize = kwargs.get("chunkSize", 10)
         useCache = kwargs.get("useCache", True)
@@ -89,35 +90,53 @@ class TargetInteractionProvider(object):
         #  - Configuration for stash services -
         #    Local target directory name to be stashed.  (subdir of dirPath)
         #
-        self.__stashDir = "nonpolymer-target-interactions"
+        self.__stashDir = "ligand-target-neighbors"
         #
         self.__mU = MarshalUtil(workPath=self.__dirPath)
         self.__rpP = RepositoryProvider(cfgOb=self.__cfgOb, numProc=self.__numProc, fileLimit=self.__fileLimit, cachePath=self.__cachePath)
-        self.__targetD = self.__reload(fmt="pickle", useCache=useCache)
+        self.__neighborD = self.__reload(fmt="pickle", useCache=useCache)
         #
 
     def testCache(self, minCount=0):
         try:
             if minCount == 0:
                 return True
-            if self.__targetD and minCount and len(self.__targetD["interactions"]) >= minCount:
-                logger.info("Target interactions (%d) created %r version %r", len(self.__targetD["interactions"]), self.__targetD["created"], self.__targetD["version"])
+            if self.__neighborD and minCount and len(self.__neighborD["entries"]) >= minCount:
+                logger.info(
+                    "Target neighbor data for (%d) entries created %r version %r", len(self.__neighborD["entries"]), self.__neighborD["created"], self.__neighborD["version"]
+                )
                 return True
         except Exception:
             pass
         return False
 
-    def getInteractions(self, entryId):
-        """Return the target interactions for the non-polymer instances for the input entry.
+    def getLigandNeighborIndex(self, entryId):
+        """Return the target neighbors for the non-polymer instances for the input entry.
 
         Args:
             entryId (str): entry identifier
 
         Returns:
-            (dict): {asymId: [LigandTargetInstance(), LigandTargetInstance(), ...]}
+            (dict): {ligandAsymId: {(targetAsymId, targetAuthSeqId): nnIndex1, (): nnIndex2}
         """
         try:
-            return self.__targetD["interactions"][entryId.upper()]
+            return self.__neighborD["entries"][entryId.upper()]["ligandNeighborIndexD"]
+        except Exception:
+            pass
+        return {}
+
+    def getTargetNeighborIndex(self, entryId):
+        """Return the ligand neighbors for the polymer or branched entity instances in the input entry.
+
+        Args:
+            entryId (str): entry identifier
+
+        Returns:
+            (dict): {(targetAsymId, targetAuthSeqId): {(ligandAsymId): nnIndex1, (): nnIndex2}
+
+        """
+        try:
+            return self.__neighborD["entries"][entryId.upper()]["targetNeighborIndexD"]
         except Exception:
             pass
         return {}
@@ -132,7 +151,7 @@ class TargetInteractionProvider(object):
             (dict): {asymId: {'FL': count, 'altA': occ*count, 'altB': occ*count, ... }}
         """
         try:
-            return self.__targetD["atomCounts"][entryId.upper()]
+            return self.__neighborD["entries"][entryId.upper()]["ligandAtomCountD"]
         except Exception:
             pass
         return {}
@@ -147,7 +166,7 @@ class TargetInteractionProvider(object):
             (bool): True if entry is in the cache or False otherwise
         """
         try:
-            return entryId in self.__targetD["interactions"]
+            return entryId in self.__neighborD["entries"]
         except Exception:
             pass
         return False
@@ -159,7 +178,7 @@ class TargetInteractionProvider(object):
             (list): [entryId, entryId, ... ]
         """
         try:
-            return list(self.__targetD["interactions"].keys())
+            return list(self.__neighborD["entries"].keys())
         except Exception:
             pass
         return []
@@ -179,41 +198,42 @@ class TargetInteractionProvider(object):
         ok = False
         try:
             tS = time.strftime("%Y %m %d %H:%M:%S", time.localtime())
-            tD, cD = self.__calculateNeighbors(distLimit=distLimit, numProc=self.__numProc, chunkSize=self.__chunkSize, updateOnly=updateOnly)
-            self.__targetD = {"version": self.__version, "created": tS, "interactions": tD, "atomCounts": cD}
+            tD = self.__calculateNeighbors(distLimit=distLimit, numProc=self.__numProc, chunkSize=self.__chunkSize, updateOnly=updateOnly)
+            self.__neighborD = {"version": self.__version, "created": tS, "entries": tD}
             kwargs = {"indent": indent} if fmt == "json" else {}
             targetFilePath = self.__getTargetFilePath(fmt=fmt)
-            ok = self.__mU.doExport(targetFilePath, self.__targetD, fmt=fmt, **kwargs)
+            ok = self.__mU.doExport(targetFilePath, self.__neighborD, fmt=fmt, **kwargs)
             logger.info("Wrote %r status %r", targetFilePath, ok)
         except Exception as e:
             logger.exception("Failing with %s", str(e))
         return ok
 
     def reload(self, fmt="pickle"):
-        self.__targetD = self.__reload(fmt=fmt, useCache=True)
-        return self.__targetD is not None
+        self.__neighborD = self.__reload(fmt=fmt, useCache=True)
+        return self.__neighborD is not None
 
     def __reload(self, fmt="pickle", useCache=True):
         """Reload from the current cache file."""
         try:
             targetFilePath = self.__getTargetFilePath(fmt=fmt)
             tS = time.strftime("%Y %m %d %H:%M:%S", time.localtime())
-            targetD = {"version": self.__version, "created": tS, "interactions": {}, "atomCounts": {}}
+            neighborD = {"version": self.__version, "created": tS, "entries": {}}
             logger.debug("useCache %r targetFilePath %r", useCache, targetFilePath)
             #
             if useCache and self.__mU.exists(targetFilePath):
-                targetD = self.__mU.doImport(targetFilePath, fmt=fmt)
-                for _, neighborD in targetD["interactions"].items():
-                    for asymId in neighborD:
-                        neighborD[asymId] = [LigandTargetInstance(*neighbor) for neighbor in neighborD[asymId]]
+                neighborD = self.__mU.doImport(targetFilePath, fmt=fmt)
+                # TODO
+                if True or fmt != "pickle":
+                    for _, nD in neighborD["entries"].items():
+                        nD["nearestNeighbors"] = [LigandTargetInstance(*neighbor) for neighbor in nD["nearestNeighbors"]]
         except Exception as e:
             logger.exception("Failing with %s", str(e))
         #
-        return targetD
+        return neighborD
 
     def __getTargetFilePath(self, fmt="pickle"):
         ext = "pic" if fmt == "pickle" else "json"
-        pth = os.path.join(self.__dirPath, "nonpolymer-target-interactions", "inst-target-interactions." + ext)
+        pth = os.path.join(self.__dirPath, "ligand-target-neighbors", "neighbor-data." + ext)
         return pth
 
     def __calculateNeighbors(self, distLimit=5.0, numProc=2, chunkSize=10, updateOnly=False):
@@ -230,15 +250,13 @@ class TargetInteractionProvider(object):
         contentType = "pdbx"
         mergeContent = None
         rD = {}
-        cD = {}
         exD = {}
         #
         # updateOnly - will reuse any existing data loaded when this is instantiated
         #              otherwise the cache context is cleared before the calculation.
         if updateOnly:
             exD = {k: True for k in self.getEntries()}
-            rD = self.__targetD["interactions"] if "interactions" in self.__targetD else {}
-            cD = self.__targetD["atomCounts"] if "atomCounts" in self.__targetD else {}
+            rD = self.__neighborD["entries"] if "entries" in self.__neighborD else {}
         #
         locatorObjList = self.__rpP.getLocatorObjList(contentType=contentType, mergeContentTypes=mergeContent, excludeIds=exD)
         logger.info("Starting with %d numProc %d updateOnly (%r)", len(locatorObjList), self.__numProc, updateOnly)
@@ -252,12 +270,11 @@ class TargetInteractionProvider(object):
         if failList:
             logger.info("Target interaction build failures (%d): %r", len(failList), failList)
         #
-        for (entryId, tD, qD) in resultList[0]:
-            rD[entryId] = tD
-            cD[entryId] = qD
+        for (entryId, nD) in resultList[0]:
+            rD[entryId] = nD
         #
-        logger.info("Completed with multi-proc status %r failures %r total entry interactions (%d) atom counts (%d)", ok, len(failList), len(rD), len(cD))
-        return rD, cD
+        logger.info("Completed with multi-proc status %r failures %r total entries with data (%d)", ok, len(failList), len(rD))
+        return rD
 
     def toStash(self):
         ok = False
@@ -341,8 +358,8 @@ class TargetInteractionProvider(object):
     def convert(self, fmt1="json", fmt2="pickle"):
         #
         targetFilePath = self.__getTargetFilePath(fmt=fmt1)
-        self.__targetD = self.__mU.doImport(targetFilePath, fmt=fmt1)
+        self.__neighborD = self.__mU.doImport(targetFilePath, fmt=fmt1)
         #
         targetFilePath = self.__getTargetFilePath(fmt=fmt2)
-        ok = self.__mU.doExport(targetFilePath, self.__targetD, fmt=fmt2)
+        ok = self.__mU.doExport(targetFilePath, self.__neighborD, fmt=fmt2)
         return ok

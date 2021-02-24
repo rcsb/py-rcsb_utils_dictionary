@@ -55,6 +55,7 @@ BoundInstanceFields = (
     "partnerCompId",
     "partnerAsymId",
     "partnerSeqId",
+    "partnerAuthSeqId",
     "partnerAtomId",
     "partnerAltId",
     "bondDistance",
@@ -67,7 +68,6 @@ NonpolymerValidationFields = (
     "rscc",
     "mogul_bonds_rmsz",
     "mogul_angles_rmsz",
-    "missing_heavy_atom_count",
     "intermolecular_clashes",
     "mogul_bond_outliers",
     "mogul_angle_outliers",
@@ -88,13 +88,14 @@ LigandTargetFields = (
     "partnerCompId",
     "partnerAsymId",
     "partnerSeqId",
+    "partnerAuthSeqId",
     "partnerAtomId",
     "partnerAltId",
     "distance",
 )
 LigandTargetInstance = namedtuple("LigandTargetInstance", LigandTargetFields, defaults=(None,) * len(LigandTargetFields))
 
-ReferenceFields = ("entityId", "entityType", "asymId", "compId", "seqId", "atomId", "altId")
+ReferenceFields = ("entityId", "entityType", "asymId", "compId", "seqId", "authSeqId", "atomId", "altId")
 ReferenceInstance = namedtuple("ReferenceInstance", ReferenceFields, defaults=(None,) * len(ReferenceFields))
 
 
@@ -156,6 +157,7 @@ class DictMethodCommonUtils(object):
         self.__instanceSiteInfoCache = CacheUtils(size=cacheSize, label="instance site details")
         self.__instanceUnobservedCache = CacheUtils(size=cacheSize, label="instance unobserved details")
         self.__modelOutliersCache = CacheUtils(size=cacheSize, label="model outlier details")
+        self.__neighborInfoCache = CacheUtils(size=cacheSize, label="ligand and target nearest neighbors")
         #
         logger.debug("Dictionary common utilities init")
 
@@ -1829,7 +1831,8 @@ class DictMethodCommonUtils(object):
 
         Returns:
             dict: {<asymId>: NonpolymerBoundInstance( "targetCompId", "targetAtomId", "targetAltId", "connectType", "partnerEntityType", "partnerEntityId",
-                                                      "partnerCompId","partnerAsymId", "partnerSeqId", "partnerAtomId", "targetAltId", "bondDistance", "bondOrder"), }
+                                                      "partnerCompId","partnerAsymId", "partnerSeqId", "partnerAuthSeqId", "partnerAtomId", "targetAltId",
+                                                      "bondDistance", "bondOrder"), }
 
         """
         if not dataContainer or not dataContainer.getName():
@@ -1917,6 +1920,7 @@ class DictMethodCommonUtils(object):
             "connect_target_label_comp_id": "ptnr1_label_comp_id",
             "connect_target_label_asym_id": "ptnr1_label_asym_id",
             "connect_target_label_seq_id": "ptnr1_label_seq_id",
+            "connect_target_auth_seq_id": "ptnr1_auth_seq_id",
             "connect_target_label_atom_id": "ptnr1_label_atom_id",
             "connect_target_label_alt_id": "pdbx_ptnr1_label_alt_id",
             "connect_target_symmetry": "ptnr1_symmetry",
@@ -1924,6 +1928,7 @@ class DictMethodCommonUtils(object):
             "connect_partner_label_comp_id": "ptnr2_label_comp_id",
             "connect_partner_label_asym_id": "ptnr2_label_asym_id",
             "connect_partner_label_seq_id": "ptnr2_label_seq_id",
+            "connect_partner_auth_seq_id": "ptnr2_auth_seq_id",
             "connect_partner_label_atom_id": "ptnr2_label_atom_id",
             "connect_partner_label_alt_id": "pdbx_ptnr2_label_alt_id",
             "connect_partner_symmetry": "ptnr2_symmetry",
@@ -1938,6 +1943,7 @@ class DictMethodCommonUtils(object):
             "connect_target_label_comp_id": "ptnr2_label_comp_id",
             "connect_target_label_asym_id": "ptnr2_label_asym_id",
             "connect_target_label_seq_id": "ptnr2_label_seq_id",
+            "connect_target_auth_seq_id": "ptnr2_auth_seq_id",
             "connect_target_label_atom_id": "ptnr2_label_atom_id",
             "connect_target_label_alt_id": "pdbx_ptnr2_label_alt_id",
             "connect_target_symmetry": "ptnr2_symmetry",
@@ -1945,6 +1951,7 @@ class DictMethodCommonUtils(object):
             "connect_partner_label_comp_id": "ptnr1_label_comp_id",
             "connect_partner_label_asym_id": "ptnr1_label_asym_id",
             "connect_partner_label_seq_id": "ptnr1_label_seq_id",
+            "connect_partner_auth_seq_id": "ptnr1_auth_seq_id",
             "connect_partner_label_atom_id": "ptnr1_label_atom_id",
             "connect_partner_label_alt_id": "pdbx_ptnr1_label_alt_id",
             "connect_partner_symmetry": "ptnr1_symmetry",
@@ -2036,6 +2043,7 @@ class DictMethodCommonUtils(object):
                     pEntityId = asymIdD[pAsymId]
                     pCompId = cD["connect_partner_label_comp_id"]
                     pSeqId = cD["connect_partner_label_seq_id"]
+                    pAuthSeqId = cD["connect_partner_auth_seq_id"]
                     tCompId = cD["connect_target_label_comp_id"]
                     tAtomId = cD["connect_target_label_atom_id"]
                     pAtomId = cD["connect_partner_label_atom_id"]
@@ -2047,7 +2055,9 @@ class DictMethodCommonUtils(object):
                     #
                     ts.add(tCompId)
                     boundNonpolymerInstanceD.setdefault(tAsymId, []).append(
-                        NonpolymerBoundInstance(tCompId, tAtomId, tAltId, cD["connect_type"], eType, pEntityId, pCompId, pAsymId, pSeqId, pAtomId, pAltId, bondDist, bondOrder)
+                        NonpolymerBoundInstance(
+                            tCompId, tAtomId, tAltId, cD["connect_type"], eType, pEntityId, pCompId, pAsymId, pSeqId, pAuthSeqId, pAtomId, pAltId, bondDist, bondOrder
+                        )
                     )
                     boundNonpolymerEntityD.setdefault(tEntityId, []).append(NonpolymerBoundEntity(tCompId, cD["connect_type"], pCompId, pEntityId, eType))
             #
@@ -3751,7 +3761,7 @@ class DictMethodCommonUtils(object):
             dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
 
         Returns:
-            dict: {(modelId, asymId): NonpolymerValidationInstance(rsr, rsrCc, bondsRmsZ, anglesRmsZ, missingAtomCount,
+            dict: {(modelId, asymId): NonpolymerValidationInstance(rsr, rsrCc, bondsRmsZ, anglesRmsZ,
                                              intermolecular_clashes, mogul_bond_outliers, mogul_angle_outliers, stereo_outliers)}
 
         """
@@ -3838,7 +3848,6 @@ class DictMethodCommonUtils(object):
             ):
                 return rD
             # ------- --------- ------- --------- ------- --------- ------- --------- ------- ---------
-            nonPolyMissingAtomD = self.getUnobservedNonPolymerAtomInfo(dataContainer)
             instanceTypeD = self.getInstanceTypes(dataContainer)
             #
             instanceModelOutlierD = {}
@@ -4110,21 +4119,16 @@ class DictMethodCommonUtils(object):
                             tS = "RSCC < 0.65 (altId %s)" % altId if altId else "RSCC < 0.65"
                             instanceModelOutlierD.setdefault((modelId, asymId, altId, False), []).append(OutlierValue(compId, None, "RSCC_OUTLIER", tS, rsrCc))
                         if asymId in instanceTypeD and instanceTypeD[asymId] == "non-polymer":
-                            missingAtomCount = len(nonPolyMissingAtomD[(modelId, compId, asymId, 0)]) if (modelId, compId, asymId, 0) in nonPolyMissingAtomD else 0
-                            missingAtomCount += len(nonPolyMissingAtomD[(modelId, compId, asymId, 1)]) if (modelId, compId, asymId, 1) in nonPolyMissingAtomD else 0
                             instanceModelValidationD[(modelId, asymId, altId, compId)] = NonpolymerValidationInstance(
                                 float(rsr) if rsr else None,
                                 float(rsrCc) if rsrCc else None,
                                 float(bondsRmsZ) if bondsRmsZ else None,
                                 float(anglesRmsZ) if anglesRmsZ else None,
-                                missingAtomCount,
                                 npClashD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npClashD else 0,
                                 npMogulBondOutlierD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npMogulBondOutlierD else 0,
                                 npMogulAngleOutlierD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npMogulAngleOutlierD else 0,
                                 npStereoOutlierD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npStereoOutlierD else 0,
                             )
-                            if missingAtomCount > 0:
-                                logger.debug("%s %s missing atom count %d", dataContainer.getName(), compId, missingAtomCount)
                 #
             logger.debug("instanceModelOutlierD %r", instanceModelOutlierD)
             logger.debug("instanceModelValidationD %r", instanceModelValidationD)
@@ -4134,7 +4138,93 @@ class DictMethodCommonUtils(object):
             logger.exception("%s failing with %s", dataContainer.getName(), str(e))
         return rD
 
-    def getNonpolymerInstanceNeighborInfo(self, dataContainer, distLimit=5.0, targetModelId="1"):
+    def getNearestNeighborList(self, dataContainer):
+        """Return a list of nearest neighbors for ligands and targets referenced
+        by the target and ligand indices.
+
+        Args:
+            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+
+        Returns:
+            list: [LigandTargetInstance(), ...]
+
+        """
+        if not dataContainer or not dataContainer.getName():
+            return {}
+        wD = self.__fetchNeighborInfo(dataContainer)
+        return wD["nearestNeighbors"] if "nearestNeighbors" in wD else {}
+
+    def getLigandNeighborIndex(self, dataContainer):
+        """Return the index of nearest neighbors for ligands interacting
+        with targets polymer and branched entity instances.
+
+        Args:
+            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+
+        Returns:
+            (dict): {ligandAsymId: {(targetAsymId, targetAuthSeqId): nnIndex1, (): nnIndex2}
+
+        """
+        if not dataContainer or not dataContainer.getName():
+            return {}
+        wD = self.__fetchNeighborInfo(dataContainer)
+        return wD["ligandNeighborIndexD"] if "ligandNeighborIndexD" in wD else {}
+
+    def getTargetNeighborIndex(self, dataContainer):
+        """Return the index of nearest neighbors for polymer and branched entity targets interacting
+        with ligand entity instances.
+
+        Args:
+            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+
+        Returns:
+            (dict): {(targetAsymId, targetAuthSeqId): {(ligandAsymId): nnIndex1, (): nnIndex2}
+
+        """
+        if not dataContainer or not dataContainer.getName():
+            return {}
+        wD = self.__fetchNeighborInfo(dataContainer)
+        return wD["targetNeighborIndexD"] if "targetNeighborIndexD" in wD else {}
+
+    def getLigandAtomCountD(self, dataContainer):
+        """Return the ligand atom counts for all observed alternate conformers
+        of ligand instances.
+
+        Args:
+            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+
+        Returns:
+            (dict): {ligandAsymId: {'FL': ### 'A': ###, 'B': ###}, ...  }
+
+        """
+        if not dataContainer or not dataContainer.getName():
+            return {}
+        wD = self.__fetchNeighborInfo(dataContainer)
+        return wD["ligandAtomCountD"] if "ligandAtomCountD" in wD else {}
+
+    def getLigandNeighborBoundState(self, dataContainer):
+        """Return the dicitonary of ligand instances with isBound boolean status.
+
+        Args:
+            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+
+        Returns:
+            (dict): {ligandAsymId: True if isBound,  ...  }
+
+        """
+        if not dataContainer or not dataContainer.getName():
+            return {}
+        wD = self.__fetchNeighborInfo(dataContainer)
+        return wD["ligandIsBoundD"] if "ligandIsBoundD" in wD else {}
+
+    def __fetchNeighborInfo(self, dataContainer):
+        wD = self.__neighborInfoCache.get(dataContainer.getName())
+        if not wD:
+            wD = self.getNeighborInfo(dataContainer)
+            self.__neighborInfoCache.set(dataContainer.getName(), wD)
+        return wD
+
+    def getNeighborInfo(self, dataContainer, distLimit=5.0, targetModelId="1"):
         """Get bound and unbound neighbors for each non-polymer instance and occupancy weighted ligand counts.
 
         Args:
@@ -4143,15 +4233,28 @@ class DictMethodCommonUtils(object):
             targetModelId (str, optional):  select only for this model identifier.  Defaults to 1.
 
         Returns:
-              (dict, dict): {asymId: [LigandTargetInstance()]}, {asymId: {altId: atomcount}, }
+              (dict, dict, list, dict): {asymId: [LigandTargetInstance()]}, {asymId: {altId: atomcount}, }
         """
         try:
             startTime = time.time()
-            ligandTargetInstanceD = {}
+            #
+            nearestNeighbors = []
+            ligandIndexD = {}
+            targetIndexD = {}
+            ligandIsBoundD = {}
             ligandAtomCountD = {}
+            rD = {
+                "targetNeighborIndexD": targetIndexD,
+                "ligandNeighborIndexD": ligandIndexD,
+                "nearestNeighbors": nearestNeighbors,
+                "ligandIsBoundD": ligandIsBoundD,
+                "ligandAtomCountD": ligandAtomCountD,
+            }
+            #
+            ligandTargetInstanceD = {}
             instanceTypeD = self.getInstanceTypes(dataContainer)
             if "non-polymer" not in instanceTypeD.values():
-                return ligandTargetInstanceD, ligandAtomCountD
+                return rD
             #
             entryId = dataContainer.getName()
             logger.debug("Starting with entry %s", entryId)
@@ -4185,6 +4288,7 @@ class DictMethodCommonUtils(object):
                 #
                 atomId = aObj.getValue("label_atom_id", ii)
                 seqId = aObj.getValue("label_seq_id", ii)
+                authSeqId = aObj.getValue("auth_seq_id", ii)
                 compId = aObj.getValue("label_comp_id", ii)
                 altId = aObj.getValueOrDefault("label_alt_id", ii, None)
                 xC = aObj.getValue("Cartn_x", ii)
@@ -4196,10 +4300,10 @@ class DictMethodCommonUtils(object):
                 #
                 if selectType == "target":
                     targetXyzL.append((float(xC), float(yC), float(zC)))
-                    targetRefL.append(ReferenceInstance(entityId, instanceType, asymId, compId, int(seqId) if seqId not in [".", "?"] else None, atomId, altId))
+                    targetRefL.append(ReferenceInstance(entityId, instanceType, asymId, compId, int(seqId) if seqId not in [".", "?"] else None, authSeqId, atomId, altId))
                 elif selectType == "ligand":
                     ligandXyzD.setdefault(asymId, []).append((float(xC), float(yC), float(zC)))
-                    ligandRefD.setdefault(asymId, []).append(ReferenceInstance(entityId, instanceType, asymId, compId, None, atomId, altId))
+                    ligandRefD.setdefault(asymId, []).append(ReferenceInstance(entityId, instanceType, asymId, compId, None, authSeqId, atomId, altId))
 
                     if not altId:
                         ligandAtomCountD.setdefault(asymId, defaultdict(int))["FL"] += 1
@@ -4210,7 +4314,7 @@ class DictMethodCommonUtils(object):
             # ------
             logger.debug("%s targetXyzL (%d) targetRef (%d) ligandXyzD (%d) ", entryId, len(targetXyzL), len(targetXyzL), len(ligandXyzD))
             if not targetXyzL:
-                return ligandTargetInstanceD, ligandAtomCountD
+                return rD
             tArr = np.array(targetXyzL, order="F")
             logger.debug("targetXyzL[0] %r tArr.shape %r tArr[0] %r", targetXyzL[0], tArr.shape, tArr[0])
             tree = spatial.cKDTree(tArr)
@@ -4235,6 +4339,7 @@ class DictMethodCommonUtils(object):
                                     tup.partnerCompId,
                                     tup.partnerAsymId,
                                     tup.partnerSeqId,
+                                    tup.partnerAuthSeqId,
                                     tup.partnerAtomId,
                                     tup.partnerAltId,
                                     float(tup.bondDistance) if tup.bondDistance else None,
@@ -4263,6 +4368,7 @@ class DictMethodCommonUtils(object):
                                 targetRefL[ind].compId,
                                 targetRefL[ind].asymId,
                                 targetRefL[ind].seqId,
+                                targetRefL[ind].authSeqId,
                                 targetRefL[ind].atomId,
                                 targetRefL[ind].altId,
                                 round(dist, 3),
@@ -4276,9 +4382,29 @@ class DictMethodCommonUtils(object):
             # re-sort by distance -
             for asymId in ligandTargetInstanceD:
                 ligandTargetInstanceD[asymId] = sorted(ligandTargetInstanceD[asymId], key=itemgetter(-1))
-            # ------
+                #
+            # --- ----
+            tnD = {}
+            ligandIsBoundD = {}
+            for asymId, neighborL in ligandTargetInstanceD.items():
+                isBound = False
+                for neighbor in neighborL:
+                    tnD.setdefault(asymId, {}).setdefault((neighbor.partnerAsymId, neighbor.partnerAuthSeqId), []).append(neighbor)
+                    if neighbor.connectType != "non-bonded":
+                        isBound = True
+                ligandIsBoundD[asymId] = isBound
+            # --- ----
+            jj = 0
+            for asymId, nD in tnD.items():
+                for (pAsymId, pAuthSeqId), nL in nD.items():
+                    ligandIndexD.setdefault(asymId, {})[(pAsymId, pAuthSeqId)] = jj
+                    targetIndexD.setdefault((pAsymId, pAuthSeqId), {})[asymId] = jj
+                    nearestNeighbors.append(nL[0])
+                    jj += 1
+            #
+            # --- ----
         except Exception as e:
             logger.exception("Failing for %r with %r", dataContainer.getName() if dataContainer else None, str(e))
         #
         logger.info("Completed %s at %s (%.4f seconds)", dataContainer.getName(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), time.time() - startTime)
-        return ligandTargetInstanceD, ligandAtomCountD
+        return rD
