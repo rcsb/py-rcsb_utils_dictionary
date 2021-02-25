@@ -180,18 +180,19 @@ class DictMethodResourceProvider(SingletonClass):
             ret = ret and ok
             if not ret:
                 logger.info("%s resource %r step status %r cumulative status %r", tName, resourceName, ok, ret)
-            self.__resourceUsageReport(startTime)
+            self.__resourceUsageReport(resourceName, startTime)
         #
         logger.info("Completed %s %d resources with status %r", tName, len(self.__resourcesD), ret)
         return ret
 
-    def __resourceUsageReport(self, startTime):
+    def __resourceUsageReport(self, resourceName, startTime):
         unitS = "MB" if platform.system() == "Darwin" else "GB"
         rusageMax = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         # logger.info("Maximum total resident memory size %.3f %s", rusageMax / 10 ** 6, unitS)
         endTime = time.time()
         logger.info(
-            "Step completed at %s (%.4f secs/%.3f %s)",
+            "Step %s completed at %s (%.4f secs/%.3f %s)",
+            resourceName,
             time.strftime("%Y %m %d %H:%M:%S", time.localtime()),
             endTime - startTime,
             rusageMax / 10 ** 6,

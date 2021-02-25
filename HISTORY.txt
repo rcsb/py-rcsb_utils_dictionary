@@ -11,3 +11,4 @@
 23-Feb-2021 - V0.19 Change the default serialization and provide and format conversion method.
 24-Feb-2021 - V0.20 Avoid reload with target updates when updateOnly=True
 24-Feb-2021 - V0.21 Refactor and add ligand and target neighbor data.  Keep all nearest residue level interacitons.
+25-Feb-2021 - V0.22 Adjustments for reporting completeness for cases with hydrogen atoms.

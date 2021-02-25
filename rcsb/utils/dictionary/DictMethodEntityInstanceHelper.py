@@ -1804,21 +1804,23 @@ class DictMethodEntityInstanceHelper(object):
         else:
             completeness = 1.0 if isBound and (numHeavyAtoms - numReportedAtoms) == 1 else (float(numReportedAtoms) / float(numHeavyAtoms))
         #
-        if completeness > 1.0:
+        if completeness > 1.2:
             logger.info("%s %s ligandAtomCountD %r", entryId, asymId, ligandAtomCountD[asymId])
             logger.info(
-                "%s asymId %s compId %s altId %r numHeavyAtoms %d reported %.3f completeness %0.3f",
+                "%s asymId %s compId %s altId %r numHeavyAtoms %d numAtoms %d reported %.3f completeness %0.3f",
                 entryId,
                 asymId,
                 compId,
                 altId,
                 numHeavyAtoms,
+                numAtoms,
                 numReportedAtoms,
                 completeness,
             )
         #
         if completeness > 1.0:
             completeness = 1.0
+        #
         return completeness
 
     def __calculateFitScore(self, rsr, rscc, meanD, stdD, loadingD, completeness):
