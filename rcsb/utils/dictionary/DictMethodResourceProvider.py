@@ -36,7 +36,7 @@ import time
 
 from rcsb.utils.dictionary.DictionaryApiProviderWrapper import DictionaryApiProviderWrapper
 from rcsb.utils.dictionary.DictMethodCommonUtils import DictMethodCommonUtils
-from rcsb.utils.dictionary.TargetInteractionProvider import TargetInteractionProvider
+from rcsb.utils.dictionary.NeighborInteractionProvider import NeighborInteractionProvider
 from rcsb.utils.chemref.AtcProvider import AtcProvider
 from rcsb.utils.chemref.ChemCompModelProvider import ChemCompModelProvider
 from rcsb.utils.chemref.ChemCompProvider import ChemCompProvider
@@ -99,7 +99,7 @@ class DictMethodResourceProvider(SingletonClass):
         self.__pcP = None
         self.__phP = None
         self.__rlsP = None
-        self.__tiP = None
+        self.__niP = None
         #
         #
         # self.__wsPattern = re.compile(r"\s+", flags=re.UNICODE | re.MULTILINE)
@@ -125,7 +125,7 @@ class DictMethodResourceProvider(SingletonClass):
             "PubChemProvider instance": self.__fetchPubChemProvider,
             "PharosProvider instance": self.__fetchPharosProvider,
             "RcsbLigandScoreProvider instance": self.__fetchRcsbLigandScoreProvider,
-            "TargetInteractionProvider instance": self.__fetchTargetInteractionProvider,
+            "NeighborInteractionProvider instance": self.__fetchNeighborInteractionProvider,
         }
         logger.debug("Dictionary resource provider init completed")
         #
@@ -396,19 +396,19 @@ class DictMethodResourceProvider(SingletonClass):
             self.__rlsP = RcsbLigandScoreProvider(cachePath=cachePath, useCache=useCache)
         return self.__rlsP
 
-    def __fetchTargetInteractionProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
+    def __fetchNeighborInteractionProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
         logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        if not self.__tiP:
+        if not self.__niP:
             # --
             try:
                 minCount = 10
-                tiP = TargetInteractionProvider(cfgOb, configName, cachePath=cachePath, useCache=useCache)
-                ok = tiP.fromStash()
-                ok = tiP.reload()
-                ok = tiP.testCache(minCount=minCount)
+                niP = NeighborInteractionProvider(cfgOb, configName, cachePath=cachePath, useCache=useCache)
+                ok = niP.fromStash()
+                ok = niP.reload()
+                ok = niP.testCache(minCount=minCount)
                 if ok:
-                    self.__tiP = tiP
+                    self.__niP = niP
             except Exception as e:
                 logger.warning("Failing with %s", str(e))
             #
-        return self.__tiP
+        return self.__niP

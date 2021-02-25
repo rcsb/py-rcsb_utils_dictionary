@@ -46,7 +46,7 @@ class DictMethodEntityInstanceHelper(object):
         self.__dApi = rP.getResource("Dictionary API instance (pdbx_core)") if rP else None
         self.__ccP = rP.getResource("ChemCompProvider instance") if rP else None
         self.__rlsP = rP.getResource("RcsbLigandScoreProvider instance") if rP else None
-        self.__tiP = rP.getResource("TargetInteractionProvider instance") if rP else None
+        self.__niP = rP.getResource("NeighborInteractionProvider instance") if rP else None
         #
         logger.debug("Dictionary entity-instance level method helper init")
 
@@ -1704,12 +1704,10 @@ class DictMethodEntityInstanceHelper(object):
             rankD = {}
             scoreD = {}
             # -- Get existing interactions or calculate on the fly
-            if False and self.__tiP.hasEntry(entryId):
-                pass
-                # intD = self.__tiP.getInteractions(entryId)
-                # ligandAtomCountD = self.__tiP.getAtomCounts(entryId)
+            if self.__niP.hasEntry(entryId):
+                ligandAtomCountD = self.__niP.getAtomCounts(entryId)
+                intIsBoundD = self.__niP.getLigandNeighborBoundState(entryId)
             else:
-                # intD, ligandAtomCountD = self.__commonU.getNonpolymerInstanceNeighbors(dataContainer)
                 ligandAtomCountD = self.__commonU.getLigandAtomCountD(dataContainer)
                 intIsBoundD = self.__commonU.getLigandNeighborBoundState(dataContainer)
 
@@ -1877,10 +1875,9 @@ class DictMethodEntityInstanceHelper(object):
             asymIdD = self.__commonU.getInstanceEntityMap(dataContainer)
             asymAuthIdD = self.__commonU.getAsymAuthIdMap(dataContainer)
             # -- Get existing interactions or calculate on the fly
-            # TODO
-            if False and self.__tiP.hasEntry(entryId):
-                # intD = self.__tiP.getInteractions(entryId)
-                pass
+            if self.__niP.hasEntry(entryId):
+                ligandIndexD = self.__niP.getLigandNeighborIndex(entryId)
+                nearestNeighborL = self.__niP.getNearestNeighborList(entryId)
             else:
                 ligandIndexD = self.__commonU.getLigandNeighborIndex(dataContainer)
                 nearestNeighborL = self.__commonU.getNearestNeighborList(dataContainer)
@@ -1954,10 +1951,10 @@ class DictMethodEntityInstanceHelper(object):
             asymIdD = self.__commonU.getInstanceEntityMap(dataContainer)
             asymAuthIdD = self.__commonU.getAsymAuthIdMap(dataContainer)
             # -- Get existing interactions or calculate on the fly
-            # TODO
-            if False and self.__tiP.hasEntry(entryId):
-                # intD = self.__tiP.getInteractions(entryId)
-                pass
+            #
+            if self.__niP.hasEntry(entryId):
+                targetIndexD = self.__niP.getTargetNeighborIndex(entryId)
+                nearestNeighborL = self.__niP.getNearestNeighborList(entryId)
             else:
                 targetIndexD = self.__commonU.getTargetNeighborIndex(dataContainer)
                 nearestNeighborL = self.__commonU.getNearestNeighborList(dataContainer)

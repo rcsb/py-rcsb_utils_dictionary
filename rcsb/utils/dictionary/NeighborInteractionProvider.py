@@ -141,6 +141,37 @@ class NeighborInteractionProvider(object):
             pass
         return {}
 
+    def getNearestNeighborList(self, entryId):
+        """Return the list of neares neighbors for the entry.
+
+        Args:
+            entryId (str): entry identifier
+
+        Returns:
+            list: [LigandTargetInstance(), ...]
+
+        """
+        try:
+            return self.__neighborD["entries"][entryId.upper()]["nearestNeighbors"]
+        except Exception:
+            pass
+        return []
+
+    def getLigandNeighborBoundState(self, entryId):
+        """Return the dicitonary of ligand instances with isBound boolean status.
+
+        Args:
+            entryId (str): entry identifier
+
+        Returns:
+            (dict): {ligandAsymId: True if isBound,  ...  }
+        """
+        try:
+            return self.__neighborD["entries"][entryId.upper()]["ligandIsBoundD"]
+        except Exception:
+            pass
+        return {}
+
     def getAtomCounts(self, entryId):
         """Return the non-polymer instance occupancy weighted atome counts for the input entry.
 
@@ -222,8 +253,7 @@ class NeighborInteractionProvider(object):
             #
             if useCache and self.__mU.exists(targetFilePath):
                 neighborD = self.__mU.doImport(targetFilePath, fmt=fmt)
-                # TODO
-                if True or fmt != "pickle":
+                if fmt != "pickle":
                     for _, nD in neighborD["entries"].items():
                         nD["nearestNeighbors"] = [LigandTargetInstance(*neighbor) for neighbor in nD["nearestNeighbors"]]
         except Exception as e:
@@ -305,7 +335,7 @@ class NeighborInteractionProvider(object):
         """
         ok = False
         try:
-            stU = StashUtil(os.path.join(self.__dirPath, "stash"), "nonpolymer-target-interactions")
+            stU = StashUtil(os.path.join(self.__dirPath, "stash"), "ligand-target-neighbors")
             ok = stU.makeBundle(self.__dirPath, [self.__stashDir])
             if ok:
                 ok = stU.storeBundle(url, stashRemoteDirPath, remoteStashPrefix=remoteStashPrefix, userName=userName, password=password)
@@ -349,7 +379,7 @@ class NeighborInteractionProvider(object):
         """
         ok = False
         try:
-            stU = StashUtil(os.path.join(self.__dirPath, "stash"), "nonpolymer-target-interactions")
+            stU = StashUtil(os.path.join(self.__dirPath, "stash"), "ligand-target-neighbors")
             ok = stU.fetchBundle(self.__dirPath, url, stashRemoteDirPath, remoteStashPrefix=remoteStashPrefix, userName=userName, password=password)
         except Exception as e:
             logger.error("Failing with url %r stashDirPath %r: %s", url, stashRemoteDirPath, str(e))
