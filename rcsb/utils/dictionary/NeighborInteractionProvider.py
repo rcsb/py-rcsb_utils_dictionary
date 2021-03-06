@@ -231,7 +231,7 @@ class NeighborInteractionProvider(object):
             tS = time.strftime("%Y %m %d %H:%M:%S", time.localtime())
             tD = self.__calculateNeighbors(distLimit=distLimit, numProc=self.__numProc, chunkSize=self.__chunkSize, updateOnly=updateOnly)
             self.__neighborD = {"version": self.__version, "created": tS, "entries": tD}
-            kwargs = {"indent": indent} if fmt == "json" else {}
+            kwargs = {"indent": indent} if fmt == "json" else {"pickleProtocol": 4}
             targetFilePath = self.__getTargetFilePath(fmt=fmt)
             ok = self.__mU.doExport(targetFilePath, self.__neighborD, fmt=fmt, **kwargs)
             logger.info("Wrote %r status %r", targetFilePath, ok)
@@ -391,5 +391,5 @@ class NeighborInteractionProvider(object):
         self.__neighborD = self.__mU.doImport(targetFilePath, fmt=fmt1)
         #
         targetFilePath = self.__getTargetFilePath(fmt=fmt2)
-        ok = self.__mU.doExport(targetFilePath, self.__neighborD, fmt=fmt2)
+        ok = self.__mU.doExport(targetFilePath, self.__neighborD, fmt=fmt2, pickleProtocol=4)
         return ok

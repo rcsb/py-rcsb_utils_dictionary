@@ -12,3 +12,4 @@
 24-Feb-2021 - V0.20 Avoid reload with target updates when updateOnly=True
 24-Feb-2021 - V0.21 Refactor and add ligand and target neighbor data.  Keep all nearest residue level interacitons.
 25-Feb-2021 - V0.22 Adjustments for reporting completeness for cases with hydrogen atoms.
+ 6-Mar-2021 - V0.23 Override default protocl sitting for pickle serialization
