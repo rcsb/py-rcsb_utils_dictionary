@@ -384,6 +384,7 @@ class DictMethodEntityInstanceHelper(object):
             cathU = rP.getResource("CathProvider instance") if rP else None
             ii = cObj.getRowCount()
             #
+
             for asymId, authAsymId in asymAuthIdD.items():
                 if instTypeD[asymId] not in ["polymer", "branched"]:
                     continue
@@ -392,6 +393,7 @@ class DictMethodEntityInstanceHelper(object):
                 logger.debug("%s asymId %s authAsymId %s dL %r", entryId, asymId, authAsymId, dL)
                 vL = cathU.getCathVersions(entryId.lower(), authAsymId)
                 for (cathId, domId, tId, authSeqBeg, authSeqEnd) in dL:
+                    addPropTupL = []
                     begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
                     endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
                     if not (begSeqId and endSeqId):
@@ -423,6 +425,10 @@ class DictMethodEntityInstanceHelper(object):
                     # cObj.setValue(str(domId), "feature_id", ii)
                     # cObj.setValue(cathId, "name", ii)
                     cObj.setValue(cathU.getCathName(cathId), "name", ii)
+                    addPropTupL.append(("CATH_NAME", cathU.getCathName(cathId)))
+                    addPropTupL.append(("CATH_DOMAIN_ID", str(domId)))
+                    cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
+                    cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
                     #
                     if doLineage:
                         cObj.setValue(";".join(cathU.getNameLineage(cathId)), "annotation_lineage_name", ii)
@@ -450,6 +456,7 @@ class DictMethodEntityInstanceHelper(object):
                 dL = scopU.getScopResidueRanges(entryId.lower(), authAsymId)
                 version = scopU.getScopVersion()
                 for (sunId, domId, sccs, tId, authSeqBeg, authSeqEnd) in dL:
+                    addPropTupL = []
                     begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
                     endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
                     # logger.info("%s (first) begSeqId %r endSeqId %r", entryId, begSeqId, endSeqId)
@@ -485,6 +492,12 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue(domId, "feature_id", ii)
                     cObj.setValue(scopU.getScopName(sunId), "name", ii)
                     #
+                    addPropTupL.append(("SCOP_NAME", scopU.getScopName(sunId)))
+                    addPropTupL.append(("SCOP_DOMAIN_ID", str(domId)))
+                    addPropTupL.append(("SCOP_SUN_ID", str(sunId)))
+                    cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
+                    cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
+                    #
                     if doLineage:
                         tL = [t if t is not None else "" for t in scopU.getNameLineage(sunId)]
                         cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
@@ -518,6 +531,7 @@ class DictMethodEntityInstanceHelper(object):
             sheetSenseD = self.__commonU.getProtSheetSense(dataContainer)
             for sId, sD in instSheetRangeD.items():
                 for asymId, rTupL in sD.items():
+                    addPropTupL = []
                     entityId = asymIdD[asymId]
                     authAsymId = asymAuthIdD[asymId]
                     cObj.setValue(ii + 1, "ordinal", ii)
@@ -531,6 +545,10 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue("sheet", "name", ii)
                     if sId in sheetSenseD:
                         cObj.setValue(sheetSenseD[sId] + " sense sheet", "description", ii)
+                        #
+                        addPropTupL.append(("SHEET_SENSE", sheetSenseD[sId]))
+                        cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
+                        cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
                     #
                     tSeqId = ";".join([str(rTup[0]) for rTup in rTupL])
                     cObj.setValue(tSeqId, "feature_positions_beg_seq_id", ii)
@@ -598,6 +616,7 @@ class DictMethodEntityInstanceHelper(object):
             cisPeptideD = self.__commonU.getCisPeptides(dataContainer)
             for cId, cL in cisPeptideD.items():
                 for (asymId, begSeqId, endSeqId, modelId, omegaAngle) in cL:
+                    addPropTupL = []
                     entityId = asymIdD[asymId]
                     authAsymId = asymAuthIdD[asymId]
                     cObj.setValue(ii + 1, "ordinal", ii)
@@ -617,6 +636,11 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue("V1.0", "assignment_version", ii)
                     tS = "cis-peptide bond in model %d with omega angle %.2f" % (modelId, omegaAngle)
                     cObj.setValue(tS, "description", ii)
+                    #
+                    addPropTupL.append(("OMEGA_ANGLE", omegaAngle))
+                    cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
+                    cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
+                    #
                     #
                     ii += 1
             #
@@ -719,6 +743,7 @@ class DictMethodEntityInstanceHelper(object):
             jj = 1
             for asymId, rTupL in npbD.items():
                 for rTup in rTupL:
+                    addPropTupL = []
                     if rTup.connectType in ["covalent bond"]:
                         fType = "HAS_COVALENT_LINKAGE"
                         fId = "COVALENT_LINKAGE_%d" % jj
@@ -748,12 +773,21 @@ class DictMethodEntityInstanceHelper(object):
                         "feature_value_details",
                         ii,
                     )
+                    ## ----
+                    addPropTupL.append(("PARTNER_ASYM_ID", rTup.partnerAsymId))
+                    if rTup.partnerCompId:
+                        addPropTupL.append(("PARTNER_COMP_ID", rTup.partnerCompId))
+                    if rTup.bondDistance:
+                        addPropTupL.append(("PARTNER_BOND_DISTANCE", rTup.bondDistance))
+                    cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
+                    cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
+                    ## ----
                     cObj.setValue(";".join([rTup.partnerCompId if rTup.partnerCompId else "?" for rTup in rTupL]), "feature_value_comp_id", ii)
                     cObj.setValue(";".join([rTup.bondDistance if rTup.bondDistance else "?" for rTup in rTupL]), "feature_value_reported", ii)
                     cObj.setValue(";".join(["?" for rTup in rTupL]), "feature_value_reference", ii)
                     cObj.setValue(";".join(["?" for rTup in rTupL]), "feature_value_uncertainty_estimate", ii)
                     cObj.setValue(";".join(["?" for rTup in rTupL]), "feature_value_uncertainty_estimate_type", ii)
-
+                    ## ---
                     cObj.setValue("PDB", "provenance_source", ii)
                     cObj.setValue("V1.0", "assignment_version", ii)
                     #
@@ -986,7 +1020,6 @@ class DictMethodEntityInstanceHelper(object):
                         descriptionS = tN + " in instance %s (altId %s) model %s" % (asymId, altId, modelId) if altId else tN + " in instance %s model %s" % (asymId, modelId)
                         cObj.setValue(";".join([pTup.compId for pTup in pTupL if pTup.outlierType == fType]), "feature_positions_beg_comp_id", ii)
                         cObj.setValue(";".join([str(pTup.seqId) for pTup in pTupL if pTup.outlierType == fType]), "feature_positions_beg_seq_id", ii)
-
                     else:
                         cObj.setValue(pTupL[0].compId, "comp_id", ii)
                         descriptionS = (
@@ -994,6 +1027,7 @@ class DictMethodEntityInstanceHelper(object):
                             if altId
                             else tN + " in %s instance %s model %s" % (pTupL[0].compId, asymId, modelId)
                         )
+                        #
                         cObj.setValue(";".join([pTup.compId if pTup.compId else "?" for pTup in pTupL if pTup.outlierType == fType]), "feature_value_comp_id", ii)
                         cObj.setValue(";".join([pTup.description if pTup.description else "?" for pTup in pTupL if pTup.outlierType == fType]), "feature_value_details", ii)
                         cObj.setValue(";".join([pTup.reported if pTup.reported else "?" for pTup in pTupL if pTup.outlierType == fType]), "feature_value_reported", ii)
@@ -1008,6 +1042,7 @@ class DictMethodEntityInstanceHelper(object):
                             "feature_value_uncertainty_estimate_type",
                             ii,
                         )
+                    #
                     cObj.setValue("PDB entity", "reference_scheme", ii)
                     cObj.setValue(descriptionS, "description", ii)
                     cObj.setValue("PDB", "provenance_source", ii)
@@ -1805,8 +1840,8 @@ class DictMethodEntityInstanceHelper(object):
             completeness = 1.0 if isBound and (numHeavyAtoms - numReportedAtoms) == 1 else (float(numReportedAtoms) / float(numHeavyAtoms))
         #
         if completeness > 1.2:
-            logger.info("%s %s ligandAtomCountD %r", entryId, asymId, ligandAtomCountD[asymId])
-            logger.info(
+            logger.debug("%s %s ligandAtomCountD %r", entryId, asymId, ligandAtomCountD[asymId])
+            logger.debug(
                 "%s asymId %s compId %s altId %r numHeavyAtoms %d numAtoms %d reported %.3f completeness %0.3f",
                 entryId,
                 asymId,

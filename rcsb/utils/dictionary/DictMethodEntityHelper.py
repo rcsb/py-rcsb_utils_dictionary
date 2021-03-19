@@ -1604,6 +1604,7 @@ class DictMethodEntityHelper(object):
             if not skipBird:
                 birdFeatureD = self.__getBirdFeatures(dataContainer)
                 for (entityId, compId, prdId, filteredFeature), fName in birdFeatureD.items():
+                    addPropTupL = []
                     cObj.setValue(ii + 1, "ordinal", ii)
                     cObj.setValue(entryId, "entry_id", ii)
                     cObj.setValue(entityId, "entity_id", ii)
@@ -1612,9 +1613,14 @@ class DictMethodEntityHelper(object):
                     cObj.setValue("entity_feature_%d" % jj, "feature_id", ii)
                     if compId:
                         details = "Non-polymer BIRD %s chemical component %s" % (prdId, compId)
+                        addPropTupL.append(("COMP_ID", compId))
                     else:
                         details = "Polymer BIRD %s entity %s" % (prdId, entityId)
                     cObj.setValue(details, "description", ii)
+                    #
+                    addPropTupL.append(("BIRD_ID", prdId))
+                    cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
+                    cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
                     #
                     cObj.setValue(fName, "name", ii)
                     cObj.setValue("PDB", "provenance_source", ii)
@@ -1627,8 +1633,8 @@ class DictMethodEntityHelper(object):
             jj = 1
             modMonomerFeatures = self.__commonU.getPolymerModifiedMonomerFeatures(dataContainer)
             for (entityId, seqId, compId, filteredFeature) in modMonomerFeatures:
+                addPropTupL = []
                 parentCompId = self.__ccP.getParentComponent(compId)
-
                 cObj.setValue(ii + 1, "ordinal", ii)
                 cObj.setValue(entryId, "entry_id", ii)
                 cObj.setValue(entityId, "entity_id", ii)
@@ -1637,7 +1643,11 @@ class DictMethodEntityHelper(object):
                 if parentCompId:
                     details = "Parent monomer %s" % parentCompId
                     cObj.setValue(details, "name", ii)
-                #
+                    #
+                    addPropTupL.append(("PARENT_COMP_ID", parentCompId))
+                    cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
+                    cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
+
                 cObj.setValue(compId, "feature_positions_beg_comp_id", ii)
                 cObj.setValue(seqId, "feature_positions_beg_seq_id", ii)
                 #

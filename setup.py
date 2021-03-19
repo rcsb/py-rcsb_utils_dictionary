@@ -43,7 +43,7 @@ setup(
         "scipy",
         "numpy",
         "mmcif >= 0.57",
-        "rcsb.utils.io >= 0.97",
+        "rcsb.utils.io >= 1.00",
         "rcsb.utils.config >= 0.35",
         "rcsb.utils.multiproc >= 0.17",
         "rcsb.utils.validation >= 0.22",
