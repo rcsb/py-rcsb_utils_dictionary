@@ -773,7 +773,7 @@ class DictMethodEntityInstanceHelper(object):
                         "feature_value_details",
                         ii,
                     )
-                    ## ----
+                    # ----
                     addPropTupL.append(("PARTNER_ASYM_ID", rTup.partnerAsymId))
                     if rTup.partnerCompId:
                         addPropTupL.append(("PARTNER_COMP_ID", rTup.partnerCompId))
@@ -781,13 +781,13 @@ class DictMethodEntityInstanceHelper(object):
                         addPropTupL.append(("PARTNER_BOND_DISTANCE", rTup.bondDistance))
                     cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
                     cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
-                    ## ----
+                    # ----
                     cObj.setValue(";".join([rTup.partnerCompId if rTup.partnerCompId else "?" for rTup in rTupL]), "feature_value_comp_id", ii)
                     cObj.setValue(";".join([rTup.bondDistance if rTup.bondDistance else "?" for rTup in rTupL]), "feature_value_reported", ii)
                     cObj.setValue(";".join(["?" for rTup in rTupL]), "feature_value_reference", ii)
                     cObj.setValue(";".join(["?" for rTup in rTupL]), "feature_value_uncertainty_estimate", ii)
                     cObj.setValue(";".join(["?" for rTup in rTupL]), "feature_value_uncertainty_estimate_type", ii)
-                    ## ---
+                    # ---
                     cObj.setValue("PDB", "provenance_source", ii)
                     cObj.setValue("V1.0", "assignment_version", ii)
                     #
@@ -1051,7 +1051,6 @@ class DictMethodEntityInstanceHelper(object):
                     jj += 1
                     ii += 1
             #
-            ##
             return True
         except Exception as e:
             logger.exception("For %s %r failing with %s", dataContainer.getName(), catName, str(e))
@@ -1823,7 +1822,6 @@ class DictMethodEntityInstanceHelper(object):
                 #
                 ii += 1
                 #
-            ##
             endTime = time.time()
             logger.debug("Completed at %s (%.4f seconds)", time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - startTime)
             return True
@@ -1954,7 +1952,6 @@ class DictMethodEntityInstanceHelper(object):
                     # ----
                     ii += 1
                 #
-            ##
             endTime = time.time()
             logger.debug("Completed at %s (%.4f seconds)", time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - startTime)
             return True
@@ -2032,9 +2029,6 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue("%.3f" % neighbor.distance, "distance", ii)
                     # ----
                     ii += 1
-                #
-            ##
-
             #
             endTime = time.time()
             logger.debug("Completed at %s (%.4f seconds)", time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - startTime)
