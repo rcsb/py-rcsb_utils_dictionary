@@ -550,18 +550,26 @@ class DictMethodChemRefHelper(object):
         releaseDate = None
         reviseDate = None
         try:
+            if dataContainer.exists("chem_comp"):
+                cObj = dataContainer.getObj("chem_comp")
+                if cObj.hasAttribute("pdbx_initial_date"):
+                    releaseDate = cObj.getValueOrDefault("pdbx_initial_date", 0, defaultValue=None)
+                if cObj.hasAttribute("pdbx_modified_date"):
+                    reviseDate = cObj.getValueOrDefault("pdbx_modified_date", 0, defaultValue=None)
             if dataContainer.exists(catName):
                 cObj = dataContainer.getObj(catName)
                 for iRow in range(cObj.getRowCount()):
-                    aType = cObj.getValueOrDefault("action_type", iRow, defaultValue=None)
+                    tVal = cObj.getValueOrDefault("action_type", iRow, defaultValue=None)
+                    aType = tVal.lower() if tVal else None
                     dateVal = cObj.getValueOrDefault("date", iRow, defaultValue=None)
-                    if aType in ["Create component"]:
+                    if aType in ["create component", "create molecule"]:
                         createDate = dateVal
-                    elif aType in ["Initial release"]:
+                    elif aType in ["initial release"]:
                         releaseDate = dateVal
                 reviseDate = cObj.getValueOrDefault("date", cObj.getRowCount() - 1, defaultValue=None)
+            #
         except Exception as e:
-            logger.exception("Faling with %s", str(e))
+            logger.exception("Failing with %s", str(e))
         return createDate, releaseDate, reviseDate
 
     def addChemCompInfo(self, dataContainer, catName, **kwargs):
@@ -617,10 +625,12 @@ class DictMethodChemRefHelper(object):
             #
             # Get audit info -
             if representAs and representAs.lower() in ["polymer"]:
-                _, releaseDate, revisionDate = self.__getAuditDates(dataContainer, "pdbx_prd_audit")
+                createDate, releaseDate, revisionDate = self.__getAuditDates(dataContainer, "pdbx_prd_audit")
             else:
-                _, releaseDate, revisionDate = self.__getAuditDates(dataContainer, "pdbx_chem_comp_audit")
+                createDate, releaseDate, revisionDate = self.__getAuditDates(dataContainer, "pdbx_chem_comp_audit")
             #
+            if not releaseDate or not revisionDate:
+                logger.warning("%s(%s) created %r released %r revised %r", ccId, prdId, createDate, releaseDate, revisionDate)
             #  --------- --------- --------- ---------
             # Create the new target category
             #

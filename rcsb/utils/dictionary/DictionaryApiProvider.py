@@ -57,7 +57,7 @@ class DictionaryApiProvider(SingletonClass):
             (object): instance of dictionary API
         """
         #
-        # verify the exitence of the cache directory ...
+        # verify the existence of the cache directory ...
         self.__fileU.mkdir(dirPath)
         if not useCache:
             for dictLocator in dictLocators:
@@ -79,7 +79,7 @@ class DictionaryApiProvider(SingletonClass):
         return ret
 
     def getApi(self, dictLocators, **kwargs):
-        """Return a dictionary API object of the input dictioaries.
+        """Return a dictionary API object of the input dictionaries.
 
         Arguments:
             dictLocators {list str} -- list of dictionary locator paths
