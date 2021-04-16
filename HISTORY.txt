@@ -16,3 +16,4 @@
 18-Mar-2021 - V0.24 Add support for addition_properties subcategory in all feature categories.
 15-Apr-2021 - V0.25 Add alternative processing to extract audit dates
 16-Apr-2021 - V0.26 Extend processing of polymer BIRDs for the branched/saccharide cases
+16-Apr-2021 - V0.27 Substitute missing initial release data with create date.

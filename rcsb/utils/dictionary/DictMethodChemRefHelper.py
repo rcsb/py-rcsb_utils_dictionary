@@ -568,6 +568,8 @@ class DictMethodChemRefHelper(object):
                         releaseDate = dateVal
                 reviseDate = cObj.getValueOrDefault("date", cObj.getRowCount() - 1, defaultValue=None)
             #
+            if not releaseDate and createDate:
+                releaseDate = createDate
         except Exception as e:
             logger.exception("Failing with %s", str(e))
         return createDate, releaseDate, reviseDate
