@@ -624,7 +624,7 @@ class DictMethodChemRefHelper(object):
                 idObj.setValue(",".join(tL), "subcomponent_ids", 0)
             #
             # Get audit info -
-            if representAs and representAs.lower() in ["polymer"]:
+            if representAs and representAs.lower() in ["polymer", "branched"]:
                 createDate, releaseDate, revisionDate = self.__getAuditDates(dataContainer, "pdbx_prd_audit")
             else:
                 createDate, releaseDate, revisionDate = self.__getAuditDates(dataContainer, "pdbx_chem_comp_audit")
