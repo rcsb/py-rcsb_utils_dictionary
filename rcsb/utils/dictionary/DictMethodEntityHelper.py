@@ -864,9 +864,14 @@ class DictMethodEntityHelper(object):
                     entityId = pObj.getValue("entity_id", ii)
                     prdId = prdD[entityId] if entityId in prdD else "?"
                     pObj.setValue(prdId, "prd_id", ii)
-                    compId = eD[entityId] if entityId in eD else "?"
+                    compId = eD[entityId] if entityId in eD else " ?"
                     pObj.setValue(compId, "nonpolymer_comp_id", ii)
-
+                    if compId != "?":
+                        pObj.setValue(compId, "chem_ref_def_id", ii)
+                    elif prdId != "?":
+                        pObj.setValue(prdId, "chem_ref_def_id", ii)
+                    else:
+                        pObj.setValue("?", "chem_ref_def_id", ii)
             #
             #
             return True
@@ -1773,11 +1778,7 @@ class DictMethodEntityHelper(object):
         try:
             if not (dataContainer.exists("entry") and dataContainer.exists("entity")):
                 return False
-            if (
-                dataContainer.exists("rcsb_polymer_entity_feature")
-                or dataContainer.exists("rcsb_nonpolymer_entity_feature")
-                or dataContainer.exists("rcsb_branched_entity_feature")
-            ):
+            if dataContainer.exists("rcsb_polymer_entity_feature") or dataContainer.exists("rcsb_nonpolymer_entity_feature") or dataContainer.exists("rcsb_branched_entity_feature"):
                 return True
             # -----
             categoryMapD = {

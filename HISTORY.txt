@@ -18,3 +18,4 @@
 16-Apr-2021 - V0.26 Extend processing of polymer BIRDs for the branched/saccharide cases
 16-Apr-2021 - V0.27 Substitute missing initial release data with create date.
  4-May-2021 - V0.28 Update dependencies for rcsb.utils.struct
+19-May-2021 - V0.29 Add rcsb_entity_container_identifers.chem_ref_def_id in DictionaryMethodEntityHelper
