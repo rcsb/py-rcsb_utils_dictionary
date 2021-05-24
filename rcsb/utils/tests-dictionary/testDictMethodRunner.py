@@ -40,6 +40,7 @@ TOPDIR = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
 
 class DictMethodRunnerTests(unittest.TestCase):
     def setUp(self):
+        self.__export = True
         self.__numProc = 2
         self.__fileLimit = 200
         mockTopPath = os.path.join(TOPDIR, "rcsb", "mock-data")
@@ -79,12 +80,13 @@ class DictMethodRunnerTests(unittest.TestCase):
             self.assertGreaterEqual(len(locatorObjList), mockLength)
             for container in containerList:
                 cName = container.getName()
-                if cName not in ["2MK7"]:
-                    continue
+                # if cName not in ["2MK7"]:
+                #    continue
                 logger.debug("Processing container %s", cName)
                 dmh.apply(container)
-                savePath = os.path.join(HERE, "test-output", cName + "-with-method.cif")
-                self.__mU.doExport(savePath, [container], fmt="mmcif")
+                if self.__export:
+                    savePath = os.path.join(HERE, "test-output", cName + "-with-method.cif")
+                    self.__mU.doExport(savePath, [container], fmt="mmcif")
 
         except Exception as e:
             logger.exception("Failing with %s", str(e))
