@@ -60,6 +60,7 @@ BoundInstanceFields = (
     "partnerAltId",
     "bondDistance",
     "bondOrder",
+    "role",
 )
 NonpolymerBoundInstance = namedtuple("NonpolymerBoundInstance", BoundInstanceFields, defaults=(None,) * len(BoundInstanceFields))
 
@@ -2051,12 +2052,13 @@ class DictMethodCommonUtils(object):
                     pAltId = cD["connect_partner_label_alt_id"]
                     bondOrder = cD["value_order"]
                     bondDist = cD["dist_value"]
+                    role = cD["role"]
                     eType = eTypeD[pEntityId]
                     #
                     ts.add(tCompId)
                     boundNonpolymerInstanceD.setdefault(tAsymId, []).append(
                         NonpolymerBoundInstance(
-                            tCompId, tAtomId, tAltId, cD["connect_type"], eType, pEntityId, pCompId, pAsymId, pSeqId, pAuthSeqId, pAtomId, pAltId, bondDist, bondOrder
+                            tCompId, tAtomId, tAltId, cD["connect_type"], eType, pEntityId, pCompId, pAsymId, pSeqId, pAuthSeqId, pAtomId, pAltId, bondDist, bondOrder, role,
                         )
                     )
                     boundNonpolymerEntityD.setdefault(tEntityId, []).append(NonpolymerBoundEntity(tCompId, cD["connect_type"], pCompId, pEntityId, eType))

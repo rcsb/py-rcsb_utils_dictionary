@@ -212,127 +212,6 @@ class DictMethodEntityInstanceHelper(object):
             #
         return fCountD
 
-    # ---- JDW
-    def buildEntityInstanceFeatureSummaryPrev(self, dataContainer, catName, **kwargs):
-        """Build category rcsb_entity_instance_feature_summary (UPDATED)
-
-        Example:
-
-            loop_
-            _rcsb_entity_instance_feature_summary.ordinal
-            _rcsb_entity_instance_feature_summary.entry_id
-            _rcsb_entity_instance_feature_summary.entity_id
-            _rcsb_entity_instance_feature_summary.asym_id
-            _rcsb_entity_instance_feature_summary.auth_asym_id
-            #
-            _rcsb_entity_instance_feature_summary.type
-            _rcsb_entity_instance_feature_summary.count
-            _rcsb_entity_instance_feature_summary.coverage
-            # ...
-        """
-        logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
-        try:
-            if catName != "rcsb_entity_instance_feature_summary":
-                return False
-            if not dataContainer.exists("rcsb_entity_instance_feature") and not dataContainer.exists("entry"):
-                return False
-
-            if not dataContainer.exists(catName):
-                dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
-            #
-            eObj = dataContainer.getObj("entry")
-            entryId = eObj.getValue("id", 0)
-            #
-            sObj = dataContainer.getObj(catName)
-            fObj = dataContainer.getObj("rcsb_entity_instance_feature")
-            #
-            instEntityD = self.__commonU.getInstanceEntityMap(dataContainer)
-            entityPolymerLengthD = self.__commonU.getPolymerEntityLengthsEnumerated(dataContainer)
-            # typeList = self.__dApi.getEnumList("rcsb_entity_instance_feature_summary", "type", sortFlag=True)
-            asymAuthD = self.__commonU.getAsymAuthIdMap(dataContainer)
-            instIdMapD = self.__commonU.getInstanceIdMap(dataContainer)
-
-            fCountD = OrderedDict()
-            fMonomerCountD = OrderedDict()
-            for ii in range(fObj.getRowCount()):
-                asymId = fObj.getValue("asym_id", ii)
-                # ---- initialize counts
-                # fCountD = self.__initializeInstanceFeatureType(dataContainer, asymId, fCountD, countType="set")
-                # fMonomerCountD = self.__initializeInstanceFeatureType(dataContainer, asymId, fMonomerCountD, countType="list")
-                # ----
-                fType = fObj.getValue("type", ii)
-                fId = fObj.getValue("feature_id", ii)
-                fCountD.setdefault(asymId, {}).setdefault(fType, set()).add(fId)
-                #
-                tbegS = fObj.getValueOrDefault("feature_positions_beg_seq_id", ii, defaultValue=None)
-                tendS = fObj.getValueOrDefault("feature_positions_end_seq_id", ii, defaultValue=None)
-                if fObj.hasAttribute("feature_positions_beg_seq_id") and tbegS is not None and fObj.hasAttribute("feature_positions_end_seq_id") and tendS is not None:
-                    begSeqIdL = str(fObj.getValue("feature_positions_beg_seq_id", ii)).split(";")
-                    endSeqIdL = str(fObj.getValue("feature_positions_end_seq_id", ii)).split(";")
-                    monCount = 0
-                    for begSeqId, endSeqId in zip(begSeqIdL, endSeqIdL):
-                        try:
-                            monCount += abs(int(endSeqId) - int(begSeqId) + 1)
-                        except Exception:
-                            logger.warning(
-                                "%s fType %r fId %r bad sequence begSeqIdL %r endSeqIdL %r tbegS %r tendS %r",
-                                dataContainer.getName(),
-                                fType,
-                                fId,
-                                begSeqIdL,
-                                endSeqIdL,
-                                tbegS,
-                                tendS,
-                            )
-
-                    fMonomerCountD.setdefault(asymId, {}).setdefault(fType, []).append(monCount)
-                elif fObj.hasAttribute("feature_positions_beg_seq_id") and tbegS:
-                    seqIdL = str(fObj.getValue("feature_positions_beg_seq_id", ii)).split(";")
-                    fMonomerCountD.setdefault(asymId, {}).setdefault(fType, []).append(len(seqIdL))
-            #
-            logger.debug("%s fCountD %r", entryId, fCountD)
-            #
-
-            ii = 0
-            for asymId, fTypeD in fCountD.items():
-                entityId = instEntityD[asymId]
-                authAsymId = asymAuthD[asymId]
-                for fType, fS in fTypeD.items():
-                    sObj.setValue(ii + 1, "ordinal", ii)
-                    sObj.setValue(entryId, "entry_id", ii)
-                    sObj.setValue(entityId, "entity_id", ii)
-                    sObj.setValue(asymId, "asym_id", ii)
-                    sObj.setValue(authAsymId, "auth_asym_id", ii)
-                    # add comp
-                    if asymId in instIdMapD and "comp_id" in instIdMapD[asymId] and instIdMapD[asymId]["comp_id"]:
-                        sObj.setValue(instIdMapD[asymId]["comp_id"], "comp_id", ii)
-                    sObj.setValue(fType, "type", ii)
-                    #
-                    if fType.startswith("UNOBSERVED") and asymId in fMonomerCountD and fType in fMonomerCountD[asymId]:
-                        fCount = sum(fMonomerCountD[asymId][fType])
-                    else:
-                        fCount = len(fS)
-                    sObj.setValue(fCount, "count", ii)
-                    fracC = 0.0
-                    if asymId in fMonomerCountD and fType in fMonomerCountD[asymId] and entityId in entityPolymerLengthD:
-                        fracC = float(sum(fMonomerCountD[asymId][fType])) / float(entityPolymerLengthD[entityId])
-                    sObj.setValue(round(fracC, 5), "coverage", ii)
-                    if (
-                        fType in ["CATH", "SCOP", "HELIX_P", "SHEET", "UNASSIGNED_SEC_STRUCT", "UNOBSERVED_RESIDUE_XYZ", "ZERO_OCCUPANCY_RESIDUE_XYZ"]
-                        and asymId in fMonomerCountD
-                        and fType in fMonomerCountD[asymId]
-                    ):
-                        minL = min(fMonomerCountD[asymId][fType]) if fMonomerCountD[asymId][fType] else 0
-                        maxL = max(fMonomerCountD[asymId][fType]) if fMonomerCountD[asymId][fType] else 0
-                        sObj.setValue(minL, "minimum_length", ii)
-                        sObj.setValue(maxL, "maximum_length", ii)
-                    ii += 1
-        except Exception as e:
-            logger.exception("Failing for %s with %s", dataContainer.getName(), str(e))
-        return True
-
-    # ---- JDW
-
     def buildEntityInstanceFeatures(self, dataContainer, catName, **kwargs):
         """Build category rcsb_entity_instance_feature ...
 
@@ -469,7 +348,7 @@ class DictMethodEntityInstanceHelper(object):
                         # logger.info("%s (altd) begSeqId %r endSeqId %r", entryId, begSeqId, endSeqId)
                         if not (begSeqId and endSeqId):
                             logger.debug(
-                                "%s unqalified SCOP sunId %r domId %r sccs %r asymId %r authAsymId %r authSeqBeg %r authSeqEnd %r",
+                                "%s unqualified SCOP sunId %r domId %r sccs %r asymId %r authAsymId %r authSeqBeg %r authSeqEnd %r",
                                 entryId,
                                 sunId,
                                 domId,
@@ -767,9 +646,56 @@ class DictMethodEntityInstanceHelper(object):
                     #
                     # ("targetCompId", "connectType", "partnerCompId", "partnerAsymId", "partnerEntityType", "bondDistance", "bondOrder")
                     cObj.setValue(
-                        ";".join(
-                            ["%s has %s with %s instance %s in model 1" % (rTup.targetCompId, rTup.connectType, rTup.partnerEntityType, rTup.partnerAsymId) for rTup in rTupL]
-                        ),
+                        ";".join(["%s has %s with %s instance %s in model 1" % (rTup.targetCompId, rTup.connectType, rTup.partnerEntityType, rTup.partnerAsymId) for rTup in rTupL]),
+                        "feature_value_details",
+                        ii,
+                    )
+                    # ----
+                    addPropTupL.append(("PARTNER_ASYM_ID", rTup.partnerAsymId))
+                    if rTup.partnerCompId:
+                        addPropTupL.append(("PARTNER_COMP_ID", rTup.partnerCompId))
+                    if rTup.bondDistance:
+                        addPropTupL.append(("PARTNER_BOND_DISTANCE", rTup.bondDistance))
+                    cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
+                    cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
+                    # ----
+                    cObj.setValue(";".join([rTup.partnerCompId if rTup.partnerCompId else "?" for rTup in rTupL]), "feature_value_comp_id", ii)
+                    cObj.setValue(";".join([rTup.bondDistance if rTup.bondDistance else "?" for rTup in rTupL]), "feature_value_reported", ii)
+                    cObj.setValue(";".join(["?" for rTup in rTupL]), "feature_value_reference", ii)
+                    cObj.setValue(";".join(["?" for rTup in rTupL]), "feature_value_uncertainty_estimate", ii)
+                    cObj.setValue(";".join(["?" for rTup in rTupL]), "feature_value_uncertainty_estimate_type", ii)
+                    # ---
+                    cObj.setValue("PDB", "provenance_source", ii)
+                    cObj.setValue("V1.0", "assignment_version", ii)
+                    #
+                    ii += 1
+                    jj += 1
+
+            #  Glycosylation sites
+            jj = 1
+            for asymId, rTupL in npbD.items():
+                for rTup in rTupL:
+                    addPropTupL = []
+                    if rTup.connectType in ["covalent bond"] and rTup.role is not None:
+                        fType = rTup.role.upper() + "_SITE"
+                        fId = "GLYCOSYLATION_SITE_%d" % jj
+                    else:
+                        continue
+
+                    entityId = asymIdD[asymId]
+                    authAsymId = asymAuthIdD[asymId]
+                    cObj.setValue(ii + 1, "ordinal", ii)
+                    cObj.setValue(entryId, "entry_id", ii)
+                    cObj.setValue(entityId, "entity_id", ii)
+                    cObj.setValue(asymId, "asym_id", ii)
+                    cObj.setValue(authAsymId, "auth_asym_id", ii)
+                    cObj.setValue(rTup.targetCompId, "comp_id", ii)
+                    cObj.setValue(fId, "feature_id", ii)
+                    cObj.setValue(fType, "type", ii)
+                    #
+                    # ("targetCompId", "connectType", "partnerCompId", "partnerAsymId", "partnerEntityType", "bondDistance", "bondOrder")
+                    cObj.setValue(
+                        ";".join(["%s has %s site on %s instance %s in model 1" % (rTup.targetCompId, rTup.role, rTup.partnerEntityType, rTup.partnerAsymId) for rTup in rTupL]),
                         "feature_value_details",
                         ii,
                     )
@@ -851,7 +777,7 @@ class DictMethodEntityInstanceHelper(object):
         """Build rcsb_struct_conn category -
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.mmcif.api.DataContainer object instance
             catName (str): category name
 
         Returns:
@@ -1334,6 +1260,7 @@ class DictMethodEntityInstanceHelper(object):
                 eType = instTypeD[asymId]
                 authAsymId = asymAuthD[asymId]
                 fTypeL = self.__getInstanceFeatureTypes(eType)
+                logger.debug("Feature type list %r", fTypeL)
                 # All entity type specific features
                 for fType in fTypeL:
                     sObj.setValue(ii + 1, "ordinal", ii)
@@ -1367,7 +1294,14 @@ class DictMethodEntityInstanceHelper(object):
                     #
                     minV = maxV = 0
                     if asymId in fValuesD and fType in fValuesD[asymId]:
-                        if fType in ["HAS_COVALENT_LINKAGE", "HAS_METAL_COORDINATION_LINKAGE"]:
+                        if fType in [
+                            "HAS_COVALENT_LINKAGE",
+                            "HAS_METAL_COORDINATION_LINKAGE",
+                            "N-GLYCOSYLATION_SITE",
+                            "O-GLYCOSYLATION_SITE",
+                            "S-GLYCOSYLATION_SITE",
+                            "C-MANNOSYLATION_SITE",
+                        ]:
                             try:
                                 minV = min(fValuesD[asymId][fType])
                                 maxV = max(fValuesD[asymId][fType])
@@ -1483,7 +1417,7 @@ class DictMethodEntityInstanceHelper(object):
                     sObj.setValue(authAsymId, "auth_asym_id", ii)
                     sObj.setValue(fType, "type", ii)
                     #
-                    # Sum features of different granularities
+                    # Sum features with different granularity
                     #
                     fracC = 0.0
                     if asymId in fMonomerCountD and fType in fMonomerCountD[asymId] and fMonomerCountD[asymId][fType]:
@@ -1619,7 +1553,7 @@ class DictMethodEntityInstanceHelper(object):
                     #
                     ii += 1
             # ------------
-            #  Add covalent attchment property
+            #  Add covalent attachment property
             npbD = self.__commonU.getBoundNonpolymersByInstance(dataContainer)
             jj = 1
             for asymId, rTupL in npbD.items():
@@ -1657,7 +1591,38 @@ class DictMethodEntityInstanceHelper(object):
                     #
                     ii += 1
                     jj += 1
-
+            #
+            # Glycosylation features
+            jj = 1
+            for asymId, rTupL in npbD.items():
+                for rTup in rTupL:
+                    if rTup.connectType in ["covalent bond"] and rTup.role is not None:
+                        fType = rTup.role.upper() + "_SITE"
+                        fId = "GLYCOSYLATION_SITE_%d" % jj
+                    else:
+                        continue
+                    entityId = asymIdD[asymId]
+                    authAsymId = asymAuthIdD[asymId]
+                    cObj.setValue(ii + 1, "ordinal", ii)
+                    cObj.setValue(entryId, "entry_id", ii)
+                    cObj.setValue(entityId, "entity_id", ii)
+                    cObj.setValue(asymId, "asym_id", ii)
+                    cObj.setValue(authAsymId, "auth_asym_id", ii)
+                    cObj.setValue(rTup.targetCompId, "comp_id", ii)
+                    cObj.setValue(fId, "annotation_id", ii)
+                    cObj.setValue(fType, "type", ii)
+                    #
+                    # ("targetCompId", "connectType", "partnerCompId", "partnerAsymId", "partnerEntityType", "bondDistance", "bondOrder")
+                    cObj.setValue(
+                        "%s has %s site on %s instance %s in model 1" % (rTup.targetCompId, rTup.role, rTup.partnerEntityType, rTup.partnerAsymId),
+                        "description",
+                        ii,
+                    )
+                    cObj.setValue("PDB", "provenance_source", ii)
+                    cObj.setValue("V1.0", "assignment_version", ii)
+                    #
+                    ii += 1
+                    jj += 1
             return True
         except Exception as e:
             logger.exception("%s %s failing with %s", dataContainer.getName(), catName, str(e))

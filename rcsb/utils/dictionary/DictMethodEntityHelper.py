@@ -746,10 +746,13 @@ class DictMethodEntityHelper(object):
                 pObj = dataContainer.getObj("rcsb_entity_container_identifiers")
                 if not pObj.hasAttribute("nonpolymer_comp_id"):
                     pObj.appendAttribute("nonpolymer_comp_id")
+                if not pObj.hasAttribute("chem_ref_def_id"):
+                    pObj.appendAttribute("chem_ref_def_id")
                 for ii in range(pObj.getRowCount()):
                     entityId = pObj.getValue("entity_id", ii)
                     compId = eD[entityId] if entityId in eD else "?"
                     pObj.setValue(compId, "nonpolymer_comp_id", ii)
+                    pObj.setValue(compId, "chem_ref_def_id", ii)
             #
             return True
         except Exception as e:
@@ -860,18 +863,20 @@ class DictMethodEntityHelper(object):
                     pObj.appendAttribute("prd_id")
                 if not pObj.hasAttribute("nonpolymer_comp_id"):
                     pObj.appendAttribute("nonpolymer_comp_id")
+                if not pObj.hasAttribute("chem_ref_def_id"):
+                    pObj.appendAttribute("chem_ref_def_id")
                 for ii in range(pObj.getRowCount()):
                     entityId = pObj.getValue("entity_id", ii)
                     prdId = prdD[entityId] if entityId in prdD else "?"
                     pObj.setValue(prdId, "prd_id", ii)
-                    compId = eD[entityId] if entityId in eD else " ?"
+                    compId = eD[entityId] if entityId in eD else "?"
                     pObj.setValue(compId, "nonpolymer_comp_id", ii)
                     if compId != "?":
                         pObj.setValue(compId, "chem_ref_def_id", ii)
                     elif prdId != "?":
                         pObj.setValue(prdId, "chem_ref_def_id", ii)
-                    else:
-                        pObj.setValue("?", "chem_ref_def_id", ii)
+                    # else:
+                    #    pObj.setValue("?", "chem_ref_def_id", ii)
             #
             #
             return True

@@ -79,7 +79,7 @@ class DictMethodRunnerTests(unittest.TestCase):
             self.assertGreaterEqual(len(locatorObjList), mockLength)
             for container in containerList:
                 cName = container.getName()
-                if cName not in ["6TTM"]:
+                if cName not in ["2MK7"]:
                     continue
                 logger.debug("Processing container %s", cName)
                 dmh.apply(container)
