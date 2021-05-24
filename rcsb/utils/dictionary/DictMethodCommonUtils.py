@@ -2030,13 +2030,12 @@ class DictMethodCommonUtils(object):
         boundNonpolymerInstanceD = {}
         boundNonpolymerComponentIdL = []
         try:
-            cDL = instConnectL
             asymIdD = self.getInstanceEntityMap(dataContainer)
             # asymAuthIdD = self.getAsymAuthIdMap(dataContainer)
             eTypeD = self.getEntityTypes(dataContainer)
             #
             ts = set()
-            for cD in cDL:
+            for cD in instConnectL:
                 tAsymId = cD["connect_target_label_asym_id"]
                 tEntityId = asymIdD[tAsymId]
                 if eTypeD[tEntityId] == "non-polymer" and cD["connect_type"] in ["covale", "covalent bond", "metalc", "metal coordination"]:
@@ -2052,13 +2051,27 @@ class DictMethodCommonUtils(object):
                     pAltId = cD["connect_partner_label_alt_id"]
                     bondOrder = cD["value_order"]
                     bondDist = cD["dist_value"]
-                    role = cD["role"]
+                    role = cD["role"] if "role" in cD else None
                     eType = eTypeD[pEntityId]
                     #
                     ts.add(tCompId)
                     boundNonpolymerInstanceD.setdefault(tAsymId, []).append(
                         NonpolymerBoundInstance(
-                            tCompId, tAtomId, tAltId, cD["connect_type"], eType, pEntityId, pCompId, pAsymId, pSeqId, pAuthSeqId, pAtomId, pAltId, bondDist, bondOrder, role,
+                            tCompId,
+                            tAtomId,
+                            tAltId,
+                            cD["connect_type"],
+                            eType,
+                            pEntityId,
+                            pCompId,
+                            pAsymId,
+                            pSeqId,
+                            pAuthSeqId,
+                            pAtomId,
+                            pAltId,
+                            bondDist,
+                            bondOrder,
+                            role,
                         )
                     )
                     boundNonpolymerEntityD.setdefault(tEntityId, []).append(NonpolymerBoundEntity(tCompId, cD["connect_type"], pCompId, pEntityId, eType))
