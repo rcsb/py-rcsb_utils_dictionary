@@ -49,7 +49,9 @@ from rcsb.utils.chemref.ResidProvider import ResidProvider
 from rcsb.utils.citation.CitationReferenceProvider import CitationReferenceProvider
 from rcsb.utils.citation.JournalTitleAbbreviationProvider import JournalTitleAbbreviationProvider
 from rcsb.utils.ec.EnzymeDatabaseProvider import EnzymeDatabaseProvider
+from rcsb.exdb.branch.GlycanProvider import GlycanProvider
 from rcsb.utils.io.SingletonClass import SingletonClass
+from rcsb.utils.seq.GlyGenProvider import GlyGenProvider
 from rcsb.utils.seq.SiftsSummaryProvider import SiftsSummaryProvider
 from rcsb.utils.struct.CathClassificationProvider import CathClassificationProvider
 from rcsb.utils.struct.ScopClassificationProvider import ScopClassificationProvider
@@ -100,6 +102,8 @@ class DictMethodResourceProvider(SingletonClass):
         self.__phP = None
         self.__rlsP = None
         self.__niP = None
+        self.__glyP = None
+        self.__ggP = None
         #
         #
         # self.__wsPattern = re.compile(r"\s+", flags=re.UNICODE | re.MULTILINE)
@@ -126,6 +130,8 @@ class DictMethodResourceProvider(SingletonClass):
             "PharosProvider instance": self.__fetchPharosProvider,
             "RcsbLigandScoreProvider instance": self.__fetchRcsbLigandScoreProvider,
             "NeighborInteractionProvider instance": self.__fetchNeighborInteractionProvider,
+            "GlycanProvider instance": self.__fetchGlycanProvider,
+            "GlyGenProvider instance": self.__fetchGlyGenProvider,
         }
         logger.debug("Dictionary resource provider init completed")
         #
@@ -134,7 +140,7 @@ class DictMethodResourceProvider(SingletonClass):
         logger.info(msg)
 
     def getReferenceSequenceAlignmentOpt(self):
-        return self.__cfgOb.get("REFERENCE_SEQUENCE_ALIGNMETS", sectionName=self.__configName, default="SIFTS")
+        return self.__cfgOb.get("REFERENCE_SEQUENCE_ALIGNMENTS", sectionName=self.__configName, default="SIFTS")
 
     def getResource(self, resourceName, default=None, useCache=True, **kwargs):
         """Return the named input resource or the default value.
@@ -413,3 +419,39 @@ class DictMethodResourceProvider(SingletonClass):
                 logger.warning("Failing with %s", str(e))
             #
         return self.__niP
+
+    def __fetchGlycanProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
+        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
+        if not self.__glyP:
+            #
+            try:
+                minCount = 0
+                userName = cfgOb.get("_STASH_AUTH_USERNAME", sectionName=configName)
+                password = cfgOb.get("_STASH_AUTH_PASSWORD", sectionName=configName)
+                basePath = cfgOb.get("_STASH_SERVER_BASE_PATH", sectionName=configName)
+                url = cfgOb.get("STASH_SERVER_URL", sectionName=configName)
+                urlFallBack = cfgOb.get("STASH_SERVER_FALLBACK_URL", sectionName=configName)
+                #
+                gP = GlycanProvider(cachePath=cachePath, useCache=useCache)
+                ok = gP.fromStash(url, basePath, userName=userName, password=password)
+                ok = gP.reload()
+                ok = gP.testCache(minCount=10)
+                if not ok:
+                    ok = gP.fromStash(urlFallBack, basePath, userName=userName, password=password)
+                    ok = gP.testCache(minCount=minCount)
+                #
+                if gP:
+                    self.__glyP = gP
+                    riD = gP.getIdentifiers()
+                    logger.info("Fetched glycan mapping dictionary (%d)", len(riD))
+            except Exception as e:
+                logger.exception("Failing with %s", str(e))
+            #
+        return self.__glyP
+
+    def __fetchGlyGenProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
+        _ = cfgOb
+        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
+        if not self.__ggP:
+            self.__ggP = GlyGenProvider(cachePath=cachePath, useCache=useCache, **kwargs)
+        return self.__ggP

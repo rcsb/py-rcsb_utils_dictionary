@@ -60,7 +60,8 @@ class DictMethodEntityHelper(object):
             self.__useSiftsAlign = False if not self.__ssP else self.__useSiftsAlign
         #
         self.__ccP = rP.getResource("ChemCompProvider instance") if rP else None
-
+        self.__glyP = rP.getResource("GlycanProvider instance") if rP else None
+        self.__ggP = rP.getResource("GlyGenProvider instance") if rP else None
         #
         logger.debug("Dictionary entity method helper init")
 
@@ -259,6 +260,8 @@ class DictMethodEntityHelper(object):
             #
             entityTypeUniqueIds = self.__commonU.getEntityTypeUniqueIds(dataContainer)
             entityPolymerModMonomerIds = self.__commonU.getPolymerEntityModifiedMonomers(dataContainer)
+            #
+            branchedEntityIdD = self.__glyP.getIdentifiers()
             #  -------
             eTypeD = self.__commonU.getEntityTypes(dataContainer)
             aObj = dataContainer.getObj("struct_asym")
@@ -270,9 +273,10 @@ class DictMethodEntityHelper(object):
             # ---------
             ii = 0
             for entityId in entityIdL:
+                rcsbId = entryId + "_" + entityId
                 cObj.setValue(entryId, "entry_id", ii)
                 cObj.setValue(entityId, "entity_id", ii)
-                cObj.setValue(entryId + "_" + entityId, "rcsb_id", ii)
+                cObj.setValue(rcsbId, "rcsb_id", ii)
                 eType = tObj.getValue("type", ii)
                 asymIdL = []
                 authAsymIdL = []
@@ -281,6 +285,7 @@ class DictMethodEntityHelper(object):
                 modPolymerMonomerL = entityPolymerModMonomerIds[entityId] if entityId in entityPolymerModMonomerIds else []
                 #
                 refSeqIdD = {"dbName": [], "dbAccession": [], "provSource": [], "dbIsoform": []}
+                refIdD = {"resName": [], "resAccession": [], "provSource": []}
 
                 asymIdL = entityTypeUniqueIds[eType][entityId]["asymIds"] if eType in entityTypeUniqueIds else []
                 authAsymIdL = entityTypeUniqueIds[eType][entityId]["authAsymIds"] if eType in entityTypeUniqueIds else []
@@ -325,10 +330,18 @@ class DictMethodEntityHelper(object):
                                     refSeqIdD["dbIsoform"].append(dbD["dbIsoform"])
                                 else:
                                     refSeqIdD["dbIsoform"].append("?")
-
+                elif eType == "branched":
+                    #
+                    if rcsbId.upper() in branchedEntityIdD and "glyTouCanId" in branchedEntityIdD[rcsbId.upper()]:
+                        gId = branchedEntityIdD[rcsbId.upper()]["glyTouCanId"]
+                        for resName in ["GlyTouCan", "GlyCosmos", "GlyGen"]:
+                            if resName == "GlyGen" and not self.__ggP.hasGlycan(gId):
+                                logger.debug("%r skipping %r for GlyGen", rcsbId, gId)
+                                continue
+                            refIdD["resName"].append(resName)
+                            refIdD["resAccession"].append(gId)
+                            refIdD["provSource"].append("RCSB")
                 #
-                # logger.info("refSeqIdD %r %r %r", entryId, entityId, refSeqIdD)
-
                 if asymIdL:
                     cObj.setValue(",".join(sorted(set(asymIdL))).strip(), "asym_ids", ii)
                 if authAsymIdL:
@@ -354,7 +367,11 @@ class DictMethodEntityHelper(object):
                     cObj.setValue(",".join(refSeqIdD["provSource"]).strip(), "reference_sequence_identifiers_provenance_source", ii)
                     cObj.setValue(",".join(refSeqIdD["dbIsoform"]).strip(), "reference_sequence_identifiers_database_isoform", ii)
                 #
-
+                if refIdD["resName"]:
+                    cObj.setValue(",".join(refIdD["resName"]).strip(), "reference_identifiers_resource_name", ii)
+                    cObj.setValue(",".join(refIdD["resAccession"]).strip(), "reference_identifiers_resource_accession", ii)
+                    cObj.setValue(",".join(refIdD["provSource"]).strip(), "reference_identifiers_provenance_source", ii)
+                #
                 ii += 1
             _ = self.__addEntityCompIds(dataContainer)
             _ = self.__addBirdEntityIds(dataContainer)
@@ -717,7 +734,8 @@ class DictMethodEntityHelper(object):
         return False
 
     def __addEntityCompIds(self, dataContainer):
-        """Add entity_id and BIRD codes to selected categories.
+        """Add entity_id and BIRD codes to pdbx_entity_nonpoly and
+        rcsb_entity_container_identifiers categories.
 
         Args:
             dataContainer (object): mmif.api.DataContainer object instance
