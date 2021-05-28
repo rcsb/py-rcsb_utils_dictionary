@@ -676,7 +676,7 @@ class DictMethodEntityInstanceHelper(object):
             for asymId, rTupL in npbD.items():
                 for rTup in rTupL:
                     addPropTupL = []
-                    if rTup.connectType in ["covalent bond"] and rTup.role is not None:
+                    if rTup.connectType in ["covalent bond"] and rTup.role is not None and rTup.role not in [".", "?"]:
                         fType = rTup.role.upper() + "_SITE"
                         fId = "GLYCOSYLATION_SITE_%d" % jj
                     else:
