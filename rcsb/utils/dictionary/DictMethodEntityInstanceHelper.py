@@ -674,9 +674,11 @@ class DictMethodEntityInstanceHelper(object):
             #  Glycosylation sites
             jj = 1
             for asymId, rTupL in npbD.items():
+                if instTypeD[asymId] not in ["polymer"]:
+                    continue
                 for rTup in rTupL:
                     addPropTupL = []
-                    if rTup.connectType in ["covalent bond"] and rTup.role is not None and rTup.role not in [".", "?"]:
+                    if (rTup.connectType in ["covalent bond"]) and (rTup.role is not None) and (rTup.role not in [".", "?"]):
                         fType = rTup.role.upper() + "_SITE"
                         fId = "GLYCOSYLATION_SITE_%d" % jj
                     else:
@@ -1595,8 +1597,10 @@ class DictMethodEntityInstanceHelper(object):
             # Glycosylation features
             jj = 1
             for asymId, rTupL in npbD.items():
+                if instTypeD[asymId] not in ["polymer"]:
+                    continue
                 for rTup in rTupL:
-                    if rTup.connectType in ["covalent bond"] and rTup.role is not None:
+                    if (rTup.connectType in ["covalent bond"]) and (rTup.role is not None) and (rTup.role not in [".", "?"]):
                         fType = rTup.role.upper() + "_SITE"
                         fId = "GLYCOSYLATION_SITE_%d" % jj
                     else:
