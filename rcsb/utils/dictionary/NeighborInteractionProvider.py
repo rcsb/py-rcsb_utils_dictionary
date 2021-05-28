@@ -102,9 +102,7 @@ class NeighborInteractionProvider(object):
             if minCount == 0:
                 return True
             if self.__neighborD and minCount and len(self.__neighborD["entries"]) >= minCount:
-                logger.info(
-                    "Target neighbor data for (%d) entries created %r version %r", len(self.__neighborD["entries"]), self.__neighborD["created"], self.__neighborD["version"]
-                )
+                logger.info("Target neighbor data for (%d) entries created %r version %r", len(self.__neighborD["entries"]), self.__neighborD["created"], self.__neighborD["version"])
                 return True
         except Exception:
             pass

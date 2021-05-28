@@ -647,9 +647,7 @@ class DictMethodAssemblyHelper(object):
                         assemblyHydrogenAtomCountD[assemblyId] += sum(hAtCountList) * opCount
                     #
                     modeledMonomerCountList = [
-                        instModeledMonomerCount[asymId]
-                        for asymId in asymIdList
-                        if asymId in instanceTypeD and instanceTypeD[asymId] == "polymer" and asymId in instModeledMonomerCount
+                        instModeledMonomerCount[asymId] for asymId in asymIdList if asymId in instanceTypeD and instanceTypeD[asymId] == "polymer" and asymId in instModeledMonomerCount
                     ]
                     assemblyModeledMonomerCountD[assemblyId] += sum(modeledMonomerCountList) * opCount
                     #
@@ -702,9 +700,7 @@ class DictMethodAssemblyHelper(object):
                     #
                     pEntityTypeD = Counter(pTypeFilteredL)
                     assemblyEntityCountByPolymerTypeD[assemblyId] = {pType: 0 for pType in ["Protein", "DNA", "RNA", "NA-hybrid", "Other"]}
-                    assemblyEntityCountByPolymerTypeD[assemblyId] = {
-                        pType: pEntityTypeD[pType] for pType in ["Protein", "DNA", "RNA", "NA-hybrid", "Other"] if pType in pEntityTypeD
-                    }
+                    assemblyEntityCountByPolymerTypeD[assemblyId] = {pType: pEntityTypeD[pType] for pType in ["Protein", "DNA", "RNA", "NA-hybrid", "Other"] if pType in pEntityTypeD}
                     #
                     eTypeL = [eTypeD[entityId] for entityId in entityIdList if entityId in eTypeD]
                     entityTypeD = Counter(eTypeL)
