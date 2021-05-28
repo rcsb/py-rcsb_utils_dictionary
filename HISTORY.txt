@@ -22,3 +22,4 @@
 21-May-2021 - V0.30 Add instance support for glycosylation sites for features and annotations
 24-May-2021 - V0.31 Add rcsb_entity_container_identifers.chem_ref_def_id for non-polymer and BIRD references
 27-May-2021 - V0.32 Add glycan and GlyGen mapping for branched entities.
+28-May-2021 - V0.33 Reference alternative GlycanProvider without rcsb.exdb dependency

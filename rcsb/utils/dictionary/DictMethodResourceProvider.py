@@ -49,8 +49,8 @@ from rcsb.utils.chemref.ResidProvider import ResidProvider
 from rcsb.utils.citation.CitationReferenceProvider import CitationReferenceProvider
 from rcsb.utils.citation.JournalTitleAbbreviationProvider import JournalTitleAbbreviationProvider
 from rcsb.utils.ec.EnzymeDatabaseProvider import EnzymeDatabaseProvider
-from rcsb.exdb.branch.GlycanProvider import GlycanProvider
 from rcsb.utils.io.SingletonClass import SingletonClass
+from rcsb.utils.seq.GlycanProvider import GlycanProvider
 from rcsb.utils.seq.GlyGenProvider import GlyGenProvider
 from rcsb.utils.seq.SiftsSummaryProvider import SiftsSummaryProvider
 from rcsb.utils.struct.CathClassificationProvider import CathClassificationProvider
