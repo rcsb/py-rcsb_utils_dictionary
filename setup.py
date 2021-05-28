@@ -51,7 +51,7 @@ setup(
         "rcsb.utils.citation >= 0.15",
         "rcsb.utils.ec >= 0.21",
         "rcsb.utils.taxonomy >= 0.32",
-        "rcsb.utils.seq >= 0.43",
+        "rcsb.utils.seq >= 0.60",
         "rcsb.utils.struct >= 0.28",
         "rcsb.utils.repository >= 0.12",
     ],
