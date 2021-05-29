@@ -4203,7 +4203,7 @@ class DictMethodCommonUtils(object):
 
     def getLigandAtomCountD(self, dataContainer):
         """Return the ligand atom counts for all observed alternate conformers
-        of ligand instances.
+        of ligand instances. (all atom types)
 
         Args:
             dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
@@ -4216,6 +4216,22 @@ class DictMethodCommonUtils(object):
             return {}
         wD = self.__fetchNeighborInfo(dataContainer)
         return wD["ligandAtomCountD"] if "ligandAtomCountD" in wD else {}
+
+    def getLigandHydrogenAtomCountD(self, dataContainer):
+        """Return the ligand hydrogen atom counts for all observed alternate conformers
+        of ligand instances. (all atom types)
+
+        Args:
+            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+
+        Returns:
+            (dict): {ligandAsymId: {'FL': ### 'A': ###, 'B': ###}, ...  }
+
+        """
+        if not dataContainer or not dataContainer.getName():
+            return {}
+        wD = self.__fetchNeighborInfo(dataContainer)
+        return wD["ligandHydrogenAtomCountD"] if "ligandHydrogenAtomCountD" in wD else {}
 
     def getLigandNeighborBoundState(self, dataContainer):
         """Return the dicitonary of ligand instances with isBound boolean status.
@@ -4240,7 +4256,7 @@ class DictMethodCommonUtils(object):
         return wD
 
     def getNeighborInfo(self, dataContainer, distLimit=5.0, targetModelId="1"):
-        """Get bound and unbound neighbors for each non-polymer instance and occupancy weighted ligand counts.
+        """Get bound and unbound neighbors for each non-polymer instance and ligand atom counts.
 
         Args:
             dataContainer (obj): DataContainer object
@@ -4258,12 +4274,14 @@ class DictMethodCommonUtils(object):
             targetIndexD = {}
             ligandIsBoundD = {}
             ligandAtomCountD = {}
+            ligandHydrogenAtomCountD = {}
             rD = {
                 "targetNeighborIndexD": targetIndexD,
                 "ligandNeighborIndexD": ligandIndexD,
                 "nearestNeighbors": nearestNeighbors,
                 "ligandIsBoundD": ligandIsBoundD,
                 "ligandAtomCountD": ligandAtomCountD,
+                "ligandHydrogenAtomCountD": ligandHydrogenAtomCountD,
             }
             #
             ligandTargetInstanceD = {}
@@ -4301,6 +4319,7 @@ class DictMethodCommonUtils(object):
                 if selectType not in ["target", "ligand"]:
                     continue
                 #
+                atomType = aObj.getValue("type_symbol", ii)
                 atomId = aObj.getValue("label_atom_id", ii)
                 seqId = aObj.getValue("label_seq_id", ii)
                 authSeqId = aObj.getValue("auth_seq_id", ii)
@@ -4322,9 +4341,12 @@ class DictMethodCommonUtils(object):
 
                     if not altId:
                         ligandAtomCountD.setdefault(asymId, defaultdict(int))["FL"] += 1
+                        if atomType == "H":
+                            ligandHydrogenAtomCountD.setdefault(asymId, defaultdict(int))["FL"] += 1
                     else:
-                        # ligandAtomCountD.setdefault(asymId, defaultdict(float))[altId] += float(occupancy)
                         ligandAtomCountD.setdefault(asymId, defaultdict(int))[altId] += 1
+                        if atomType == "H":
+                            ligandHydrogenAtomCountD.setdefault(asymId, defaultdict(int))[altId] += 1
             #
             # ------
             logger.debug("%s targetXyzL (%d) targetRef (%d) ligandXyzD (%d) ", entryId, len(targetXyzL), len(targetXyzL), len(ligandXyzD))

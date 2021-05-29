@@ -171,16 +171,31 @@ class NeighborInteractionProvider(object):
         return {}
 
     def getAtomCounts(self, entryId):
-        """Return the non-polymer instance occupancy weighted atome counts for the input entry.
+        """Return the non-polymer instance atom counts for the input entry (all reported atoms).
 
         Args:
             entryId (str): entry identifier
 
         Returns:
-            (dict): {asymId: {'FL': count, 'altA': occ*count, 'altB': occ*count, ... }}
+            (dict): {asymId: {'FL': count, 'altA': count, 'altB': count, ... }}
         """
         try:
             return self.__neighborD["entries"][entryId.upper()]["ligandAtomCountD"]
+        except Exception:
+            pass
+        return {}
+
+    def getHydrogenAtomCounts(self, entryId):
+        """Return the non-polymer instance hydrogen atom counts for the input entry.
+
+        Args:
+            entryId (str): entry identifier
+
+        Returns:
+            (dict): {asymId: {'FL': count, 'altA': count, 'altB': count, ... }}
+        """
+        try:
+            return self.__neighborD["entries"][entryId.upper()]["ligandHydrogenAtomCountD"]
         except Exception:
             pass
         return {}

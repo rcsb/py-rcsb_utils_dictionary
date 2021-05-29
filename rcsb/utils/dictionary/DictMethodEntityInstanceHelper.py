@@ -1681,10 +1681,16 @@ class DictMethodEntityInstanceHelper(object):
                 return False
             if not dataContainer.exists("entry"):
                 return False
+            if not dataContainer.exists("exptl"):
+                return False
             #
             eObj = dataContainer.getObj("entry")
             entryId = eObj.getValue("id", 0)
-            #
+            # ---
+            xObj = dataContainer.getObj("exptl")
+            methodL = xObj.getAttributeValueList("method")
+            _, expMethod = self.__commonU.filterExperimentalMethod(methodL)
+            # ---
             # Create the new target category
             if not dataContainer.exists(catName):
                 dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
@@ -1709,9 +1715,11 @@ class DictMethodEntityInstanceHelper(object):
             # -- Get existing interactions or calculate on the fly
             if self.__niP.hasEntry(entryId):
                 ligandAtomCountD = self.__niP.getAtomCounts(entryId)
+                ligandHydrogenAtomCountD = self.__niP.getHydrogenAtomCounts(entryId)
                 intIsBoundD = self.__niP.getLigandNeighborBoundState(entryId)
             else:
                 ligandAtomCountD = self.__commonU.getLigandAtomCountD(dataContainer)
+                ligandHydrogenAtomCountD = self.__commonU.getLigandHydrogenAtomCountD(dataContainer)
                 intIsBoundD = self.__commonU.getLigandNeighborBoundState(dataContainer)
 
             # --
@@ -1723,6 +1731,7 @@ class DictMethodEntityInstanceHelper(object):
                 numHeavyAtoms = self.__ccP.getAtomCountHeavy(compId)
                 numAtoms = self.__ccP.getAtomCount(compId)
                 numReportedAtoms = 0
+                numReportedHydrogenAtoms = 0
                 if not numHeavyAtoms:
                     continue
                 try:
@@ -1733,8 +1742,18 @@ class DictMethodEntityInstanceHelper(object):
                 except Exception as e:
                     logger.exception("Failing for entry %s asymId %s altId %r with %s", entryId, asymId, altId, str(e))
 
+                try:
+                    if altId:
+                        numReportedHydrogenAtoms = ligandHydrogenAtomCountD[asymId][altId] + (ligandHydrogenAtomCountD[asymId]["FL"] if "FL" in ligandHydrogenAtomCountD[asymId] else 0)
+                    else:
+                        numReportedHydrogenAtoms = ligandHydrogenAtomCountD[asymId]["FL"]
+                except Exception as e:
+                    pass
+
                 #
-                completeness = self.__calculateModeledCompleteness(entryId, asymId, compId, altId, isBound, ligandAtomCountD, numReportedAtoms, numHeavyAtoms, numAtoms)
+                completeness = self.__calculateModeledCompleteness(
+                    entryId, asymId, compId, altId, isBound, ligandAtomCountD, numReportedAtoms, numReportedHydrogenAtoms, numHeavyAtoms, numAtoms, expMethod
+                )
                 fitScore, fitRanking, completeness = self.__calculateFitScore(vTup.rsr, vTup.rscc, meanD, stdD, loadingD, completeness)
                 geoScore, geoRanking = self.__calculateGeometryScore(vTup.mogul_bonds_rmsz, vTup.mogul_angles_rmsz, meanD, stdD, loadingD)
                 #
@@ -1798,13 +1817,15 @@ class DictMethodEntityInstanceHelper(object):
             logger.exception("For %s %r failing with %s", dataContainer.getName(), catName, str(e))
         return False
 
-    def __calculateModeledCompleteness(self, entryId, asymId, compId, altId, isBound, ligandAtomCountD, numReportedAtoms, numHeavyAtoms, numAtoms):
-        # Ignore a single missing leaving ato if we are bound
-        if numReportedAtoms > numHeavyAtoms:
+    def __calculateModeledCompleteness(self, entryId, asymId, compId, altId, isBound, ligandAtomCountD, numReportedAtoms, numReportedHydrogenAtoms, numHeavyAtoms, numAtoms, expMethod):
+        # Ignore a single missing leaving atom if we are bound
+        # Always ignore hydrogens for X-ray methods
+        numReportedHeavyAtoms = numReportedAtoms - numReportedHydrogenAtoms
+        if numReportedAtoms > numHeavyAtoms and expMethod != "X-ray":
             # Has hydrogens
             completeness = 1.0 if isBound and (numAtoms - numReportedAtoms) == 1 else (float(numReportedAtoms) / float(numAtoms))
         else:
-            completeness = 1.0 if isBound and (numHeavyAtoms - numReportedAtoms) == 1 else (float(numReportedAtoms) / float(numHeavyAtoms))
+            completeness = 1.0 if isBound and (numHeavyAtoms - numReportedHeavyAtoms) == 1 else (float(numReportedHeavyAtoms) / float(numHeavyAtoms))
         #
         if completeness > 1.2:
             logger.debug("%s %s ligandAtomCountD %r", entryId, asymId, ligandAtomCountD[asymId])
