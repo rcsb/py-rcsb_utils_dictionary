@@ -357,6 +357,8 @@ class DictMethodChemRefHelper(object):
                 wObj = dataContainer.getObj(catName)
                 #
                 for atcId in atcIdL:
+                    if not atcP.getAtcName(atcId):
+                        continue
                     iRow = wObj.getRowCount()
                     wObj.setValue(ccId, "comp_id", iRow)
                     wObj.setValue(iRow + 1, "ordinal", iRow)

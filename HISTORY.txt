@@ -24,3 +24,4 @@
 27-May-2021 - V0.32 Add glycan and GlyGen mapping for branched entities.
 28-May-2021 - V0.33 Reference alternative GlycanProvider without rcsb.exdb dependency
 28-May-2021 - V0.34 Filter binding role for glycosylation with greater specificity
+29-May-2021 - V0.35 Skip ATC codes not defined in the ATC ontology.
