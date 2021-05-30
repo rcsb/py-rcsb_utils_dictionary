@@ -26,3 +26,4 @@
 28-May-2021 - V0.34 Filter binding role for glycosylation with greater specificity
 29-May-2021 - V0.35 Skip ATC codes not defined in the ATC ontology.
 29-May-2021 - V0.36 Make completeness rely only on heavy atom count for X-ray structures
+30-May-2021 - V0.37 Add Pfam polymer entity features and annotations

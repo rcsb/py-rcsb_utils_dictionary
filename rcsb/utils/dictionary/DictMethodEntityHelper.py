@@ -62,6 +62,7 @@ class DictMethodEntityHelper(object):
         self.__ccP = rP.getResource("ChemCompProvider instance") if rP else None
         self.__glyP = rP.getResource("GlycanProvider instance") if rP else None
         self.__ggP = rP.getResource("GlyGenProvider instance") if rP else None
+        self.__pfP = rP.getResource("PfamProvider instance") if rP else None
         #
         logger.debug("Dictionary entity method helper init")
 
@@ -1627,6 +1628,44 @@ class DictMethodEntityHelper(object):
                 jj += 1
                 ii += 1
             #
+            # ---
+            # --- JDWJDW
+            # list: [{'pfamId': , 'authAsymId":  , 'authSeqBeg': , 'authSeqEnd': 'insertBeg': , 'insertEnd': }, {}, ]
+            if self.__pfP:
+                polymerIdMapD = self.__commonU.getPolymerIdMap(dataContainer)
+                instEntityD = self.__commonU.getInstanceEntityMap(dataContainer)
+                mDL = self.__pfP.getMapping(entryId)
+                pfD = {}
+                for mD in mDL:
+                    pfTupBeg = (mD["authAsymId"], str(mD["authSeqBeg"]), mD["insertBeg"])
+                    pfTupEnd = (mD["authAsymId"], str(mD["authSeqEnd"]), mD["insertEnd"])
+                    if pfTupBeg in polymerIdMapD and pfTupEnd in polymerIdMapD:
+                        asymId = polymerIdMapD[pfTupBeg]["asym_id"]
+                        entityId = instEntityD[asymId]
+                        begSeqId = polymerIdMapD[pfTupBeg]["seq_id"]
+                        endSeqId = polymerIdMapD[pfTupEnd]["seq_id"]
+                        pfD.setdefault(entityId, set()).add((mD["pfamId"], begSeqId, endSeqId))
+                    else:
+                        logger.info("%s noncorresponding Pfam feature %r %r", entryId, pfTupBeg, pfTupEnd)
+                    #
+                #
+                for entityId, pfamTupS in sorted(pfD.items()):
+                    for pfamId, begSeqId, endSeqId in pfamTupS:
+                        details = self.__pfP.getDescription(pfamId)
+                        if details:
+                            cObj.setValue(ii + 1, "ordinal", ii)
+                            cObj.setValue(entryId, "entry_id", ii)
+                            cObj.setValue(entityId, "entity_id", ii)
+                            cObj.setValue("Pfam", "type", ii)
+                            cObj.setValue(pfamId, "feature_id", ii)
+                            cObj.setValue(details, "name", ii)
+                            cObj.setValue(str(begSeqId), "feature_positions_beg_seq_id", ii)
+                            cObj.setValue(str(endSeqId), "feature_positions_end_seq_id", ii)
+                            cObj.setValue("Pfam", "provenance_source", ii)
+                            cObj.setValue(self.__pfP.getVersion(), "assignment_version", ii)
+                            #
+                            ii += 1
+            # ---
             # BIRD type and class
             skipBird = True
             if not skipBird:
@@ -1948,7 +1987,7 @@ class DictMethodEntityHelper(object):
             jj = 1
             #
             targetFeatureD = self.__getTargetComponentFeatures(dataContainer)
-            #
+            # Ligand subject of investigation
             for (entityId, compId, filteredFeature) in targetFeatureD:
                 cObj.setValue(ii + 1, "ordinal", ii)
                 cObj.setValue(entryId, "entry_id", ii)
@@ -1965,6 +2004,37 @@ class DictMethodEntityHelper(object):
                 jj += 1
                 ii += 1
             #
+            # Pfam annotations
+            if self.__pfP:
+                polymerIdMapD = self.__commonU.getPolymerIdMap(dataContainer)
+                instEntityD = self.__commonU.getInstanceEntityMap(dataContainer)
+                mDL = self.__pfP.getMapping(entryId)
+                pfD = {}
+                for mD in mDL:
+                    pfTup = (mD["authAsymId"], str(mD["authSeqBeg"]), mD["insertBeg"])
+                    if pfTup in polymerIdMapD:
+                        asymId = polymerIdMapD[pfTup]["asym_id"]
+                        entityId = instEntityD[asymId]
+                        pfD.setdefault(entityId, set()).add(mD["pfamId"])
+                    else:
+                        logger.info("%s noncorresponding Pfam annotation %r", entryId, pfTup)
+                        logger.info("polymerIdMapD %r", polymerIdMapD)
+                #
+                for entityId, pfamIdS in pfD.items():
+                    for pfamId in pfamIdS:
+                        details = self.__pfP.getDescription(pfamId)
+                        if details:
+                            cObj.setValue(ii + 1, "ordinal", ii)
+                            cObj.setValue(entryId, "entry_id", ii)
+                            cObj.setValue(entityId, "entity_id", ii)
+                            cObj.setValue("Pfam", "type", ii)
+                            cObj.setValue(pfamId, "annotation_id", ii)
+                            cObj.setValue(details, "name", ii)
+                            cObj.setValue("Pfam", "provenance_source", ii)
+                            cObj.setValue(self.__pfP.getVersion(), "assignment_version", ii)
+                            #
+                            ii += 1
+            # ---
             skipBird = True
             if not skipBird:
                 # BIRD type and class

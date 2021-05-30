@@ -824,6 +824,7 @@ class DictMethodCommonUtils(object):
                         "entity_type": entityTypeD[entityId],
                         "asym_id": asymId,
                         "comp_id": compId,
+                        "seq_id": seqId,
                     }, ... }
 
         """

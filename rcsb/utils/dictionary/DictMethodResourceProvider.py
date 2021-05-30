@@ -52,6 +52,7 @@ from rcsb.utils.ec.EnzymeDatabaseProvider import EnzymeDatabaseProvider
 from rcsb.utils.io.SingletonClass import SingletonClass
 from rcsb.utils.seq.GlycanProvider import GlycanProvider
 from rcsb.utils.seq.GlyGenProvider import GlyGenProvider
+from rcsb.utils.seq.PfamProvider import PfamProvider
 from rcsb.utils.seq.SiftsSummaryProvider import SiftsSummaryProvider
 from rcsb.utils.struct.CathClassificationProvider import CathClassificationProvider
 from rcsb.utils.struct.ScopClassificationProvider import ScopClassificationProvider
@@ -104,6 +105,7 @@ class DictMethodResourceProvider(SingletonClass):
         self.__niP = None
         self.__glyP = None
         self.__ggP = None
+        self.__pfP = None
         #
         #
         # self.__wsPattern = re.compile(r"\s+", flags=re.UNICODE | re.MULTILINE)
@@ -132,6 +134,7 @@ class DictMethodResourceProvider(SingletonClass):
             "NeighborInteractionProvider instance": self.__fetchNeighborInteractionProvider,
             "GlycanProvider instance": self.__fetchGlycanProvider,
             "GlyGenProvider instance": self.__fetchGlyGenProvider,
+            "PfamProvider instance": self.__fetchPfamProvider,
         }
         logger.debug("Dictionary resource provider init completed")
         #
@@ -455,3 +458,10 @@ class DictMethodResourceProvider(SingletonClass):
         if not self.__ggP:
             self.__ggP = GlyGenProvider(cachePath=cachePath, useCache=useCache, **kwargs)
         return self.__ggP
+
+    def __fetchPfamProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
+        _ = cfgOb
+        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
+        if not self.__pfP:
+            self.__pfP = PfamProvider(cachePath=cachePath, useCache=useCache, **kwargs)
+        return self.__pfP
