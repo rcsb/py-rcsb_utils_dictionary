@@ -1747,7 +1747,7 @@ class DictMethodEntityInstanceHelper(object):
                         numReportedHydrogenAtoms = ligandHydrogenAtomCountD[asymId][altId] + (ligandHydrogenAtomCountD[asymId]["FL"] if "FL" in ligandHydrogenAtomCountD[asymId] else 0)
                     else:
                         numReportedHydrogenAtoms = ligandHydrogenAtomCountD[asymId]["FL"]
-                except Exception as e:
+                except Exception:
                     pass
 
                 #
