@@ -59,7 +59,7 @@ Helper class implements entry-level method references in the RCSB dictionary ext
 All data accessors and structures here refer to dictionary category and attribute names.
 
 """
-__docformat__ = "restructuredtext en"
+__docformat__ = "google en"
 __author__ = "John Westbrook"
 __email__ = "jwest@rcsb.rutgers.edu"
 __license__ = "Apache 2.0"

@@ -23,7 +23,7 @@
 Resource provider for DictMethodHelper tools.
 
 """
-__docformat__ = "restructuredtext en"
+__docformat__ = "google en"
 __author__ = "John Westbrook"
 __email__ = "jwest@rcsb.rutgers.edu"
 __license__ = "Apache 2.0"
@@ -38,6 +38,7 @@ from rcsb.utils.dictionary.DictionaryApiProviderWrapper import DictionaryApiProv
 from rcsb.utils.dictionary.DictMethodCommonUtils import DictMethodCommonUtils
 from rcsb.utils.dictionary.NeighborInteractionProvider import NeighborInteractionProvider
 from rcsb.utils.chemref.AtcProvider import AtcProvider
+from rcsb.utils.chemref.BirdProvider import BirdProvider
 from rcsb.utils.chemref.ChemCompModelProvider import ChemCompModelProvider
 from rcsb.utils.chemref.ChemCompProvider import ChemCompProvider
 from rcsb.utils.chemref.DrugBankProvider import DrugBankProvider
@@ -106,6 +107,7 @@ class DictMethodResourceProvider(SingletonClass):
         self.__glyP = None
         self.__ggP = None
         self.__pfP = None
+        self.__birdP = None
         #
         #
         # self.__wsPattern = re.compile(r"\s+", flags=re.UNICODE | re.MULTILINE)
@@ -135,6 +137,7 @@ class DictMethodResourceProvider(SingletonClass):
             "GlycanProvider instance": self.__fetchGlycanProvider,
             "GlyGenProvider instance": self.__fetchGlyGenProvider,
             "PfamProvider instance": self.__fetchPfamProvider,
+            "BirdProvider instance": self.__fetchBirdProvider,
         }
         logger.debug("Dictionary resource provider init completed")
         #
@@ -465,3 +468,10 @@ class DictMethodResourceProvider(SingletonClass):
         if not self.__pfP:
             self.__pfP = PfamProvider(cachePath=cachePath, useCache=useCache, **kwargs)
         return self.__pfP
+
+    def __fetchBirdProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
+        _ = cfgOb
+        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
+        if not self.__birdP:
+            self.__birdP = BirdProvider(cachePath=cachePath, useCache=useCache, **kwargs)
+        return self.__birdP

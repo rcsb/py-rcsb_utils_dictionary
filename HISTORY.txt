@@ -4,7 +4,7 @@
 15-Feb-2021 - V0.12 Extend namedtuple "NonpolymerValidationInstance"
 18-Feb-2021 - V0.13 Added TargetInteractionProvider() related tests, getNonpolymerInstanceNeighbors() in DictMethodCommonUtils()
 18-Feb-2021 - V0.14 Add further accessors to TargetInteractionProvider()
-21-Feb-2021 - V0.15 Update handling of completeness/disorder in calculating validation scores, add TargetInteractionWorkflow() and t
+21-Feb-2021 - V0.15 Update handling of completeness/disorder in calculating validation scores, add TargetInteractionWorkflow()
 21-Feb-2021 - V0.16 Update test conditions
 21-Feb-2021 - V0.17 Separate the computation and presentation of validation scores and target interactions
 22-Feb-2021 - V0.18 Tweak sorting of unique target interactions and interaction and score attributes
@@ -27,3 +27,4 @@
 29-May-2021 - V0.35 Skip ATC codes not defined in the ATC ontology.
 29-May-2021 - V0.36 Make completeness rely only on heavy atom count for X-ray structures
 30-May-2021 - V0.37 Add Pfam polymer entity features and annotations
+ 1-Jun-2021 - V0.38 Add BirdProvider() to DictMethodResourceProvider() add a check for single molecules BIRDs for chem_ref_def_id assignments and update __docformat__

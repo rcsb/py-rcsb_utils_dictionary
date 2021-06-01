@@ -9,7 +9,7 @@
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
 
 """
-__docformat__ = "restructuredtext en"
+__docformat__ = "google en"
 __author__ = "John Westbrook"
 __email__ = "jwest@rcsb.rutgers.edu"
 __license__ = "Apache 2.0"
@@ -63,6 +63,8 @@ class DictMethodEntityHelper(object):
         self.__glyP = rP.getResource("GlycanProvider instance") if rP else None
         self.__ggP = rP.getResource("GlyGenProvider instance") if rP else None
         self.__pfP = rP.getResource("PfamProvider instance") if rP else None
+        self.__birdP = rP.getResource("BirdProvider instance") if rP else None
+
         #
         logger.debug("Dictionary entity method helper init")
 
@@ -739,7 +741,7 @@ class DictMethodEntityHelper(object):
         rcsb_entity_container_identifiers categories.
 
         Args:
-            dataContainer (object): mmif.api.DataContainer object instance
+            dataContainer (object): mmcif.api.DataContainer object instance
 
         Returns:
             bool: True for success or False otherwise
@@ -890,12 +892,18 @@ class DictMethodEntityHelper(object):
                     pObj.setValue(prdId, "prd_id", ii)
                     compId = eD[entityId] if entityId in eD else "?"
                     pObj.setValue(compId, "nonpolymer_comp_id", ii)
+                    #
                     if compId != "?":
                         pObj.setValue(compId, "chem_ref_def_id", ii)
                     elif prdId != "?":
-                        pObj.setValue(prdId, "chem_ref_def_id", ii)
-                    # else:
-                    #    pObj.setValue("?", "chem_ref_def_id", ii)
+                        # Add a check against the BIRD definition for cases like 6RFK
+                        chkChemCompId = self.__birdP.getChemCompId(prdId)
+                        if chkChemCompId:
+                            pObj.setValue(chkChemCompId, "chem_ref_def_id", ii)
+                            logger.info("%r overriding setting for chem_ref_def prdId %r entityId %r ccId %r", dataContainer.getName(), prdId, entityId, chkChemCompId)
+                        else:
+                            pObj.setValue(prdId, "chem_ref_def_id", ii)
+
             #
             #
             return True

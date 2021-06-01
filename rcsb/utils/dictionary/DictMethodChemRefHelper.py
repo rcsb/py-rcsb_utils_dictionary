@@ -9,7 +9,7 @@
 Helper class implements external method references supporting chemical
 reference data definitions in the RCSB dictionary extension.
 """
-__docformat__ = "restructuredtext en"
+__docformat__ = "google en"
 __author__ = "John Westbrook"
 __email__ = "jwest@rcsb.rutgers.edu"
 __license__ = "Apache 2.0"
@@ -615,6 +615,9 @@ class DictMethodChemRefHelper(object):
                 representAs = prdObj.getValueOrDefault("represent_as", 0, defaultValue=None)
             #
             # ------- add the canonical identifiers --------
+            # JDW Not that the following logic works for the integrated CC/BIRD/BIRDCC data from rcsb.utils.repository
+            # where the chem_comp.id is a BIRD identifier for cases of polymer/branched representations and a CC id otherwise.
+            #
             cN = "rcsb_chem_comp_container_identifiers"
             if not dataContainer.exists(cN):
                 dataContainer.append(DataCategory(cN, attributeNameList=self.__dApi.getAttributeNameList(cN)))

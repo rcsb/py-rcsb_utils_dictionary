@@ -15,7 +15,7 @@
 Helper class implements common utility external method references supporting the RCSB dictionary extension.
 
 """
-__docformat__ = "restructuredtext en"
+__docformat__ = "google en"
 __author__ = "John Westbrook"
 __email__ = "jwest@rcsb.rutgers.edu"
 __license__ = "Apache 2.0"
