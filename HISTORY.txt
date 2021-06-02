@@ -29,3 +29,4 @@
 30-May-2021 - V0.37 Add Pfam polymer entity features and annotations
  1-Jun-2021 - V0.38 Add BirdProvider() to DictMethodResourceProvider() add a check for single molecules BIRDs for chem_ref_def_id assignments and update __docformat__
  2-Jun-2021 - V0.39 Suppress voluminous diagnostics for non-corresponding Pfam data
+ 2-Jun-2021 - V0.40 Add support to filter redundant records in category subsets

@@ -660,6 +660,36 @@ class DictMethodEntryHelper(object):
             logger.exception("In %s for %s failing with %s", dataContainer.getName(), catName, str(e))
         return False
 
+    def filterRedundantRecords(self, dataContainer, catName, **kwargs):
+        """Filter redundant records from input category subject to excluded/included attributes."""
+        try:
+            logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
+            # Exit if source categories are missing
+            if not dataContainer.exists(catName):
+                return False
+            #
+            cObj = dataContainer.getObj(catName)
+            if cObj.getRowCount() < 2:
+                return False
+            #
+            if catName == "pdbx_related_exp_data_set":
+                logger.info("Filtering %r %r", dataContainer.getName(), catName)
+                try:
+                    cObj.removeAttribute("ordinal")
+                    cObj.removeDuplicateRows()
+                    cObj.appendAttribute("ordinal")
+                    for ii in range(cObj.getRowCount()):
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                except Exception as e:
+                    logger.exception("%s failing with %s", dataContainer.getName(), str(e))
+                    return False
+
+                return True
+        except Exception as e:
+            logger.exception("For %s %r failing with %s", dataContainer.getName(), catName, str(e))
+        #
+        return False
+
     def addEntryInfo(self, dataContainer, catName, **kwargs):
         """
         Add  _rcsb_entry_info, for example:
