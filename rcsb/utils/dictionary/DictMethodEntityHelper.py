@@ -1637,8 +1637,6 @@ class DictMethodEntityHelper(object):
                 ii += 1
             #
             # ---
-            # --- JDWJDW
-            # list: [{'pfamId': , 'authAsymId":  , 'authSeqBeg': , 'authSeqEnd': 'insertBeg': , 'insertEnd': }, {}, ]
             if self.__pfP:
                 polymerIdMapD = self.__commonU.getPolymerIdMap(dataContainer)
                 instEntityD = self.__commonU.getInstanceEntityMap(dataContainer)
@@ -1654,7 +1652,7 @@ class DictMethodEntityHelper(object):
                         endSeqId = polymerIdMapD[pfTupEnd]["seq_id"]
                         pfD.setdefault(entityId, set()).add((mD["pfamId"], begSeqId, endSeqId))
                     else:
-                        logger.info("%s noncorresponding Pfam feature %r %r", entryId, pfTupBeg, pfTupEnd)
+                        logger.warning("%s noncorresponding Pfam feature %r %r", entryId, pfTupBeg, pfTupEnd)
                     #
                 #
                 for entityId, pfamTupS in sorted(pfD.items()):
@@ -2025,8 +2023,8 @@ class DictMethodEntityHelper(object):
                         entityId = instEntityD[asymId]
                         pfD.setdefault(entityId, set()).add(mD["pfamId"])
                     else:
-                        logger.info("%s noncorresponding Pfam annotation %r", entryId, pfTup)
-                        logger.info("polymerIdMapD %r", polymerIdMapD)
+                        logger.warning("%s noncorresponding Pfam annotation %r", entryId, pfTup)
+                        logger.debug("polymerIdMapD %r", polymerIdMapD)
                 #
                 for entityId, pfamIdS in pfD.items():
                     for pfamId in pfamIdS:
