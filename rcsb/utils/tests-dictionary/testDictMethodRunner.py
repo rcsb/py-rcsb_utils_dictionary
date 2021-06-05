@@ -53,7 +53,7 @@ class DictMethodRunnerTests(unittest.TestCase):
         self.__rpP = RepositoryProvider(cfgOb=self.__cfgOb, numProc=self.__numProc, fileLimit=self.__fileLimit, cachePath=self.__cachePath)
         #
         self.__testCaseList = [
-            {"contentType": "pdbx_core", "mockLength": 50, "mergeContent": ["vrpt"]},
+            {"contentType": "pdbx_core", "mockLength": 30, "mergeContent": ["vrpt"]},
             {"contentType": "bird_chem_comp_core", "mockLength": 17, "mergeContent": None},
         ]
         #

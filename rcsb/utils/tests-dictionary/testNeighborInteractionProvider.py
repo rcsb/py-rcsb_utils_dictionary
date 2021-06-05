@@ -59,11 +59,11 @@ class NeighborInteractionProviderTests(unittest.TestCase):
             self.assertTrue(ok)
             ok = tiP.reload()
             self.assertTrue(ok)
-            ok = tiP.testCache(minCount=85)
+            ok = tiP.testCache(minCount=30)
             self.assertTrue(ok)
             #
             tiP = NeighborInteractionProvider(self.__cfgOb, self.__configName, self.__cachePath, useCache=True)
-            ok = tiP.testCache(minCount=85)
+            ok = tiP.testCache(minCount=30)
             self.assertTrue(ok)
         except Exception as e:
             logger.exception("Failing with %s", str(e))
