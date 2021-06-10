@@ -1813,13 +1813,18 @@ class DictMethodEntityInstanceHelper(object):
                 cObj.setValue(isBest, "is_best_instance", ii)
                 #
                 isTarget = "N"
+                isTargetProv = None
                 if compId in ccTargets:
                     isTarget = "Y"
+                    isTargetProv = "Author"
                 elif compId in excludeList:
                     isTarget = "N"
                 elif self.__ccP.getFormulaWeight(compId) and self.__ccP.getFormulaWeight(compId) > 150.0:
                     isTarget = "Y"
+                    isTargetProv = "RCSB"
                 cObj.setValue(isTarget, "is_subject_of_investigation", ii)
+                if isTarget == "Y":
+                    cObj.setValue(isTargetProv, "is_subject_of_investigation_provenance", ii)
                 #
                 ii += 1
                 #

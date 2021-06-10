@@ -32,3 +32,4 @@
  2-Jun-2021 - V0.40 Add support to filter redundant records in category subsets
  5-Jun-2021 - V0.41 Prune test cases
 10-Jun-2021 - V0.42 Adding calculation of average occupancy __getAtomSiteInfo() in DictMethodCommonUtils()
+10-Jun-2021 - V0.43 Add provenance to the aggregated "is_subject_of_investigation" ligand validation flag.

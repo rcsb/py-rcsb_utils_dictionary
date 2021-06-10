@@ -394,7 +394,7 @@ class DictMethodCommonUtils(object):
         return wD["fwTypeBoundD"] if "fwTypeBoundD" in wD else {}
 
     def getTargetComponents(self, dataContainer):
-        """Return a components targets.
+        """Return the author identified components targeted in the current entry.
 
         Args:
             dataContainer (object):  mmcif.api.DataContainer object instance
