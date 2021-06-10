@@ -51,8 +51,9 @@ class NeighborInteractionProviderTests(unittest.TestCase):
         logger.info("Completed %s at %s (%.4f seconds)", self.id(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - self.__startTime)
 
     def testNeighborInteractionProviderBootstrap(self):
+        """Test case: generate and load neighbor and occupancy data"""
         try:
-            tiP = NeighborInteractionProvider(self.__cfgOb, self.__configName, self.__cachePath, useCache=False)
+            tiP = NeighborInteractionProvider(self.__cfgOb, self.__configName, self.__cachePath, numProc=2, useCache=False)
             ok = tiP.generate(distLimit=5.0, updateOnly=False, fmt="pickle")
             self.assertTrue(ok)
             ok = tiP.generate(distLimit=5.0, updateOnly=True, fmt="pickle")

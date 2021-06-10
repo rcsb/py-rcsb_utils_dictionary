@@ -140,7 +140,7 @@ class NeighborInteractionProvider(object):
         return {}
 
     def getNearestNeighborList(self, entryId):
-        """Return the list of neares neighbors for the entry.
+        """Return the list of nearest neighbors for the entry.
 
         Args:
             entryId (str): entry identifier
@@ -156,7 +156,7 @@ class NeighborInteractionProvider(object):
         return []
 
     def getLigandNeighborBoundState(self, entryId):
-        """Return the dicitonary of ligand instances with isBound boolean status.
+        """Return the dictionary of ligand instances with isBound boolean status.
 
         Args:
             entryId (str): entry identifier
@@ -196,6 +196,21 @@ class NeighborInteractionProvider(object):
         """
         try:
             return self.__neighborD["entries"][entryId.upper()]["ligandHydrogenAtomCountD"]
+        except Exception:
+            pass
+        return {}
+
+    def __getInstanceOccupancySumD(self, entryId):
+        """Return instance heavy atom occupancy for the input entry (all reported heavy atoms).
+
+        Args:
+            entryId (str): entry identifier
+
+        Returns:
+            (dict): {asymId: {'FL': count, 'altA': count, 'altB': count, ... }}
+        """
+        try:
+            return self.__neighborD["entries"][entryId.upper()]["occupancySumD"]
         except Exception:
             pass
         return {}
@@ -299,10 +314,11 @@ class NeighborInteractionProvider(object):
         #              otherwise the cache context is cleared before the calculation.
         if updateOnly:
             exD = {k: True for k in self.getEntries()}
+            logger.info("Reusing (%d) entries", len(exD))
             rD = self.__neighborD["entries"] if "entries" in self.__neighborD else {}
         #
         locatorObjList = self.__rpP.getLocatorObjList(contentType=contentType, mergeContentTypes=mergeContent, excludeIds=exD)
-        logger.info("Starting with %d numProc %d updateOnly (%r)", len(locatorObjList), self.__numProc, updateOnly)
+        logger.info("Starting with %d entries numProc %d updateOnly (%r)", len(locatorObjList), self.__numProc, updateOnly)
         #
         rWorker = TargetInteractionWorker(self.__rpP)
         mpu = MultiProcUtil(verbose=True)

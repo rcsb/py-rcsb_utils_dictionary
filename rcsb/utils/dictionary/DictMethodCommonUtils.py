@@ -186,7 +186,7 @@ class DictMethodCommonUtils(object):
         """Return a formula weight of the non-solvent entities in the deposited entry.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             float: formula weight (kilodaltons)
@@ -200,7 +200,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of polymer types for each polymer instance.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.mmcif.api.DataContainer object instance
 
         Returns:
             dict: {'asymId': <dictionary polymer type>, ...}
@@ -214,7 +214,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of entity types for each entity instance.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {'asymId': <entity type>, ...}
@@ -228,7 +228,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of the counts entity types for each entity type.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.mmcif.api.DataContainer object instance
 
         Returns:
             dict: {'entity type': <# of instances>, ...}
@@ -242,7 +242,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of entities corresponding to each entity instance.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {'asymId': <entity id>, ...}
@@ -256,7 +256,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of polymer types for each polymer entity.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.mmcif.api.DataContainer object instance
 
         Returns:
             dict: {'entityId': <dictionary polymer types>, ...}
@@ -270,7 +270,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of entity types for each entity.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {'entityId': <dictionary entity types>, ...}
@@ -284,7 +284,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of filtered entity polymer types for each polymer entity.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {'entityId': <filtered entity polymer types>, ...}
@@ -298,7 +298,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of entity polymer lengths for each polymer entity.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {'entityId': <monomer length>, ...}
@@ -312,7 +312,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of entity polymer lengths for each polymer entity.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {'entityId': <monomer length>, ...}
@@ -326,7 +326,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of monomer counts for each polymer entity.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {'entityId': {'compId': <monomer count>, ... }}
@@ -340,7 +340,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of nonstandard monomers for each polymer entity.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {'entityId': [mod_comp_id, mod_comp_id,...]}
@@ -354,7 +354,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of nonstandard monomer features.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: [(entityId, seqId, compId, 'modified_monomer')] = set(compId)
@@ -369,7 +369,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of polymer length bounds by entity type.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             tuple: (minLen, maxLen)
@@ -383,7 +383,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of formula weight bounds by entity type.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: [entityType] = (minFw, maxFw)
@@ -397,7 +397,7 @@ class DictMethodCommonUtils(object):
         """Return a components targets.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             list: [compId, compId,...]
@@ -411,7 +411,7 @@ class DictMethodCommonUtils(object):
         """Internal method to collect and return entity/instance type, size and mapping information.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             (dict) : Return dictionary of entity types, type counts and polymer type (where applicable) for
@@ -610,7 +610,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of mapping between asymId and authAsymId.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {'asymId': authAsymId, ...}
@@ -624,7 +624,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of deposited heavy atom counts for each entity instance.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
             modelId (str, optional): model index. Defaults to "1".
 
 
@@ -640,7 +640,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of deposited hydrogen atom counts for each entity instance.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
             modelId (str, optional): model index. Defaults to "1".
 
 
@@ -656,7 +656,7 @@ class DictMethodCommonUtils(object):
         """Return a list of model identifiers for the entry.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             list: [1,2,3]
@@ -670,7 +670,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of deposited heavy atom counts for each entity type.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
             modelId (str, optional): model index. Defaults to "1".
 
         Returns:
@@ -685,7 +685,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of deposited modeled monomer counts for each entity instance.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
             modelId (str, optional): model index. Defaults to "1".
 
         Returns:
@@ -700,7 +700,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of deposited unmodeled monomer counts for each entity instance.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
             modelId (str, optional): model index. Defaults to "1".
 
         Returns:
@@ -715,7 +715,7 @@ class DictMethodCommonUtils(object):
         """Return deposited modeled and unmodeled polymer monomer counts for the input modelid.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
             modelId (str, optional): model index. Defaults to "1".
 
 
@@ -734,7 +734,7 @@ class DictMethodCommonUtils(object):
         and the total model count.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
             modelId (str, optional): model index. Defaults to "1".
 
         Returns:
@@ -753,7 +753,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of polymer residue range and length for each entity instance.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {"asymId": , {"sampleSeqLen": sampleSeqLen,
@@ -774,7 +774,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of cardinal identifiers for each entity instance.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {"asymId":  {"entry_id": entryId,
@@ -794,7 +794,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of cardinal identifiers for each non-polymer entity instance.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {(authAsymId, resNum):   {"entry_id": entryId,
@@ -815,7 +815,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of cardinal identifiers for each polymer entity instance.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {(authAsymId, authSeqId, insCode): {
@@ -837,7 +837,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of cardinal identifiers for each branched entity instance.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict:  {(authAsymId, authSeqNum): {
@@ -861,7 +861,7 @@ class DictMethodCommonUtils(object):
         """Return a nested dictionary of selected unique identifiers for entity types.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict:  [<entity_type>][<entity_id>] = {'asymIds': [...],'authAsymIds': [...], 'ccIds': [...]}
@@ -877,7 +877,7 @@ class DictMethodCommonUtils(object):
         """Return an instance (asymId) dictionary of auth to entity residue sequence mapping
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict:   seqIdMapAsymD[asymId] = [<authSeqId + insCode>, ... ]
@@ -898,7 +898,7 @@ class DictMethodCommonUtils(object):
         """Get counting information for each instance in the deposited coordinates for the input model.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
             modelId (str, optional): model index. Defaults to "1".
 
         Returns:
@@ -985,6 +985,7 @@ class DictMethodCommonUtils(object):
         atomSiteInfoD = {}
         modelIdL = []
         asymAuthIdD = {}
+        occupancySumD = {}
         instanceTypeD = self.getInstanceTypes(dataContainer)
         entityTypeD = self.getEntityTypes(dataContainer)
         #
@@ -1024,7 +1025,21 @@ class DictMethodCommonUtils(object):
                 for asymId, aCount in instanceHydrogenAtomCountD.items():
                     tt = instanceTypeD[asymId]
                     typeHydrogenAtomCountD[tt] += aCount
-                #
+                # --
+                for ii in range(tObj.getRowCount()):
+                    tModelId = tObj.getValue("pdbx_PDB_model_num", ii)
+                    if tModelId != modelId:
+                        continue
+                    asymId = tObj.getValue("label_asym_id", ii)
+                    atomType = tObj.getValue("type_symbol", ii)
+                    altId = tObj.getValueOrDefault("label_alt_id", ii, None)
+                    occupancy = tObj.getValueOrDefault("occupancy", ii, "0.0")
+                    if atomType not in ["H", "D", "T"]:
+                        if not altId:
+                            occupancySumD.setdefault(asymId, defaultdict(float))["FL"] += float(occupancy)
+                        else:
+                            occupancySumD.setdefault(asymId, defaultdict(float))[altId] += float(occupancy)
+                # --
             else:
                 logger.warning("Missing atom_site category for %s", dataContainer.getName())
             #
@@ -1045,6 +1060,7 @@ class DictMethodCommonUtils(object):
                 "instanceHydrogenAtomCountD": instanceHydrogenAtomCountD,
                 "typeHydrogenAtomCountD": typeHydrogenAtomCountD,
                 "numHydrogenAtomsModel": numHydrogenAtomsModel,
+                "occupancySumD": occupancySumD,
             }
         except Exception as e:
             logger.exception("Failing with %r with %r", dataContainer.getName(), str(e))
@@ -1265,7 +1281,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary protein helical features (entity/label sequence coordinates).
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {<helix_id>: (asymId, begSeqId, endSeqId), ...}
@@ -1279,7 +1295,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary protein regions lacking SS feature assignments (entity/label sequence coordinates).
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {<id>: (asymId, begSeqId, endSeqId), ...}
@@ -1293,7 +1309,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary protein beta strand features (entity/label sequence coordinates).
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {<sheet_id>: {asymId: [(begSeqId, endSeqId), ...], }
@@ -1307,7 +1323,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary protein beta strand sense .
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {<sheet_id>: mixed|parallel|anti-parallel, ...}
@@ -1321,7 +1337,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary cis-peptides linkages using standard nomenclature.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {<id>: (begAsymId, begSeqId, endSeqId, modelId, omegaAngle), ...}
@@ -1342,10 +1358,10 @@ class DictMethodCommonUtils(object):
         """Get secondary structure features using standard nomenclature.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
-            (dict): with secondary structuree details
+            (dict): with secondary structure details
 
             For instance, the following are calculated:
                      {
@@ -1772,7 +1788,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary instance connection counts.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {<connection type>: #count, ...}
@@ -1786,7 +1802,7 @@ class DictMethodCommonUtils(object):
         """Return a list of instance connections.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             list: [{"connect_type": <val>, "connect_target_label_comp_id": <val>, ... },...]
@@ -1801,7 +1817,7 @@ class DictMethodCommonUtils(object):
         """Return a list of bound non-polymers in the entry.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {<entityId>: NonpolymerBoundEntity("targetCompId", "connectType", "partnerCompId", "partnerEntityId", "partnerEntityType"), }
@@ -1812,10 +1828,10 @@ class DictMethodCommonUtils(object):
         return wD["boundNonpolymerComponentIdL"] if "boundNonpolymerComponentIdL" in wD else {}
 
     def getBoundNonpolymersByEntity(self, dataContainer):
-        """Return a dictonary of bound non-polymers by entity.
+        """Return a dictionary of bound non-polymers by entity.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {<entityId>: NonpolymerBoundEntity("targetCompId", "connectType", "partnerCompId", "partnerEntityId", "partnerEntityType"), }
@@ -1826,10 +1842,10 @@ class DictMethodCommonUtils(object):
         return wD["boundNonpolymerEntityD"] if "boundNonpolymerEntityD" in wD else {}
 
     def getBoundNonpolymersByInstance(self, dataContainer):
-        """Return a dictonary of bound non-polymers by instance.
+        """Return a dictionary of bound non-polymers by instance.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {<asymId>: NonpolymerBoundInstance( "targetCompId", "targetAtomId", "targetAltId", "connectType", "partnerEntityType", "partnerEntityId",
@@ -1853,7 +1869,7 @@ class DictMethodCommonUtils(object):
         """Get instance connections (e.g., intermolecular bonds and non-primary connectivity)
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: instConnectCountD{<bond_type>: count, ... }
@@ -2018,7 +2034,7 @@ class DictMethodCommonUtils(object):
         """Get nonpolymer bound
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             bool: True for success or False otherwise
@@ -2090,7 +2106,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of sequence feature counts.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {<entity>: {'mutation': #, 'artifact': #, 'conflict': #, ...  }, }
@@ -2105,7 +2121,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of sequence monomer features.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {(entityId,seqId,compId,filteredFeature): {detail,detail},  .. }
@@ -2120,7 +2136,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of sequence range features.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {(entityId,benSeqId,endSeqId,filteredFeature): {detail,detail},  .. }
@@ -2135,7 +2151,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of reference sequence alignments for each entity.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {entityId: {'dbName': , 'dbAccession': , 'authAsymId': , 'entitySeqIdBeg':, 'dbSeqIdBeg':, ... },  .. }
@@ -2150,7 +2166,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of the sequences (one-letter-codes) for each polymer entity.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {entityId: {'sequence': ..., 'polymerType': ... , 'polymerTypeFiltered': ... },  ... }
@@ -2165,7 +2181,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of reference database accession codes.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {entityId: {'dbName': , 'dbAccession': },  ... }
@@ -2213,7 +2229,7 @@ class DictMethodCommonUtils(object):
         """Get reference sequence and related alignment details.
 
         Args:
-            dataContainer (object): mmif.api.DataContainer object instance
+            dataContainer (object): mmcif.api.DataContainer object instance
 
         Returns:
             dict : {
@@ -2352,7 +2368,7 @@ class DictMethodCommonUtils(object):
         #
         #  To exclude self references -
         excludeRefDbList = ["PDB"]
-        rD = {"seqEntityAlignmentD": {}, "seqEntityRefDbD": {}, "entityPolymerSeqenceD": {}}
+        rD = {"seqEntityAlignmentD": {}, "seqEntityRefDbD": {}, "entityPolymerSequenceD": {}}
         try:
             # Exit if source categories are missing
             if not (dataContainer.exists("struct_ref_seq") and dataContainer.exists("struct_ref") and dataContainer.exists("entity_poly")):
@@ -2524,7 +2540,7 @@ class DictMethodCommonUtils(object):
         """Get point and range sequence features.
 
         Args:
-            dataContainer (object): mmif.api.DataContainer object instance
+            dataContainer (object): mmcif.api.DataContainer object instance
 
         Returns:
             dict : {"seqFeatureCountsD": {entityId: {"mutation": #, "conflict": # ... }, }
@@ -2635,7 +2651,7 @@ class DictMethodCommonUtils(object):
         """Add entity ids in categories struct_ref_seq and struct_ref_seq_dir instances.
 
         Args:
-            dataContainer (object): mmif.api.DataContainer object instance
+            dataContainer (object): mmcif.api.DataContainer object instance
             catName (str): Category name
             atName (str): Attribute name
 
@@ -3121,7 +3137,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of target site binding interactions using standard nomenclature.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {site_id: [{'asymId': , 'compId': , 'seqId': }, ...],  ... }
@@ -3136,7 +3152,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of ligand site binding interactions.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {site_id: {"evCode": software|author,
@@ -3165,7 +3181,7 @@ class DictMethodCommonUtils(object):
         """[summary]
 
         Args:
-            dataContainer (object): mmif.api.DataContainer object instance
+            dataContainer (object): mmcif.api.DataContainer object instance
 
         Returns:
             dict : {"targetSiteD" = {<site_id>: {}}
@@ -3291,7 +3307,7 @@ class DictMethodCommonUtils(object):
         """Convert struct_site ligand details to standard nomenclature.
 
         Args:
-            dataContainer (object): mmif.api.DataContainer object instance
+            dataContainer (object): mmcif.api.DataContainer object instance
             ligL (list): list of raw ligand details in author nomenclature
             evCode (str):  string  (software|author)
             fromDetails (bool, optional): details parsed from descriptive text. Defaults to True.
@@ -3577,7 +3593,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of unobserved regions of polymer instances.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {(modelId, asymId, occFlag): [seqId range list], ...}
@@ -3591,7 +3607,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of polymer regions containing unobserved atoms.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {(modelId, asymId, occFlag): [seqId range list], ...}
@@ -3605,7 +3621,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of nonpolymer instances containing unobserved atoms (std nomenclature).
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {(modelId, compId, asymId, occFlag): [atomId, .. ], ...}
@@ -3620,7 +3636,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of nonpolymer instances containing unobserved atoms (auth nomenclature)
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {(modelId, compId, authtAsymId, authSeqIdm, occFlag): [atomId, .. ], ...}
@@ -3760,7 +3776,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of polymer model outliers.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {(modelId, asymId): (seqId,compId), ...}
@@ -3774,7 +3790,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of nonpolymer validation details.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {(modelId, asymId): NonpolymerValidationInstance(rsr, rsrCc, bondsRmsZ, anglesRmsZ,
@@ -4159,7 +4175,7 @@ class DictMethodCommonUtils(object):
         by the target and ligand indices.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             list: [LigandTargetInstance(), ...]
@@ -4175,7 +4191,7 @@ class DictMethodCommonUtils(object):
         with targets polymer and branched entity instances.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             (dict): {ligandAsymId: {(targetAsymId, targetAuthSeqId): nnIndex1, (): nnIndex2}
@@ -4191,7 +4207,7 @@ class DictMethodCommonUtils(object):
         with ligand entity instances.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             (dict): {(targetAsymId, targetAuthSeqId): {(ligandAsymId): nnIndex1, (): nnIndex2}
@@ -4207,7 +4223,7 @@ class DictMethodCommonUtils(object):
         of ligand instances. (all atom types)
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             (dict): {ligandAsymId: {'FL': ### 'A': ###, 'B': ###}, ...  }
@@ -4218,12 +4234,27 @@ class DictMethodCommonUtils(object):
         wD = self.__fetchNeighborInfo(dataContainer)
         return wD["ligandAtomCountD"] if "ligandAtomCountD" in wD else {}
 
+    def getInstanceOccupancySumD(self, dataContainer):
+        """Return the instance occupancy sums for all observed instances. (heavy atom types)
+
+        Args:
+            dataContainer (object):  mmcif.api.DataContainer object instance
+
+        Returns:
+            (dict): {asymId: {'FL': ### 'A': ###, 'B': ###}, ...  }
+
+        """
+        if not dataContainer or not dataContainer.getName():
+            return {}
+        wD = self.__fetchAtomSiteInfo(dataContainer)
+        return wD["occupancySumD"] if "occupancySumD" in wD else {}
+
     def getLigandHydrogenAtomCountD(self, dataContainer):
         """Return the ligand hydrogen atom counts for all observed alternate conformers
         of ligand instances. (all atom types)
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             (dict): {ligandAsymId: {'FL': ### 'A': ###, 'B': ###}, ...  }
@@ -4238,7 +4269,7 @@ class DictMethodCommonUtils(object):
         """Return the dicitonary of ligand instances with isBound boolean status.
 
         Args:
-            dataContainer (object):  mmcif.api.mmif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             (dict): {ligandAsymId: True if isBound,  ...  }
@@ -4276,6 +4307,7 @@ class DictMethodCommonUtils(object):
             ligandIsBoundD = {}
             ligandAtomCountD = {}
             ligandHydrogenAtomCountD = {}
+            # occupancySumD = {}
             rD = {
                 "targetNeighborIndexD": targetIndexD,
                 "ligandNeighborIndexD": ligandIndexD,
@@ -4283,6 +4315,7 @@ class DictMethodCommonUtils(object):
                 "ligandIsBoundD": ligandIsBoundD,
                 "ligandAtomCountD": ligandAtomCountD,
                 "ligandHydrogenAtomCountD": ligandHydrogenAtomCountD,
+                # "occupancySumD": occupancySumD,
             }
             #
             ligandTargetInstanceD = {}
@@ -4329,9 +4362,13 @@ class DictMethodCommonUtils(object):
                 xC = aObj.getValue("Cartn_x", ii)
                 yC = aObj.getValue("Cartn_y", ii)
                 zC = aObj.getValue("Cartn_z", ii)
-                # occupancy = aObj.getValueOrDefault("occupancy", ii, "1.0")
+                # occupancy = aObj.getValueOrDefault("occupancy", ii, "0.0")
                 entityId = instanceEntityD[asymId]
-
+                # if atomType != "H" and atomType != "D" and atomType != "T":
+                #     if not altId:
+                #        occupancySumD.setdefault(asymId, defaultdict(float))["FL"] += float(occupancy)
+                #    else:
+                #        occupancySumD.setdefault(asymId, defaultdict(float))[altId] += float(occupancy)
                 #
                 if selectType == "target":
                     targetXyzL.append((float(xC), float(yC), float(zC)))

@@ -1717,11 +1717,13 @@ class DictMethodEntityInstanceHelper(object):
                 ligandAtomCountD = self.__niP.getAtomCounts(entryId)
                 ligandHydrogenAtomCountD = self.__niP.getHydrogenAtomCounts(entryId)
                 intIsBoundD = self.__niP.getLigandNeighborBoundState(entryId)
+                # occupancySumD = self.__niP.getInstanceOccupancySumD(entryId)
             else:
                 ligandAtomCountD = self.__commonU.getLigandAtomCountD(dataContainer)
                 ligandHydrogenAtomCountD = self.__commonU.getLigandHydrogenAtomCountD(dataContainer)
                 intIsBoundD = self.__commonU.getLigandNeighborBoundState(dataContainer)
-
+            occupancySumD = self.__commonU.getInstanceOccupancySumD(dataContainer)
+            # logger.info("%r occupancySumD %r", entryId, occupancySumD)
             # --
             # calculate scores and ranks and find best ranking
             for (modelId, asymId, altId, compId), vTup in instanceModelValidationD.items():
@@ -1732,6 +1734,7 @@ class DictMethodEntityInstanceHelper(object):
                 numAtoms = self.__ccP.getAtomCount(compId)
                 numReportedAtoms = 0
                 numReportedHydrogenAtoms = 0
+                occupancySum = 0.0
                 if not numHeavyAtoms:
                     continue
                 try:
@@ -1750,7 +1753,15 @@ class DictMethodEntityInstanceHelper(object):
                 except Exception:
                     pass
 
+                try:
+                    if altId:
+                        occupancySum = occupancySumD[asymId][altId] + (occupancySumD[asymId]["FL"] if "FL" in occupancySumD[asymId] else 0)
+                    else:
+                        occupancySum = occupancySumD[asymId]["FL"]
+                except Exception as e:
+                    logger.warning("Failing occupancy for entry %s asymId %s altId %r with %s", entryId, asymId, altId, str(e))
                 #
+                avgHeavyOccupancy = round(occupancySum / float(numHeavyAtoms), 4)
                 completeness = self.__calculateModeledCompleteness(
                     entryId, asymId, compId, altId, isBound, ligandAtomCountD, numReportedAtoms, numReportedHydrogenAtoms, numHeavyAtoms, numAtoms, expMethod
                 )
@@ -1759,7 +1770,7 @@ class DictMethodEntityInstanceHelper(object):
                 #
                 rankD[compId] = (max(fitRanking, rankD[compId][0]), asymId, altId) if compId in rankD else (fitRanking, asymId, altId)
 
-                scoreD[(modelId, asymId, altId, compId)] = (fitScore, fitRanking, geoScore, geoRanking, numReportedAtoms, completeness)
+                scoreD[(modelId, asymId, altId, compId)] = (fitScore, fitRanking, geoScore, geoRanking, numReportedAtoms, completeness, avgHeavyOccupancy)
             #
             for (modelId, asymId, altId, compId), vTup in instanceModelValidationD.items():
                 if (modelId, asymId, altId, compId) not in scoreD:
@@ -1791,7 +1802,9 @@ class DictMethodEntityInstanceHelper(object):
                 sTup = scoreD[(modelId, asymId, altId, compId)]
                 cObj.setValue(vTup.intermolecular_clashes if vTup.intermolecular_clashes else 0, "intermolecular_clashes", ii)
                 #
+                cObj.setValue("%.4f" % sTup[6], "average_occupancy", ii)
                 cObj.setValue("%.4f" % sTup[5], "completeness", ii)
+
                 cObj.setValue("%.4f" % sTup[0] if sTup[0] else None, "score_model_fit", ii)
                 cObj.setValue("%.4f" % sTup[1] if sTup[1] else None, "ranking_model_fit", ii)
                 cObj.setValue("%.4f" % sTup[2] if sTup[2] else None, "score_model_geometry", ii)
