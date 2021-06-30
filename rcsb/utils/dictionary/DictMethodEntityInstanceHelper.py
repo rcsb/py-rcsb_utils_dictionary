@@ -1743,7 +1743,7 @@ class DictMethodEntityInstanceHelper(object):
                     else:
                         numReportedAtoms = ligandAtomCountD[asymId]["FL"]
                 except Exception as e:
-                    logger.exception("Failing for entry %s asymId %s altId %r with %s", entryId, asymId, altId, str(e))
+                    logger.warning("Missing ligand atom count for entry %s asymId %s altId %r with %s", entryId, asymId, altId, str(e))
 
                 try:
                     if altId:
@@ -1759,7 +1759,7 @@ class DictMethodEntityInstanceHelper(object):
                     else:
                         occupancySum = occupancySumD[asymId]["FL"]
                 except Exception as e:
-                    logger.warning("Failing occupancy for entry %s asymId %s altId %r with %s", entryId, asymId, altId, str(e))
+                    logger.warning("Missing occupancy for entry %s asymId %s altId %r with %s", entryId, asymId, altId, str(e))
                 #
                 avgHeavyOccupancy = round(occupancySum / float(numHeavyAtoms), 4)
                 completeness = self.__calculateModeledCompleteness(

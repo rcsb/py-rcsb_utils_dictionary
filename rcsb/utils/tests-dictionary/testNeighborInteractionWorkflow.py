@@ -35,7 +35,7 @@ class NeighborInteractionWorkflowTests(unittest.TestCase):
 
     def setUp(self):
         self.__mockTopPath = os.path.join(TOPDIR, "rcsb", "mock-data")
-        self.__cachePath = os.path.join(TOPDIR, "CACHE")
+        self.__cachePath = os.path.join(HERE, "test-output", "CACHE")
         self.__configPath = os.path.join(HERE, "test-data", "stash-config-example.yml")
         self.__configName = "site_info_configuration"
         self.__useCache = False

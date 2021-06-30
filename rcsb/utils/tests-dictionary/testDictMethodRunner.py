@@ -44,7 +44,7 @@ class DictMethodRunnerTests(unittest.TestCase):
         self.__numProc = 2
         self.__fileLimit = 200
         mockTopPath = os.path.join(TOPDIR, "rcsb", "mock-data")
-        self.__cachePath = os.path.join(TOPDIR, "CACHE")
+        self.__cachePath = os.path.join(HERE, "test-output", "CACHE")
         configPath = os.path.join(mockTopPath, "config", "dbload-setup-example.yml")
         configName = "site_info_configuration"
         self.__configName = configName

@@ -1,7 +1,7 @@
 # File: HISTORY.txt
 #
 14-Feb-2021 - V0.11 Created module with content migrated from rcsb.db
-15-Feb-2021 - V0.12 Extend namedtuple "NonpolymerValidationInstance"
+15-Feb-2021 - V0.12 Extend named tuple "NonpolymerValidationInstance"
 18-Feb-2021 - V0.13 Added TargetInteractionProvider() related tests, getNonpolymerInstanceNeighbors() in DictMethodCommonUtils()
 18-Feb-2021 - V0.14 Add further accessors to TargetInteractionProvider()
 21-Feb-2021 - V0.15 Update handling of completeness/disorder in calculating validation scores, add TargetInteractionWorkflow()
@@ -33,3 +33,4 @@
  5-Jun-2021 - V0.41 Prune test cases
 10-Jun-2021 - V0.42 Adding calculation of average occupancy __getAtomSiteInfo() in DictMethodCommonUtils()
 10-Jun-2021 - V0.43 Add provenance to the aggregated "is_subject_of_investigation" ligand validation flag.
+30-Jun-2021 - V0.44 Adjust error handling/reporting for atom counts in DictMethodEntityInstanceHelper(), update GlycanProvider() api in DictMethodResourceProvider()

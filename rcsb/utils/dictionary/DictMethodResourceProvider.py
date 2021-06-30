@@ -429,27 +429,15 @@ class DictMethodResourceProvider(SingletonClass):
     def __fetchGlycanProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
         logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
         if not self.__glyP:
-            #
             try:
-                minCount = 0
-                userName = cfgOb.get("_STASH_AUTH_USERNAME", sectionName=configName)
-                password = cfgOb.get("_STASH_AUTH_PASSWORD", sectionName=configName)
-                basePath = cfgOb.get("_STASH_SERVER_BASE_PATH", sectionName=configName)
-                url = cfgOb.get("STASH_SERVER_URL", sectionName=configName)
-                urlFallBack = cfgOb.get("STASH_SERVER_FALLBACK_URL", sectionName=configName)
-                #
                 gP = GlycanProvider(cachePath=cachePath, useCache=useCache)
-                ok = gP.fromStash(url, basePath, userName=userName, password=password)
+                gP.restore(cfgOb, configName)
                 ok = gP.reload()
                 ok = gP.testCache(minCount=10)
-                if not ok:
-                    ok = gP.fromStash(urlFallBack, basePath, userName=userName, password=password)
-                    ok = gP.testCache(minCount=minCount)
-                #
                 if gP:
                     self.__glyP = gP
                     riD = gP.getIdentifiers()
-                    logger.info("Fetched glycan mapping dictionary (%d)", len(riD))
+                    logger.info("Fetched glycan mapping dictionary (%r) (%d)", ok, len(riD))
             except Exception as e:
                 logger.exception("Failing with %s", str(e))
             #

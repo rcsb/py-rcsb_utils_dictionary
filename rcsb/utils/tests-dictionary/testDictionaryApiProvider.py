@@ -36,7 +36,7 @@ TOPDIR = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
 class DictionaryProviderTests(unittest.TestCase):
     def setUp(self):
         mockTopPath = os.path.join(TOPDIR, "rcsb", "mock-data")
-        self.__cachePath = os.path.join(TOPDIR, "CACHE")
+        self.__cachePath = os.path.join(HERE, "test-output", "CACHE")
         self.__dirPath = os.path.join(self.__cachePath, "dictionaries")
         configPath = os.path.join(mockTopPath, "config", "dbload-setup-example.yml")
         configName = "site_info_configuration"
