@@ -37,7 +37,7 @@ class DictionaryProviderTests(unittest.TestCase):
     def setUp(self):
         mockTopPath = os.path.join(TOPDIR, "rcsb", "mock-data")
         self.__cachePath = os.path.join(HERE, "test-output", "CACHE")
-         configPath = os.path.join(mockTopPath, "config", "dbload-setup-example.yml")
+        configPath = os.path.join(mockTopPath, "config", "dbload-setup-example.yml")
         configName = "site_info_configuration"
         self.__configName = configName
         self.__cfgOb = ConfigUtil(configPath=configPath, defaultSectionName=configName, mockTopPath=mockTopPath)
