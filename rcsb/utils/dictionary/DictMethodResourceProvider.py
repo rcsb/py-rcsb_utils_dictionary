@@ -56,7 +56,19 @@ from rcsb.utils.seq.GlyGenProvider import GlyGenProvider
 from rcsb.utils.seq.PfamProvider import PfamProvider
 from rcsb.utils.seq.SiftsSummaryProvider import SiftsSummaryProvider
 from rcsb.utils.struct.CathClassificationProvider import CathClassificationProvider
+from rcsb.utils.struct.EcodClassificationProvider import EcodClassificationProvider
 from rcsb.utils.struct.ScopClassificationProvider import ScopClassificationProvider
+from rcsb.utils.struct.Scop2ClassificationProvider import Scop2ClassificationProvider
+
+# --
+from rcsb.utils.targets.CARDTargetFeatureProvider import CARDTargetFeatureProvider
+from rcsb.utils.targets.ChEMBLTargetCofactorProvider import ChEMBLTargetCofactorProvider
+from rcsb.utils.targets.DrugBankTargetCofactorProvider import DrugBankTargetCofactorProvider
+from rcsb.utils.targets.IMGTTargetFeatureProvider import IMGTTargetFeatureProvider
+from rcsb.utils.targets.PharosTargetCofactorProvider import PharosTargetCofactorProvider
+from rcsb.utils.targets.SAbDabTargetFeatureProvider import SAbDabTargetFeatureProvider
+
+# --
 from rcsb.utils.taxonomy.TaxonomyProvider import TaxonomyProvider
 from rcsb.utils.validation.ValidationReportProvider import ValidationReportProvider
 
@@ -72,7 +84,7 @@ class DictMethodResourceProvider(SingletonClass):
         Arguments:
             cfgOb {object} -- instance ConfigUtils class
 
-        Keyword agruments:
+        Keyword arguments:
             configName {string} -- configuration section name (default: default section name)
             cachePath {str} -- path used for temporary file management (default: '.')
 
@@ -108,8 +120,17 @@ class DictMethodResourceProvider(SingletonClass):
         self.__ggP = None
         self.__pfP = None
         self.__birdP = None
-        #
-        #
+        # --
+        self.__cardFP = None
+        self.__sabdabFP = None
+        self.__imgtFP = None
+        self.__chemblCfP = None
+        self.__pharosCfP = None
+        self.__drugbankCfP = None
+        # --
+        self.__scop2P = None
+        self.__ecodP = None
+        # --
         # self.__wsPattern = re.compile(r"\s+", flags=re.UNICODE | re.MULTILINE)
         # self.__re_non_digit = re.compile(r"[^\d]+")
         #
@@ -138,6 +159,17 @@ class DictMethodResourceProvider(SingletonClass):
             "GlyGenProvider instance": self.__fetchGlyGenProvider,
             "PfamProvider instance": self.__fetchPfamProvider,
             "BirdProvider instance": self.__fetchBirdProvider,
+            # --
+            "DrugBankTargetCofactorProvider instance": self.__fetchDrugBankCofactorProvider,
+            "ChEMBLTargetCofactorProvider instance": self.__fetchChEMBLCofactorProvider,
+            "PharosTargetCofactorProvider instance": self.__fetchPharosCofactorProvider,
+            "CARDTargetFeatureProvider instance": self.__fetchCARDTargetFeatureProvider,
+            "IMGTTargetFeatureProvider instance": self.__fetchIMGTTargetFeatureProvider,
+            "SAbDabTargetFeatureProvider instance": self.__fetchSAbDabTargetFeatureProvider,
+            # --
+            "Scop2Provider instance": self.__fetchScop2Provider,
+            "EcodProvider instance": self.__fetchEcodProvider,
+            # --
         }
         logger.debug("Dictionary resource provider init completed")
         #
@@ -463,3 +495,107 @@ class DictMethodResourceProvider(SingletonClass):
         if not self.__birdP:
             self.__birdP = BirdProvider(cachePath=cachePath, useCache=useCache, **kwargs)
         return self.__birdP
+
+    # --
+    def __fetchDrugBankCofactorProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
+        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
+        _ = cfgOb
+        if not self.__drugbankCfP:
+            try:
+                self.__drugbankCfP = DrugBankTargetCofactorProvider(cachePath=cachePath, useCache=useCache)
+                self.__drugbankCfP.restore(cfgOb, configName)
+                self.__drugbankCfP.reload()
+            except Exception as e:
+                logger.exception("Failing with %s", str(e))
+            #
+        return self.__drugbankCfP
+
+    def __fetchChEMBLCofactorProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
+        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
+        _ = cfgOb
+        if not self.__chemblCfP:
+            try:
+                self.__chemblCfP = ChEMBLTargetCofactorProvider(cachePath=cachePath, useCache=useCache)
+                self.__chemblCfP.restore(cfgOb, configName)
+                self.__chemblCfP.reload()
+            except Exception as e:
+                logger.exception("Failing with %s", str(e))
+            #
+        return self.__chemblCfP
+
+    def __fetchPharosCofactorProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
+        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
+        _ = cfgOb
+        if not self.__pharosCfP:
+            try:
+                self.__pharosCfP = PharosTargetCofactorProvider(cachePath=cachePath, useCache=useCache)
+                self.__pharosCfP.restore(cfgOb, configName)
+                self.__pharosCfP.reload()
+
+            except Exception as e:
+                logger.exception("Failing with %s", str(e))
+            #
+        return self.__pharosCfP
+
+    def __fetchCARDTargetFeatureProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
+        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
+        _ = cfgOb
+        if not self.__cardFP:
+            try:
+                self.__cardFP = CARDTargetFeatureProvider(cachePath=cachePath, useCache=useCache)
+                self.__cardFP.restore(cfgOb, configName)
+                self.__cardFP.reload()
+            except Exception as e:
+                logger.exception("Failing with %s", str(e))
+            #
+        return self.__cardFP
+
+    def __fetchIMGTTargetFeatureProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
+        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
+        _ = cfgOb
+        if not self.__imgtFP:
+            try:
+                self.__imgtFP = IMGTTargetFeatureProvider(cachePath=cachePath, useCache=useCache)
+                self.__imgtFP.restore(cfgOb, configName)
+                self.__imgtFP.reload()
+            except Exception as e:
+                logger.exception("Failing with %s", str(e))
+            #
+        return self.__imgtFP
+
+    def __fetchSAbDabTargetFeatureProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
+        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
+        _ = cfgOb
+        if not self.__sabdabFP:
+            try:
+                self.__sabdabFP = SAbDabTargetFeatureProvider(cachePath=cachePath, useCache=useCache)
+                self.__sabdabFP.restore(cfgOb, configName)
+                self.__sabdabFP.reload()
+            except Exception as e:
+                logger.exception("Failing with %s", str(e))
+            #
+        return self.__sabdabFP
+
+    # --
+    def __fetchScop2Provider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
+        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
+        _ = cfgOb
+        if not self.__scop2P:
+            try:
+                self.__scop2P = Scop2ClassificationProvider(cachePath=cachePath, useCache=useCache)
+            except Exception as e:
+                logger.exception("Failing with %s", str(e))
+            #
+        return self.__scop2P
+
+    def __fetchEcodProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
+        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
+        _ = cfgOb
+        if not self.__ecodP:
+            try:
+                self.__ecodP = EcodClassificationProvider(cachePath=cachePath, useCache=useCache)
+                self.__ecodP.testCache()
+            except Exception as e:
+                logger.exception("Failing with %s", str(e))
+            #
+        return self.__ecodP
