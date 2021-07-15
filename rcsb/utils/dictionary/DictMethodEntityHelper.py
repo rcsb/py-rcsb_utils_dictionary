@@ -1666,7 +1666,7 @@ class DictMethodEntityHelper(object):
                         cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
                         cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
                         cObj.setValue("CARD", "provenance_source", ii)
-                        cObj.setValue(fD["assignment_version"], "assignment_version", ii)
+                        cObj.setValue(str(fD["assignment_version"]), "assignment_version", ii)
                         addPropTupL = []
                         addPropTupL.append(("CARD_MODEL_DESCRIPTION", fD["description"]))
                         addPropTupL.append(("CARD_MODEL_ORGANISM", fD["query_tax_name"]))
@@ -1711,7 +1711,7 @@ class DictMethodEntityHelper(object):
                         cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
                         cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
                         cObj.setValue("IMGT", "provenance_source", ii)
-                        cObj.setValue(fD["assignment_version"], "assignment_version", ii)
+                        cObj.setValue(str(fD["assignment_version"]), "assignment_version", ii)
                         #
                         ii += 1
             # --- SAbDab
@@ -1740,7 +1740,7 @@ class DictMethodEntityHelper(object):
                         cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
                         cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
                         cObj.setValue("Therapeutic SAbDab", "provenance_source", ii)
-                        cObj.setValue(fD["assignment_version"], "assignment_version", ii)
+                        cObj.setValue(str(fD["assignment_version"]), "assignment_version", ii)
                         #
                         ii += 1
                 sabdabVersion = self.__sabdabP.getVersion()
@@ -1765,7 +1765,7 @@ class DictMethodEntityHelper(object):
                         cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
                         cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
                         cObj.setValue("SAbDab", "provenance_source", ii)
-                        cObj.setValue(sabdabVersion, "assignment_version", ii)
+                        cObj.setValue(str(sabdabVersion), "assignment_version", ii)
                         #
                         ii += 1
             # ---
@@ -1800,7 +1800,7 @@ class DictMethodEntityHelper(object):
                             cObj.setValue(str(begSeqId), "feature_positions_beg_seq_id", ii)
                             cObj.setValue(str(endSeqId), "feature_positions_end_seq_id", ii)
                             cObj.setValue("Pfam", "provenance_source", ii)
-                            cObj.setValue(self.__pfP.getVersion(), "assignment_version", ii)
+                            cObj.setValue(str(self.__pfP.getVersion()), "assignment_version", ii)
                             #
                             ii += 1
             # ---
@@ -1996,7 +1996,7 @@ class DictMethodEntityHelper(object):
                         #
                         cObj.setValue(tD["query_id"], "related_target_id", ii)
                         cObj.setValue(tD["query_id_type"], "related_resource_name", ii)
-                        cObj.setValue(tD["assignment_version"], "related_resource_version", ii)
+                        cObj.setValue(str(tD["assignment_version"]), "related_resource_version", ii)
                         cObj.setValue(tD["query_taxonomy_id"], "target_taxonomy_id", ii)
                         #
                         cObj.setValue(entityBegSeqId, "aligned_target_entity_beg_seq_id", ii)
@@ -2022,7 +2022,7 @@ class DictMethodEntityHelper(object):
                         #
                         cObj.setValue(tD["query_id"], "related_target_id", ii)
                         cObj.setValue(tD["query_id_type"], "related_resource_name", ii)
-                        cObj.setValue(tD["assignment_version"], "related_resource_version", ii)
+                        cObj.setValue(str(tD["assignment_version"]), "related_resource_version", ii)
                         cObj.setValue(tD["query_taxonomy_id"], "target_taxonomy_id", ii)
                         #
                         cObj.setValue(entityBegSeqId, "aligned_target_entity_beg_seq_id", ii)
@@ -2048,7 +2048,7 @@ class DictMethodEntityHelper(object):
                         #
                         cObj.setValue(tD["query_id"], "related_target_id", ii)
                         cObj.setValue(tD["query_id_type"], "related_resource_name", ii)
-                        cObj.setValue(tD["assignment_version"], "related_resource_version", ii)
+                        cObj.setValue(str(tD["assignment_version"]), "related_resource_version", ii)
                         cObj.setValue(tD["query_taxonomy_id"], "target_taxonomy_id", ii)
                         #
                         cObj.setValue(entityBegSeqId, "aligned_target_entity_beg_seq_id", ii)
@@ -2199,7 +2199,7 @@ class DictMethodEntityHelper(object):
                             #
                             cObj.setValue(tD["query_id"], "target_resource_id", ii)
                             cObj.setValue(tD["query_id_type"], "resource_name", ii)
-                            cObj.setValue(tD["assignment_version"], "resource_version", ii)
+                            cObj.setValue(str(tD["assignment_version"]), "resource_version", ii)
                             #
                             cObj.setValue(tD["query_id"], "target_resource_id", ii)
                             for ky, atName, atType in atTupMap:
@@ -2227,7 +2227,7 @@ class DictMethodEntityHelper(object):
                             #
                             cObj.setValue(tD["query_id"], "target_resource_id", ii)
                             cObj.setValue(tD["query_id_type"], "resource_name", ii)
-                            cObj.setValue(tD["assignment_version"], "resource_version", ii)
+                            cObj.setValue(str(tD["assignment_version"]), "resource_version", ii)
                             #
                             cObj.setValue(tD["query_id"], "target_resource_id", ii)
                             for ky, atName, atType in atTupMap:
@@ -2255,7 +2255,7 @@ class DictMethodEntityHelper(object):
                             #
                             cObj.setValue(tD["query_id"], "target_resource_id", ii)
                             cObj.setValue(tD["query_id_type"], "resource_name", ii)
-                            cObj.setValue(tD["assignment_version"], "resource_version", ii)
+                            cObj.setValue(str(tD["assignment_version"]), "resource_version", ii)
                             #
                             cObj.setValue(tD["query_id"], "target_resource_id", ii)
                             for ky, atName, atType in atTupMap:
@@ -2529,7 +2529,7 @@ class DictMethodEntityHelper(object):
                             cObj.setValue(pfamId, "annotation_id", ii)
                             cObj.setValue(details, "name", ii)
                             cObj.setValue("Pfam", "provenance_source", ii)
-                            cObj.setValue(self.__pfP.getVersion(), "assignment_version", ii)
+                            cObj.setValue(str(self.__pfP.getVersion()), "assignment_version", ii)
                             #
                             ii += 1
             # ---

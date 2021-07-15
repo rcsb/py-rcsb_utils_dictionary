@@ -637,6 +637,7 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
                     cObj.setValue("SAbDab", "provenance_source", ii)
                     cObj.setValue(sabdabVersion, "assignment_version", ii)
+                    cObj.setValue("PDB entity", "reference_scheme", ii)
                     #
                     ii += 1
             # ------------

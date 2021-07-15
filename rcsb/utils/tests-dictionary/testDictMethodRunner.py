@@ -71,10 +71,6 @@ class DictMethodRunnerTests(unittest.TestCase):
         endTime = time.time()
         logger.info("Completed %s at %s (%.4f seconds)", self.id(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - self.__startTime)
 
-    def tearDown(self):
-        endTime = time.time()
-        logger.debug("Completed %s at %s (%.4f seconds)", self.id(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - self.__startTime)
-
     def __runContentType(self, contentType, mockLength, mergeContent):
         """Read and process test fixture data files from the input content type."""
         try:
