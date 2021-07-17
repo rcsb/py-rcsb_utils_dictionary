@@ -2068,3 +2068,16 @@ class DictMethodEntityHelper(object):
         except Exception as e:
             logger.exception("%s %s failing with %s", dataContainer.getName(), catName, str(e))
         return False
+
+    # JDW -- REMOVE
+    def buildRelatedTargetReferences(self, dataContainer, catName, **kwargs):
+        """PLACEHOLDER"""
+        logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
+        return True
+
+    def buildTargetCofactors(self, dataContainer, catName, **kwargs):
+        """PLACEHOLDER"""
+        logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
+        return True
+
+    # JDW -- REMOVE
