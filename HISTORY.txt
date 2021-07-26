@@ -36,3 +36,4 @@
 30-Jun-2021 - V0.44 Adjust error handling/reporting for atom counts in DictMethodEntityInstanceHelper(), update GlycanProvider() api in DictMethodResourceProvider()
 14-Jun-2021 - V0.45 Add SCOP2/B, ECOD, IMGT, SAbDab features, and add rcsb_related_target_references and rcsb_target_cofactors
 14-Jun-2021 - V0.46 Refactor DictMethodResourceProvider() to support stashable provider API pattern
+26-Jun-2021 - V0.47 Add bypass option for retaining object instances in cache construction.
