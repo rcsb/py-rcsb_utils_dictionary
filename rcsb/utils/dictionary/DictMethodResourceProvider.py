@@ -193,6 +193,7 @@ class DictMethodResourceProvider(SingletonClass):
             useGit (bool, optional): use git repository storage for backup operations. Defaults to False.
             useStash (bool, optional): use stash storage and backup operations. Defaults to True.
             remotePrefix (str, optional): remote prefix for a multi-channel stash rotation. Defaults to None.
+            holdInstance (bool, optional): hold a reference to the data for the cached provided. Defaults to True.
 
         Returns:
             (obj): instance of the resource object or default value
@@ -200,11 +201,11 @@ class DictMethodResourceProvider(SingletonClass):
         logger.debug("Requesting cached provider resource %r (useCache %r)", providerName, useCache)
         if useCache and providerName in self.__providerInstanceD and self.__providerInstanceD[providerName]:
             return self.__providerInstanceD[providerName]
-
+        kwargs["holdInstance"] = kwargs["holdInstance"] if "holdInstance" in kwargs else True
         if providerName in self.__providerD:
             kwargs["holdInstance"] = True
             ok = self.__cacheProvider(providerName, self.__cfgOb, self.__configName, self.__cachePath, useCache=useCache, **kwargs)
-            if ok:
+            if ok and holdInstance:
                 return self.__providerInstanceD[providerName]
         else:
             logger.error("Request for unsupported provider resource %r returning %r", providerName, default)
@@ -222,7 +223,7 @@ class DictMethodResourceProvider(SingletonClass):
             useStash (bool, optional): use stash storage for backup operations. Defaults to True.
             remotePrefix (str, optional): remote prefix for a multi-channel stash rotation. Defaults to None.
             providerSelect (str, optional): select buildable|nonbuildable|None. Defaults to None
-            holdInstance (bool, optional): hold a reference to the data for the cached provided. Defaults to True:
+            holdInstance (bool, optional): hold a reference to the data for the cached provided. Defaults to False.
         Returns:
             bool: True for success or False otherwise
         """
