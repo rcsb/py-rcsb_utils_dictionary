@@ -36,7 +36,7 @@ TOPDIR = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
 
 
 class DictmethodResourceProviderTests(unittest.TestCase):
-    skipFull = True
+    skipFull = platform.system() != "Darwin"
 
     def setUp(self):
         self.__mockTopPath = os.path.join(TOPDIR, "rcsb", "mock-data")
@@ -57,6 +57,7 @@ class DictmethodResourceProviderTests(unittest.TestCase):
         endTime = time.time()
         logger.info("Completed %s at %s (%.4f seconds)", self.id(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - self.__startTime)
 
+    @unittest.skipIf(skipFull, "Large test")
     def testResourceCache(self):
         rP = DictMethodResourceProvider(self.__cfgOb, configName=self.__configName, cachePath=self.__cachePath)
         ok = rP.cacheResources(useCache=True, doRestore=True, useStash=False, useGit=True)
