@@ -1,8 +1,8 @@
 ##
 # File:    DictMethodResourceProvider.py
 # Author:  J. Westbrook
-# Date:    3-Jun-2019
-# Version: 0.001 Initial version
+# Date:    25-Jul-2021
+# Version: 0.002 Refactored version
 #
 #
 # Updates:
@@ -17,10 +17,11 @@
 #  30-Jul-2020 jdw add PharosProvider() from  rcsb.utils.chemref.
 #  29-Oct-2020 jdw add method getReferenceSequenceAlignmentOpt()
 #  18-Feb-2021 jdw add TargerInteractionProvider()
+#  25-Jul-2021 jdw refactored with common provider api
 ##
 ##
 """
-Resource provider for DictMethodHelper tools.
+Resource provider for dictionary method runner and DictMethodHelper tools.
 
 """
 __docformat__ = "google en"
@@ -29,38 +30,45 @@ __email__ = "jwest@rcsb.rutgers.edu"
 __license__ = "Apache 2.0"
 
 import logging
-import os
 import platform
 import resource
 import time
 
-from rcsb.utils.dictionary.DictionaryApiProviderWrapper import DictionaryApiProviderWrapper
-from rcsb.utils.dictionary.DictMethodCommonUtils import DictMethodCommonUtils
-from rcsb.utils.dictionary.NeighborInteractionProvider import NeighborInteractionProvider
 from rcsb.utils.chemref.AtcProvider import AtcProvider
 from rcsb.utils.chemref.BirdProvider import BirdProvider
 from rcsb.utils.chemref.ChemCompModelProvider import ChemCompModelProvider
 from rcsb.utils.chemref.ChemCompProvider import ChemCompProvider
 from rcsb.utils.chemref.DrugBankProvider import DrugBankProvider
-from rcsb.utils.chemref.PsiModProvider import PsiModProvider
 from rcsb.utils.chemref.PharosProvider import PharosProvider
+from rcsb.utils.chemref.PsiModProvider import PsiModProvider
 from rcsb.utils.chemref.PubChemProvider import PubChemProvider
 from rcsb.utils.chemref.RcsbLigandScoreProvider import RcsbLigandScoreProvider
 from rcsb.utils.chemref.ResidProvider import ResidProvider
+
+# ---
 from rcsb.utils.citation.CitationReferenceProvider import CitationReferenceProvider
 from rcsb.utils.citation.JournalTitleAbbreviationProvider import JournalTitleAbbreviationProvider
+
+# ---
+from rcsb.utils.dictionary.DictionaryApiProviderWrapper import DictionaryApiProviderWrapper
+from rcsb.utils.dictionary.DictMethodCommonUtils import DictMethodCommonUtils
+from rcsb.utils.dictionary.NeighborInteractionProvider import NeighborInteractionProvider
 from rcsb.utils.ec.EnzymeDatabaseProvider import EnzymeDatabaseProvider
 from rcsb.utils.io.SingletonClass import SingletonClass
+
+# ---
 from rcsb.utils.seq.GlycanProvider import GlycanProvider
 from rcsb.utils.seq.GlyGenProvider import GlyGenProvider
 from rcsb.utils.seq.PfamProvider import PfamProvider
 from rcsb.utils.seq.SiftsSummaryProvider import SiftsSummaryProvider
+
+# ---
 from rcsb.utils.struct.CathClassificationProvider import CathClassificationProvider
 from rcsb.utils.struct.EcodClassificationProvider import EcodClassificationProvider
-from rcsb.utils.struct.ScopClassificationProvider import ScopClassificationProvider
 from rcsb.utils.struct.Scop2ClassificationProvider import Scop2ClassificationProvider
+from rcsb.utils.struct.ScopClassificationProvider import ScopClassificationProvider
 
-# --
+# ---
 from rcsb.utils.targets.CARDTargetFeatureProvider import CARDTargetFeatureProvider
 from rcsb.utils.targets.ChEMBLTargetCofactorProvider import ChEMBLTargetCofactorProvider
 from rcsb.utils.targets.DrugBankTargetCofactorProvider import DrugBankTargetCofactorProvider
@@ -70,108 +78,101 @@ from rcsb.utils.targets.SAbDabTargetFeatureProvider import SAbDabTargetFeaturePr
 
 # --
 from rcsb.utils.taxonomy.TaxonomyProvider import TaxonomyProvider
-from rcsb.utils.validation.ValidationReportProvider import ValidationReportProvider
 
 logger = logging.getLogger(__name__)
 
 
 class DictMethodResourceProvider(SingletonClass):
-    """Resource provider for DictMethodHelper tools."""
+    """Resource provider for dictionary method runner and DictMethodHelper tools."""
 
     def __init__(self, cfgOb, **kwargs):
-        """Resource provider for dictionary method runner.
+        """Resource provider for dictionary method runner and DictMethodHelper tools.
 
         Arguments:
-            cfgOb {object} -- instance ConfigUtils class
-
-        Keyword arguments:
-            configName {string} -- configuration section name (default: default section name)
-            cachePath {str} -- path used for temporary file management (default: '.')
-
+            cfgOb (object): instance ConfigUtils class
+            configName (str, optional): configuration section name (default: default section name)
+            cachePath (str, optional): path used for temporary file management (default: '.')
+            restoreUseStash (bool, optional): use remote stash storage for restore operations
+            restoreUseGit (bool, optional): use remote storage for restore operations
         """
         self.__cfgOb = cfgOb
-
         self.__configName = kwargs.get("configName", self.__cfgOb.getDefaultSectionName())
         self.__cachePath = kwargs.get("cachePath", ".")
-        #
-        self.__taxU = None
-        self.__ecU = None
-        self.__scopU = None
-        self.__cathU = None
-        self.__dbU = None
-        self.__residU = None
-        self.__psimodU = None
-        self.__ccU = None
-        self.__ccmU = None
-        self.__commonU = None
-        self.__dApiW = None
-        self.__atcP = None
-        # self.__siftsAbbreviated = kwargs.get("siftsAbbreviated", "PROD")
-        self.__siftsAbbreviated = kwargs.get("siftsAbbreviated", "TEST")
-        self.__ssP = None
-        self.__vrptP = None
-        self.__crP = None
-        self.__jtaP = None
-        self.__pcP = None
-        self.__phP = None
-        self.__rlsP = None
-        self.__niP = None
-        self.__glyP = None
-        self.__ggP = None
-        self.__pfP = None
-        self.__birdP = None
+        self.__restoreUseStash = kwargs.get("restoreUseStash", True)
+        self.__restoreUseGit = kwargs.get("restoreUseGit", True)
         # --
-        self.__cardFP = None
-        self.__sabdabFP = None
-        self.__imgtFP = None
-        self.__chemblCfP = None
-        self.__pharosCfP = None
-        self.__drugbankCfP = None
-        # --
-        self.__scop2P = None
-        self.__ecodP = None
-        # --
-        # self.__wsPattern = re.compile(r"\s+", flags=re.UNICODE | re.MULTILINE)
-        # self.__re_non_digit = re.compile(r"[^\d]+")
-        #
-        self.__resourcesD = {
-            "SiftsSummaryProvider instance": self.__fetchSiftsSummaryProvider,
-            "Dictionary API instance (pdbx_core)": self.__fetchDictionaryApi,
-            "TaxonomyProvider instance": self.__fetchTaxonomyProvider,
-            "ScopProvider instance": self.__fetchScopProvider,
-            "CathProvider instance": self.__fetchCathProvider,
-            "EnzymeProvider instance": self.__fetchEnzymeProvider,
-            "DrugBankProvider instance": self.__fetchDrugBankProvider,
-            "ResidProvider instance": self.__fetchResidProvider,
-            "PsiModProvider instance": self.__fetchPsiModProvider,
-            "ChemCompModelProvider instance": self.__fetchChemCompModelProvider,
-            "ChemCompProvider instance": self.__fetchChemCompProvider,
-            "AtcProvider instance": self.__fetchAtcProvider,
-            "DictMethodCommonUtils instance": self.__fetchCommonUtils,
-            "ValidationProvider instance": self.__fetchValidationProvider,
-            "CitationReferenceProvider instance": self.__fetchCitationReferenceProvider,
-            "JournalTitleAbbreviationProvider instance": self.__fetchJournalTitleAbbreviationProvider,
-            "PubChemProvider instance": self.__fetchPubChemProvider,
-            "PharosProvider instance": self.__fetchPharosProvider,
-            "RcsbLigandScoreProvider instance": self.__fetchRcsbLigandScoreProvider,
-            "NeighborInteractionProvider instance": self.__fetchNeighborInteractionProvider,
-            "GlycanProvider instance": self.__fetchGlycanProvider,
-            "GlyGenProvider instance": self.__fetchGlyGenProvider,
-            "PfamProvider instance": self.__fetchPfamProvider,
-            "BirdProvider instance": self.__fetchBirdProvider,
-            # --
-            "DrugBankTargetCofactorProvider instance": self.__fetchDrugBankCofactorProvider,
-            "ChEMBLTargetCofactorProvider instance": self.__fetchChEMBLCofactorProvider,
-            "PharosTargetCofactorProvider instance": self.__fetchPharosCofactorProvider,
-            "CARDTargetFeatureProvider instance": self.__fetchCARDTargetFeatureProvider,
-            "IMGTTargetFeatureProvider instance": self.__fetchIMGTTargetFeatureProvider,
-            "SAbDabTargetFeatureProvider instance": self.__fetchSAbDabTargetFeatureProvider,
-            # --
-            "Scop2Provider instance": self.__fetchScop2Provider,
-            "EcodProvider instance": self.__fetchEcodProvider,
+        self.__providerInstanceD = {}
+        self.__providerD = {
+            "DictionaryAPIProviderWrapper instance": {
+                "class": DictionaryApiProviderWrapper,
+                "configArgMap": {
+                    "cfgOb": (self.__cfgOb, "value"),
+                    "configName": (self.__configName, "value"),
+                },
+                "stashable": False,
+                "buildable": False,
+            },
+            "DictMethodCommonUtils instance": {"class": DictMethodCommonUtils, "configArgMap": {}, "stashable": False, "buildable": False},
+            "NeighborInteractionProvider instance": {
+                "class": NeighborInteractionProvider,
+                "configArgMap": {
+                    "cfgOb": (self.__cfgOb, "value"),
+                    "configName": (self.__configName, "value"),
+                },
+                "stashable": True,
+                "buildable": False,
+            },
+            "Scop2Provider instance": {"class": Scop2ClassificationProvider, "configArgMap": {}, "stashable": True, "buildable": True},
+            "EcodProvider instance": {"class": EcodClassificationProvider, "configArgMap": {}, "stashable": True, "buildable": True},
+            "ScopProvider instance": {"class": ScopClassificationProvider, "configArgMap": {}, "stashable": True, "buildable": True},
+            "CathProvider instance": {"class": CathClassificationProvider, "configArgMap": {}, "stashable": True, "buildable": True},
+            "DrugBankProvider instance": {
+                "class": DrugBankProvider,
+                "configArgMap": {
+                    "username": ("_DRUGBANK_AUTH_USERNAME", "configItem"),
+                    "password": ("_DRUGBANK_AUTH_PASSWORD", "configItem"),
+                    # "urlTarget": ("DRUGBANK_MOCK_URL_TARGET", "configPath"),
+                },
+                "stashable": True,
+                "buildable": True,
+            },
+            "AtcProvider instance": {"class": AtcProvider, "configArgMap": {}, "stashable": True, "buildable": True},
+            "BirdProvider instance": {"class": BirdProvider, "configArgMap": {}, "stashable": True, "buildable": True},
+            "ChemCompModelProvider instance": {"class": ChemCompModelProvider, "configArgMap": {}, "stashable": True, "buildable": True},
+            "ChemCompProvider instance": {"class": ChemCompProvider, "configArgMap": {}, "stashable": True, "buildable": True},
+            #
+            "PharosProvider instance": {"class": PharosProvider, "configArgMap": {}, "stashable": True, "buildable": False},
+            "PsiModProvider instance": {"class": PsiModProvider, "configArgMap": {}, "stashable": True, "buildable": True},
+            "PubChemProvider instance": {"class": PubChemProvider, "configArgMap": {}, "stashable": True, "buildable": False},
+            "RcsbLigandScoreProvider instance": {"class": RcsbLigandScoreProvider, "configArgMap": {}, "stashable": True, "buildable": True},
+            "ResidProvider instance": {"class": ResidProvider, "configArgMap": {}, "stashable": True, "buildable": True},
+            #
+            "CitationReferenceProvider instance": {"class": CitationReferenceProvider, "configArgMap": {}, "stashable": True, "buildable": True},
+            "JournalTitleAbbreviationProvider instance": {"class": JournalTitleAbbreviationProvider, "configArgMap": {}, "stashable": True, "buildable": True},
+            "TaxonomyProvider instance": {"class": TaxonomyProvider, "configArgMap": {}, "stashable": True, "buildable": True},
+            "EnzymeDatabaseProvider instance": {"class": EnzymeDatabaseProvider, "configArgMap": {}, "stashable": True, "buildable": True},
+            #
+            "GlyGenProvider instance": {"class": GlyGenProvider, "configArgMap": {}, "stashable": True, "buildable": True},
+            "GlycanProvider instance": {"class": GlycanProvider, "configArgMap": {}, "stashable": True, "buildable": False},
+            "SiftsSummaryProvider instance": {
+                "class": SiftsSummaryProvider,
+                "configArgMap": {
+                    "abbreviated": ("TEST", "value"),
+                    "srcDirPath": ("SIFTS_SUMMARY_DATA_PATH", "configPath"),
+                },
+                "stashable": True,
+                "buildable": True,
+            },
+            "PfamProvider instance": {"class": PfamProvider, "configArgMap": {}, "stashable": True, "buildable": True},
+            "DrugBankTargetCofactorProvider instance": {"class": DrugBankTargetCofactorProvider, "configArgMap": {}, "stashable": True, "buildable": False},
+            "ChEMBLTargetCofactorProvider instance": {"class": ChEMBLTargetCofactorProvider, "configArgMap": {}, "stashable": True, "buildable": False},
+            "PharosTargetCofactorProvider instance": {"class": PharosTargetCofactorProvider, "configArgMap": {}, "stashable": True, "buildable": False},
+            "CARDTargetFeatureProvider instance": {"class": CARDTargetFeatureProvider, "configArgMap": {}, "stashable": True, "buildable": False},
+            "IMGTTargetFeatureProvider instance": {"class": IMGTTargetFeatureProvider, "configArgMap": {}, "stashable": True, "buildable": False},
+            "SAbDabTargetFeatureProvider instance": {"class": SAbDabTargetFeatureProvider, "configArgMap": {}, "stashable": True, "buildable": False},
             # --
         }
-        logger.debug("Dictionary resource provider init completed")
+        logger.info("Dictionary resource provider init completed")
         #
 
     def echo(self, msg):
@@ -180,24 +181,32 @@ class DictMethodResourceProvider(SingletonClass):
     def getReferenceSequenceAlignmentOpt(self):
         return self.__cfgOb.get("REFERENCE_SEQUENCE_ALIGNMENTS", sectionName=self.__configName, default="SIFTS")
 
-    def getResource(self, resourceName, default=None, useCache=True, **kwargs):
-        """Return the named input resource or the default value.
+    def getResource(self, providerName, default=None, useCache=True, **kwargs):
+        """Return the named input cached resource or the default value.
 
         Arguments:
-            resourceName {str} -- resource name
-            useCache (bool, optional): use current cace. Defaults to True.
-
-        Keyword Arguments:
-            default {obj} -- default return value for missing resources (default: {None})
+            providerName (str): resource provider name
+            useCache (bool, optional): use an existing provider instance in the current cache. Defaults to True.
+            default (obj, optional): the default return value if the requested object cannot be returned. Defaults to None.
+            doRestore (bool, optional): when useCache=True restore the cache from a prior backup. Defaults to False.
+            doBackup (bool, optional): when building cache (useCache=False) backup the cached directory. Defaults to False.
+            useGit (bool, optional): use git repository storage for backup operations. Defaults to False.
+            useStash (bool, optional): use stash storage and backup operations. Defaults to True.
+            remotePrefix (str, optional): remote prefix for a multi-channel stash rotation. Defaults to None.
 
         Returns:
-            [obj] -- resource object
+            (obj): instance of the resource object or default value
         """
-        logger.debug("Requesting resource %r", resourceName)
-        if resourceName in self.__resourcesD:
-            return self.__resourcesD[resourceName](self.__cfgOb, self.__configName, self.__cachePath, useCache=useCache, **kwargs)
+        logger.debug("Requesting cached provider resource %r (useCache %r)", providerName, useCache)
+        if useCache and providerName in self.__providerInstanceD and self.__providerInstanceD[providerName]:
+            return self.__providerInstanceD[providerName]
+
+        if providerName in self.__providerD:
+            ok = self.__cacheProvider(providerName, self.__cfgOb, self.__configName, self.__cachePath, useCache=useCache, **kwargs)
+            if ok:
+                return self.__providerInstanceD[providerName]
         else:
-            logger.error("Request for unsupported resource %r returning %r", resourceName, default)
+            logger.error("Request for unsupported provider resource %r returning %r", providerName, default)
         #
         return default
 
@@ -206,396 +215,292 @@ class DictMethodResourceProvider(SingletonClass):
 
         Args:
             useCache (bool, optional): use current cace. Defaults to False.
-
+            doRestore (bool, optional): when useCache=True restore the cache from a prior backup. Defaults to False.
+            doBackup (bool, optional): when building cache (useCache=False) backup the cached directory. Defaults to False.
+            useGit (bool, optional): use git repository storage for  backup operations. Defaults to False.
+            useStash (bool, optional): use stash storage for backup operations. Defaults to True.
+            remotePrefix (str, optional): remote prefix for a multi-channel stash rotation. Defaults to None.
+            providerSelect (str, optional): select buildable|nonbuildable|None. Defaults to None
         Returns:
             bool: True for success or False otherwise
         """
         ret = True
         tName = "CHECKING" if useCache else "REBUILDING"
-        logger.info("Begin %s cache for %d resources", tName, len(self.__resourcesD))
+        rusageMax = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        logger.info("Begin %s cache for %d resources", tName, len(self.__providerD))
         #
-        for resourceName in self.__resourcesD:
+        providerSelect = kwargs.get("providerSelect", None)
+        failList = []
+        for providerName in self.__providerD:
+            rusageMax = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            bFlag = self.__providerD[providerName]["buildable"]
+            if providerSelect and (bFlag == (providerSelect != "buildable")):
+                continue
             startTime = time.time()
-            logger.debug("Caching resources for %r", resourceName)
-            tU = self.__resourcesD[resourceName](self.__cfgOb, self.__configName, self.__cachePath, useCache=useCache, **kwargs)
-            ok = tU.testCache()
+            rusageMax = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+            logger.debug("Caching resources for %r", providerName)
+            ok = self.__cacheProvider(providerName, self.__cfgOb, self.__configName, self.__cachePath, useCache=useCache, **kwargs)
             if not ok:
-                logger.error("%s %s fails", tName, resourceName)
+                logger.error("%s %s fails", tName, providerName)
+                failList.append(providerName)
             ret = ret and ok
             if not ret:
-                logger.info("%s resource %r step status %r cumulative status %r", tName, resourceName, ok, ret)
-            self.__resourceUsageReport(resourceName, startTime)
+                logger.info("%s resource %r step status %r cumulative status %r", tName, providerName, ok, ret)
+            self.__resourceUsageReport(providerName, startTime, rusageMax)
         #
-        logger.info("Completed %s %d resources with status %r", tName, len(self.__resourcesD), ret)
+        logger.info("Completed %s %d resources status (%r) failures %r", tName, len(self.__providerD), ret, failList)
         return ret
 
-    def __resourceUsageReport(self, resourceName, startTime):
+    def __getClassArgs(self, providerName, cfgOb, configName):
+        classArgs = {}
+        for argName, configTup in self.__providerD[providerName]["configArgMap"].items():
+            if configTup[1] == "configItem":
+                classArgs[argName] = cfgOb.get(configTup[0], sectionName=configName)
+            elif configTup[1] == "configPath":
+                classArgs[argName] = cfgOb.getPath(configTup[0], sectionName=configName)
+            elif configTup[1] == "value":
+                classArgs[argName] = configTup[0]
+        return classArgs
+
+    def __cacheProvider(self, providerName, cfgOb, configName, cachePath, useCache=True, **kwargs):
+        if not self.__providerD[providerName]["stashable"]:
+            return self.__cacheProviderNonStashable(providerName, cfgOb, configName, cachePath, useCache=useCache, **kwargs)
+        elif self.__providerD[providerName]["buildable"]:
+            return self.__cacheProviderBuildable(providerName, cfgOb, configName, cachePath, useCache=useCache, **kwargs)
+        elif not self.__providerD[providerName]["buildable"]:
+            return self.__cacheProviderNonBuildable(providerName, cfgOb, configName, cachePath, useCache=useCache, **kwargs)
+        else:
+            return False
+
+    def __cacheProviderNonStashable(self, providerName, cfgOb, configName, cachePath, useCache=True, **kwargs):
+        """Instantiate a non-stashable resource provider.
+
+        Args:
+            providerName (str): provider name
+            cfgOb (obj): instance of the configuration object ConfigUtil()
+            configName (str): configuration section name
+            cachePath (str): path to the directory containing the cached data
+            useCache (bool, optional): use existing cache (with optional restore) otherwise rebuild the cache from scratch. Defaults to True.
+
+        Returns:
+            bool: True for success or False otherwise
+
+         ---
+        Provider types -
+            stashable == False ->  class objects with no data payload
+
+            stashable == True  ->  class with data payload
+
+                buildable == True  both construct (useCache=False) and deliver (useCache=True) data payloads
+
+
+                buildable == False  only deliver stashed payloads from precomputed workflows
+                                  (useCache = True)   deliver locally cached data payload (with optional restore)
+                                  (useCache = False)  restore stashed payload to local cache
+
+        """
+        logger.debug("providerName %r configName %s cachePath %s kwargs %r", providerName, configName, cachePath, kwargs)
+        #
+        classArgs = self.__getClassArgs(providerName, cfgOb, configName)
+        logger.debug("%r classArgs %r", providerName, classArgs)
+        #
+        try:
+            prI = self.__providerD[providerName]["class"](cachePath=cachePath, useCache=useCache, **classArgs)
+            ok = prI.testCache()
+        except Exception as e:
+            logger.exception("Failing with %s", str(e))
+        #
+        self.__providerInstanceD[providerName] = prI
+        #
+        return ok
+
+    def __cacheProviderNonBuildable(self, providerName, cfgOb, configName, cachePath, useCache=True, **kwargs):
+        """Load or restore/load the cached resources for a non-buildable resource provider.
+
+        Args:
+            providerName (str): provider name
+            cfgOb (obj): instance of the configuration object ConfigUtil()
+            configName (str): configuration section name
+            cachePath (str): path to the directory containing the cached data
+            useCache (bool, optional): use existing cache (with optional restore) otherwise rebuild the cache from scratch. Defaults to True.
+            doRestore (bool, optional): when useCache=True restore the cache from a prior backup. Defaults to False.
+                                        when useCache=False restore is done by default.
+            remotePrefix (str, optional): remote prefix for a multi-channel stash rotation. Defaults to None.
+
+        Returns:
+            bool: True for success or False otherwise
+
+         ---
+        Provider types -
+            stashable == False ->  class objects with no data payload
+
+            stashable == True  ->  class with data payload
+
+                buildable == True  both construct (useCache=False) and deliver (useCache=True) data payloads
+
+
+                buildable == False  only deliver stashed payloads from precomputed workflows
+                                  (useCache = True)   deliver locally cached data payload (with optional restore)
+                                  (useCache = False)  restore stashed payload to local cache
+
+        """
+        logger.debug("providerName %r configName %s cachePath %s kwargs %r", providerName, configName, cachePath, kwargs)
+        #
+        classArgs = self.__getClassArgs(providerName, cfgOb, configName)
+
+        isStashable = self.__providerD[providerName]["stashable"]
+        logger.debug("%r classArgs %r", providerName, classArgs)
+        #
+        remotePrefix = kwargs.get("remotePrefix", None)
+        minCount = kwargs.get("remotePrefix", 5)
+        if useCache:
+            doRestore = kwargs.get("doRestore", True)
+            try:
+                prI = self.__providerD[providerName]["class"](cachePath=cachePath, useCache=useCache, **classArgs)
+                ok = prI.testCache()
+                if not ok and doRestore and isStashable:
+                    prI.restore(cfgOb, configName, remotePrefix=remotePrefix, useStash=self.__restoreUseStash, useGit=self.__restoreUseGit)
+                    prI = self.__providerD[providerName]["class"](cachePath=cachePath, useCache=True, **classArgs)
+                    ok = prI.testCache(minCount=minCount)
+            except Exception as e:
+                logger.exception("Failing with %s", str(e))
+        else:
+            try:
+                prI = self.__providerD[providerName]["class"](cachePath=cachePath, useCache=useCache, **classArgs)
+                prI.restore(cfgOb, configName, remotePrefix=remotePrefix, useStash=self.__restoreUseStash, useGit=self.__restoreUseGit)
+                prI = self.__providerD[providerName]["class"](cachePath=cachePath, useCache=True, **classArgs)
+                ok = prI.testCache(minCount=minCount)
+            except Exception as e:
+                logger.exception("Failing with %s", str(e))
+        #
+        self.__providerInstanceD[providerName] = prI
+        #
+        return ok
+
+    def __cacheProviderBuildable(self, providerName, cfgOb, configName, cachePath, useCache=True, **kwargs):
+        """Load or build the cached data for the input buildable resource provider.
+
+        Args:
+            providerName (str): provider name
+            cfgOb (obj): instance of the configuration object ConfigUtil()
+            configName (str): configuration section name
+            cachePath (str): path to the directory containing the cached data
+            useCache (bool, optional): use existing cache (with optional restore) otherwise rebuild the cache from scratch. Defaults to True.
+            doRestore (bool, optional): when useCache=True restore the cache from a prior backup. Defaults to False.
+            doBackup (bool, optional): when building cache (useCache=False) backup the cached directory. Defaults to False.
+            useGit (bool, optional): use git repository storage for backup operations. Defaults to False.
+            useStash (bool, optional): use stash storage for backup operations. Defaults to True.
+            remotePrefix (str, optional): remote prefix for a multi-channel stash rotation. Defaults to None.
+
+        Returns:
+            bool: True for success or False otherwise
+
+         ---
+        Provider types -
+            stashable == False ->  class objects with no data payload
+
+            stashable == True  ->  class with data payload
+
+                buildable == True  both construct (useCache=False) and deliver (useCache=True) data payloads
+
+
+                buildable == False  only deliver stashed payloads from precomputed workflows
+                                  (useCache = True)   deliver locally cached data payload
+                                  (useCache = False)  restore stashed payload to local cache
+
+        """
+        logger.debug("providerName %r configName %s useCache %r cachePath %s kwargs %r", providerName, configName, useCache, cachePath, kwargs)
+        #
+        classArgs = self.__getClassArgs(providerName, cfgOb, configName)
+
+        isStashable = self.__providerD[providerName]["stashable"]
+        useGit = kwargs.get("useGit", False)
+        useStash = kwargs.get("useStash", True)
+        logger.debug("%r classArgs %r", providerName, classArgs)
+        #
+        ok = False
+        remotePrefix = kwargs.get("remotePrefix", None)
+        if useCache:
+            doRestore = kwargs.get("doRestore", True)
+            try:
+                prI = self.__providerD[providerName]["class"](cachePath=cachePath, useCache=useCache, **classArgs)
+                ok = prI.testCache()
+                if not ok and doRestore and isStashable:
+                    prI.restore(cfgOb, configName, remotePrefix=remotePrefix, useStash=self.__restoreUseStash, useGit=self.__restoreUseGit)
+                    prI = self.__providerD[providerName]["class"](cachePath=cachePath, useCache=useCache, **classArgs)
+                    ok = prI.testCache()
+            except Exception as e:
+                logger.exception("Failing with %s", str(e))
+        else:
+            doBackup = kwargs.get("doBackup", False)
+            try:
+                prI = self.__providerD[providerName]["class"](cachePath=cachePath, useCache=useCache, **classArgs)
+                ok = prI.testCache()
+                if ok and doBackup and isStashable:
+                    okB = prI.backup(cfgOb, configName, remotePrefix=remotePrefix, useStash=useStash, useGit=useGit)
+                    ok = ok and okB
+            except Exception as e:
+                logger.exception("Failing with %s", str(e))
+        #
+        self.__providerInstanceD[providerName] = prI
+        #
+        return ok
+
+    def syncCache(self, providerName, cfgOb, configName, cachePath, remotePrefix=None, sourceCache="stash"):
+        """Synchronize cache data for the input provider from the input source cache
+
+        Args:
+            providerName (str): provider name
+            cfgOb (obj): instance of the configuration object ConfigUtil()
+            configName (str): configuration section name
+            cachePath (str): path to the directory containing the cached data
+            useCache (bool, optional): use existing cache (with optional restore) otherwise rebuild the cache from scratch. Defaults to True.
+            remotePrefix (str, optional): remote prefix for a multi-channel stash rotation. Defaults to None.
+            sourceCache (str, optional): source cache for the sync operation. Defaults to "stash".
+
+        Returns:
+            bool: True for success or False otherwise
+        """
+        logger.debug("providerName %r configName %s cachePath %s sourceCache %r", providerName, configName, cachePath, sourceCache)
+        #
+        classArgs = self.__getClassArgs(providerName, cfgOb, configName)
+        logger.debug("%r classArgs %r", providerName, classArgs)
+        #
+        useCache = True
+        try:
+            if sourceCache == "stash":
+                prI = self.__providerD[providerName]["class"](cachePath=cachePath, useCache=useCache, **classArgs)
+                ok = prI.testCache()
+                prI.restore(cfgOb, configName, remotePrefix=remotePrefix, useStash=True, useGit=False)
+                prI = self.__providerD[providerName]["class"](cachePath=cachePath, useCache=useCache, **classArgs)
+                ok = prI.testCache()
+                okB = prI.backup(cfgOb, configName, remotePrefix=remotePrefix, useStash=False, useGit=True)
+            elif sourceCache == "git":
+                prI = self.__providerD[providerName]["class"](cachePath=cachePath, useCache=useCache, **classArgs)
+                ok = prI.testCache()
+                prI.restore(cfgOb, configName, remotePrefix=remotePrefix, useStash=False, useGit=True)
+                prI = self.__providerD[providerName]["class"](cachePath=cachePath, useCache=useCache, **classArgs)
+                ok = prI.testCache()
+                okB = prI.backup(cfgOb, configName, remotePrefix=remotePrefix, useStash=True, useGit=False)
+            else:
+                logger.error("Unsupported source cache %r", sourceCache)
+
+        except Exception as e:
+            logger.exception("Failing with %s", str(e))
+        #
+        return ok and okB
+
+    def __resourceUsageReport(self, providerName, startTime, startRusageMax):
         unitS = "MB" if platform.system() == "Darwin" else "GB"
         rusageMax = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-        # logger.info("Maximum total resident memory size %.3f %s", rusageMax / 10 ** 6, unitS)
         endTime = time.time()
         logger.info(
-            "Step %s completed at %s (%.4f secs/%.3f %s)",
-            resourceName,
+            "Step %s completed at %s (%.4f secs/Max %.3f %s/Delta %.3f %s)",
+            providerName,
             time.strftime("%Y %m %d %H:%M:%S", time.localtime()),
             endTime - startTime,
-            rusageMax / 10 ** 6,
+            rusageMax / 1.0e6,
+            unitS,
+            (rusageMax - startRusageMax) / 1.0e6,
             unitS,
         )
-
-    def __fetchCitationReferenceProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        if not self.__crP:
-            cachePath = os.path.join(cachePath, cfgOb.get("CITATION_REFERENCE_CACHE_DIR", sectionName=configName))
-            self.__crP = CitationReferenceProvider(cachePath=cachePath, useCache=useCache, **kwargs)
-        return self.__crP
-
-    def __fetchJournalTitleAbbreviationProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        if not self.__jtaP:
-            cachePath = os.path.join(cachePath, cfgOb.get("CITATION_REFERENCE_CACHE_DIR", sectionName=configName))
-            self.__jtaP = JournalTitleAbbreviationProvider(cachePath=cachePath, useCache=useCache, **kwargs)
-        return self.__jtaP
-
-    def __fetchTaxonomyProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        if not self.__taxU:
-            taxonomyDataPath = os.path.join(cachePath, cfgOb.get("NCBI_TAXONOMY_CACHE_DIR", sectionName=configName))
-            self.__taxU = TaxonomyProvider(taxDirPath=taxonomyDataPath, useCache=useCache, **kwargs)
-        return self.__taxU
-
-    def __fetchScopProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        if not self.__scopU:
-            structDomainDataPath = os.path.join(cachePath, cfgOb.get("STRUCT_DOMAIN_CLASSIFICATION_CACHE_DIR", sectionName=configName))
-            self.__scopU = ScopClassificationProvider(scopDirPath=structDomainDataPath, useCache=useCache, **kwargs)
-        return self.__scopU
-
-    def __fetchCathProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        if not self.__cathU:
-            structDomainDataPath = os.path.join(cachePath, cfgOb.get("STRUCT_DOMAIN_CLASSIFICATION_CACHE_DIR", sectionName=configName))
-            self.__cathU = CathClassificationProvider(cathDirPath=structDomainDataPath, useCache=useCache, **kwargs)
-        return self.__cathU
-
-    def __fetchEnzymeProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        if not self.__ecU:
-            enzymeDataPath = os.path.join(cachePath, cfgOb.get("ENZYME_CLASSIFICATION_CACHE_DIR", sectionName=configName))
-            self.__ecU = EnzymeDatabaseProvider(enzymeDirPath=enzymeDataPath, useCache=useCache, **kwargs)
-        return self.__ecU
-
-    #
-    def __fetchDrugBankProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        _ = cfgOb
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        if not self.__dbU:
-            # If a mock DrugBank URL is provided add this as an argument.
-            mockUrlTarget = cfgOb.getPath("DRUGBANK_MOCK_URL_TARGET", sectionName=configName)
-            logger.info("Using mock DrugBank source file %r", mockUrlTarget)
-            if mockUrlTarget:
-                kwargs["urlTarget"] = mockUrlTarget
-                logger.info("Using mock DrugBank source file %r", mockUrlTarget)
-            un = cfgOb.get("_DRUGBANK_AUTH_USERNAME", sectionName=configName)
-            pw = cfgOb.get("_DRUGBANK_AUTH_PASSWORD", sectionName=configName)
-            self.__dbU = DrugBankProvider(cachePath=cachePath, useCache=useCache, username=un, password=pw, **kwargs)
-        return self.__dbU
-
-    #
-    def __fetchResidProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        _ = cfgOb
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        if not self.__residU:
-            # dbDataPath = os.path.join(cachePath, cfgOb.get("RESID_CACHE_DIR", sectionName=configName))
-            self.__residU = ResidProvider(cachePath=cachePath, useCache=useCache, **kwargs)
-        return self.__residU
-
-    def __fetchPsiModProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        _ = cfgOb
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        if not self.__psimodU:
-            self.__psimodU = PsiModProvider(cachePath=cachePath, useCache=useCache, **kwargs)
-        return self.__psimodU
-
-    def __fetchChemCompModelProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        _ = cfgOb
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        if not self.__ccmU:
-            # dirPath = os.path.join(cachePath, cfgOb.get("CHEM_COMP_CACHE_DIR", sectionName=configName))
-            self.__ccmU = ChemCompModelProvider(cachePath=cachePath, useCache=useCache, **kwargs)
-        return self.__ccmU
-
-    def __fetchChemCompProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        _ = cfgOb
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        if not self.__ccU:
-            # dirPath = os.path.join(cachePath, cfgOb.get("CHEM_COMP_CACHE_DIR", sectionName=configName))
-            self.__ccU = ChemCompProvider(cachePath=cachePath, useCache=useCache, **kwargs)
-        return self.__ccU
-
-    def __fetchAtcProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        _ = cfgOb
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        if not self.__atcP:
-            # dirPath = os.path.join(cachePath, cfgOb.get("ATC_CACHE_DIR", sectionName=configName))
-            self.__atcP = AtcProvider(cachePath=cachePath, useCache=useCache, **kwargs)
-        return self.__atcP
-
-    def __fetchSiftsSummaryProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        if not self.__ssP:
-            srcDirPath = os.path.join(cachePath, cfgOb.getPath("SIFTS_SUMMARY_DATA_PATH", sectionName=configName))
-            cacheDirPath = os.path.join(cachePath, cfgOb.get("SIFTS_SUMMARY_CACHE_DIR", sectionName=configName))
-            logger.debug("ssP %r %r", srcDirPath, cacheDirPath)
-            self.__ssP = SiftsSummaryProvider(srcDirPath=srcDirPath, cacheDirPath=cacheDirPath, useCache=useCache, abbreviated=self.__siftsAbbreviated, **kwargs)
-            logger.debug("ssP entry count %d", self.__ssP.getEntryCount())
-        return self.__ssP
-
-    def __fetchValidationProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        if not self.__vrptP:
-            urlTarget = cfgOb.get("VRPT_DICT_MAPPING_LOCATOR", sectionName=configName)
-            dirPath = os.path.join(cachePath, cfgOb.get("DICTIONARY_CACHE_DIR", sectionName=configName))
-            self.__vrptP = ValidationReportProvider(dirPath=dirPath, urlTarget=urlTarget, useCache=useCache)
-        #
-        return self.__vrptP
-
-    def __fetchCommonUtils(self, cfgOb, configName, cachePath, useCache=None, **kwargs):
-        logger.debug("configName %s cachePath %r kwargs %r", configName, cachePath, kwargs)
-        _ = cfgOb
-        _ = useCache
-        if not self.__commonU:
-            self.__commonU = DictMethodCommonUtils(**kwargs)
-        return self.__commonU
-
-    def __fetchDictionaryApi(self, cfgOb, configName, cachePath, useCache=None, **kwargs):
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        schemaName = kwargs.get("schemaName", "pdbx_core")
-        self.__dApiW = DictionaryApiProviderWrapper(cfgOb, cachePath, useCache=useCache)
-        dictApi = self.__dApiW.getApiByName(schemaName)
-        # numRev = dictApi.getDictionaryRevisionCount()
-        return dictApi
-
-    def __fetchPubChemProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        if not self.__pcP:
-            #
-            try:
-                minCount = 0
-                userName = cfgOb.get("_STASH_AUTH_USERNAME", sectionName=configName)
-                password = cfgOb.get("_STASH_AUTH_PASSWORD", sectionName=configName)
-                basePath = cfgOb.get("_STASH_SERVER_BASE_PATH", sectionName=configName)
-                url = cfgOb.get("STASH_SERVER_URL", sectionName=configName)
-                urlFallBack = cfgOb.get("STASH_SERVER_FALLBACK_URL", sectionName=configName)
-                #
-                pcP = PubChemProvider(cachePath=cachePath, useCache=useCache)
-                ok = pcP.fromStash(url, basePath, userName=userName, password=password)
-                ok = pcP.reload()
-                ok = pcP.testCache(minCount=10)
-                if not ok:
-                    ok = pcP.fromStash(urlFallBack, basePath, userName=userName, password=password)
-                    ok = pcP.testCache(minCount=minCount)
-                #
-                if pcP:
-                    self.__pcP = pcP
-                    riD = pcP.getIdentifiers()
-                    logger.info("Fetched PubChem mapping dictionary (%d)", len(riD))
-            except Exception as e:
-                logger.exception("Failing with %s", str(e))
-            #
-        return self.__pcP
-
-    def __fetchPharosProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        if not self.__phP:
-            # --
-            try:
-                minCount = 0
-                userName = cfgOb.get("_STASH_AUTH_USERNAME", sectionName=configName)
-                password = cfgOb.get("_STASH_AUTH_PASSWORD", sectionName=configName)
-                basePath = cfgOb.get("_STASH_SERVER_BASE_PATH", sectionName=configName)
-                url = cfgOb.get("STASH_SERVER_URL", sectionName=configName)
-                urlFallBack = cfgOb.get("STASH_SERVER_FALLBACK_URL", sectionName=configName)
-                #
-                phP = PharosProvider(cachePath=cachePath, useCache=useCache)
-                ok = phP.fromStash(url, basePath, userName=userName, password=password)
-                ok = phP.reload()
-                ok = phP.testCache(minCount=10)
-                if not ok:
-                    ok = phP.fromStash(urlFallBack, basePath, userName=userName, password=password)
-                    ok = phP.testCache(minCount=minCount)
-                #
-                if phP:
-                    self.__phP = phP
-                    riD = phP.getIdentifiers()
-                    logger.info("Fetched Pharos ChEMBL identifiers (%d)", len(riD))
-            except Exception as e:
-                logger.warning("Failing with %s", str(e))
-            #
-        return self.__phP
-
-    def __fetchRcsbLigandScoreProvider(self, cfgOb, configName, cachePath, useCache=None, **kwargs):
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        _ = cfgOb
-        if not self.__rlsP:
-            self.__rlsP = RcsbLigandScoreProvider(cachePath=cachePath, useCache=useCache)
-        return self.__rlsP
-
-    def __fetchNeighborInteractionProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        if not self.__niP:
-            # --
-            try:
-                minCount = 10
-                niP = NeighborInteractionProvider(cfgOb, configName, cachePath=cachePath, useCache=useCache)
-                ok = niP.fromStash()
-                ok = niP.reload()
-                ok = niP.testCache(minCount=minCount)
-                if ok:
-                    self.__niP = niP
-            except Exception as e:
-                logger.warning("Failing with %s", str(e))
-            #
-        return self.__niP
-
-    def __fetchGlycanProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        if not self.__glyP:
-            try:
-                gP = GlycanProvider(cachePath=cachePath, useCache=useCache)
-                gP.restore(cfgOb, configName)
-                ok = gP.reload()
-                ok = gP.testCache(minCount=10)
-                if gP:
-                    self.__glyP = gP
-                    riD = gP.getIdentifiers()
-                    logger.info("Fetched glycan mapping dictionary (%r) (%d)", ok, len(riD))
-            except Exception as e:
-                logger.exception("Failing with %s", str(e))
-            #
-        return self.__glyP
-
-    def __fetchGlyGenProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        _ = cfgOb
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        if not self.__ggP:
-            self.__ggP = GlyGenProvider(cachePath=cachePath, useCache=useCache, **kwargs)
-        return self.__ggP
-
-    def __fetchPfamProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        _ = cfgOb
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        if not self.__pfP:
-            self.__pfP = PfamProvider(cachePath=cachePath, useCache=useCache, **kwargs)
-        return self.__pfP
-
-    def __fetchBirdProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        _ = cfgOb
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        if not self.__birdP:
-            self.__birdP = BirdProvider(cachePath=cachePath, useCache=useCache, **kwargs)
-        return self.__birdP
-
-    # --
-    def __fetchDrugBankCofactorProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        _ = cfgOb
-        if not self.__drugbankCfP:
-            try:
-                self.__drugbankCfP = DrugBankTargetCofactorProvider(cachePath=cachePath, useCache=useCache)
-                self.__drugbankCfP.restore(cfgOb, configName)
-                self.__drugbankCfP.reload()
-            except Exception as e:
-                logger.exception("Failing with %s", str(e))
-            #
-        return self.__drugbankCfP
-
-    def __fetchChEMBLCofactorProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        _ = cfgOb
-        if not self.__chemblCfP:
-            try:
-                self.__chemblCfP = ChEMBLTargetCofactorProvider(cachePath=cachePath, useCache=useCache)
-                self.__chemblCfP.restore(cfgOb, configName)
-                self.__chemblCfP.reload()
-            except Exception as e:
-                logger.exception("Failing with %s", str(e))
-            #
-        return self.__chemblCfP
-
-    def __fetchPharosCofactorProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        _ = cfgOb
-        if not self.__pharosCfP:
-            try:
-                self.__pharosCfP = PharosTargetCofactorProvider(cachePath=cachePath, useCache=useCache)
-                self.__pharosCfP.restore(cfgOb, configName)
-                self.__pharosCfP.reload()
-
-            except Exception as e:
-                logger.exception("Failing with %s", str(e))
-            #
-        return self.__pharosCfP
-
-    def __fetchCARDTargetFeatureProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        _ = cfgOb
-        if not self.__cardFP:
-            try:
-                self.__cardFP = CARDTargetFeatureProvider(cachePath=cachePath, useCache=useCache)
-                self.__cardFP.restore(cfgOb, configName)
-                self.__cardFP.reload()
-            except Exception as e:
-                logger.exception("Failing with %s", str(e))
-            #
-        return self.__cardFP
-
-    def __fetchIMGTTargetFeatureProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        _ = cfgOb
-        if not self.__imgtFP:
-            try:
-                self.__imgtFP = IMGTTargetFeatureProvider(cachePath=cachePath, useCache=useCache)
-                self.__imgtFP.restore(cfgOb, configName)
-                self.__imgtFP.reload()
-            except Exception as e:
-                logger.exception("Failing with %s", str(e))
-            #
-        return self.__imgtFP
-
-    def __fetchSAbDabTargetFeatureProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        _ = cfgOb
-        if not self.__sabdabFP:
-            try:
-                self.__sabdabFP = SAbDabTargetFeatureProvider(cachePath=cachePath, useCache=useCache)
-                self.__sabdabFP.restore(cfgOb, configName)
-                self.__sabdabFP.reload()
-            except Exception as e:
-                logger.exception("Failing with %s", str(e))
-            #
-        return self.__sabdabFP
-
-    # --
-    def __fetchScop2Provider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        _ = cfgOb
-        if not self.__scop2P:
-            try:
-                self.__scop2P = Scop2ClassificationProvider(cachePath=cachePath, useCache=useCache)
-            except Exception as e:
-                logger.exception("Failing with %s", str(e))
-            #
-        return self.__scop2P
-
-    def __fetchEcodProvider(self, cfgOb, configName, cachePath, useCache=True, **kwargs):
-        logger.debug("configName %s cachePath %s kwargs %r", configName, cachePath, kwargs)
-        _ = cfgOb
-        if not self.__ecodP:
-            try:
-                self.__ecodP = EcodClassificationProvider(cachePath=cachePath, useCache=useCache)
-                self.__ecodP.testCache()
-            except Exception as e:
-                logger.exception("Failing with %s", str(e))
-            #
-        return self.__ecodP

@@ -19,6 +19,8 @@ __license__ = "Apache 2.0"
 
 import logging
 import os
+import platform
+import resource
 import time
 import unittest
 
@@ -51,13 +53,21 @@ class DictionaryProviderTests(unittest.TestCase):
         logger.debug("Starting %s at %s", self.id(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()))
 
     def tearDown(self):
+        unitS = "MB" if platform.system() == "Darwin" else "GB"
+        rusageMax = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        logger.info("Maximum resident memory size %.4f %s", rusageMax / 1.0e6, unitS)
         endTime = time.time()
-        logger.debug("Completed %s at %s (%.4f seconds)", self.id(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - self.__startTime)
+        logger.info("Completed %s at %s (%.4f seconds)", self.id(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - self.__startTime)
 
     def testWrapperByName(self):
         """Test case - get dictionary API by schema name"""
         try:
-            dp = DictionaryApiProviderWrapper(self.__cfgOb, self.__cachePath, useCache=False)
+            kwargs = {"cfgOb": self.__cfgOb, "configName": self.__configName}
+            dp = DictionaryApiProviderWrapper(
+                self.__cachePath,
+                useCache=False,
+                **kwargs,
+            )
             dApi = dp.getApiByName(self.__databaseName)
             ok = dApi.testCache()
             self.assertTrue(ok)
@@ -76,7 +86,7 @@ class DictionaryProviderTests(unittest.TestCase):
     def testWrapperByLocators(self):
         """Test case - get dictionary API by locator list"""
         try:
-            dp = DictionaryApiProviderWrapper(self.__cfgOb, self.__cachePath, useCache=False)
+            dp = DictionaryApiProviderWrapper(cachePath=self.__cachePath, useCache=False, cfgOb=self.__cfgOb, configName=self.__configName)
             dApi = dp.getApiByLocators(self.__dictLocators)
             ok = dApi.testCache()
             self.assertTrue(ok)

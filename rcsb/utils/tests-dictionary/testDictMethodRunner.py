@@ -67,16 +67,16 @@ class DictMethodRunnerTests(unittest.TestCase):
     def tearDown(self):
         unitS = "MB" if platform.system() == "Darwin" else "GB"
         rusageMax = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-        logger.info("Maximum resident memory size %.4f %s", rusageMax / 10 ** 6, unitS)
+        logger.info("Maximum resident memory size %.4f %s", rusageMax / 1.0e6, unitS)
         endTime = time.time()
         logger.info("Completed %s at %s (%.4f seconds)", self.id(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - self.__startTime)
 
     def __runContentType(self, contentType, mockLength, mergeContent):
         """Read and process test fixture data files from the input content type."""
         try:
-            dP = DictionaryApiProviderWrapper(self.__cfgOb, self.__cachePath, useCache=True)
+            dP = DictionaryApiProviderWrapper(self.__cachePath, useCache=True, cfgOb=self.__cfgOb, configName=self.__configName)
             dictApi = dP.getApiByName(contentType)
-            rP = DictMethodResourceProvider(self.__cfgOb, configName=self.__configName, cachePath=self.__cachePath, siftsAbbreviated="TEST")
+            rP = DictMethodResourceProvider(self.__cfgOb, configName=self.__configName, cachePath=self.__cachePath)
             dmh = DictMethodRunner(dictApi, modulePathMap=self.__modulePathMap, resourceProvider=rP)
             locatorObjList = self.__rpP.getLocatorObjList(contentType=contentType, mergeContentTypes=mergeContent)
             containerList = self.__rpP.getContainerList(locatorObjList)
@@ -98,9 +98,10 @@ class DictMethodRunnerTests(unittest.TestCase):
             logger.exception("Failing with %s", str(e))
             self.fail()
 
+    @unittest.skip("Redundant test")
     def testResourceCache(self):
-        rP = DictMethodResourceProvider(self.__cfgOb, configName=self.__configName, cachePath=self.__cachePath, siftsAbbreviated="TEST")
-        ok = rP.cacheResources(useCache=True)
+        rP = DictMethodResourceProvider(self.__cfgOb, configName=self.__configName, cachePath=self.__cachePath)
+        ok = rP.cacheResources(useCache=True, doRestore=True, useStash=False, useGit=True)
         self.assertTrue(ok)
 
     def testMethodRunner(self):
@@ -111,9 +112,9 @@ class DictMethodRunnerTests(unittest.TestCase):
     def testMethodRunnerSetup(self):
         """Test the setup methods for method runner class"""
         try:
-            dP = DictionaryApiProviderWrapper(self.__cfgOb, self.__cachePath, useCache=True)
+            dP = DictionaryApiProviderWrapper(self.__cachePath, useCache=True, cfgOb=self.__cfgOb, configName=self.__configName)
             dictApi = dP.getApiByName("pdbx")
-            rP = DictMethodResourceProvider(self.__cfgOb, configName=self.__configName, cachePath=self.__cachePath, siftsAbbreviated="TEST")
+            rP = DictMethodResourceProvider(self.__cfgOb, configName=self.__configName, cachePath=self.__cachePath)
             dmh = DictMethodRunner(dictApi, modulePathMap=self.__modulePathMap, resourceProvider=rP)
             ok = dmh is not None
             self.assertTrue(ok)

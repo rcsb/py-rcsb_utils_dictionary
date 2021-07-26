@@ -49,7 +49,8 @@ class DictMethodEntityHelper(object):
         #
         rP = kwargs.get("resourceProvider")
         self.__commonU = rP.getResource("DictMethodCommonUtils instance") if rP else None
-        self.__dApi = rP.getResource("Dictionary API instance (pdbx_core)") if rP else None
+        dapw = rP.getResource("DictionaryAPIProviderWrapper instance") if rP else None
+        self.__dApi = dapw.getApiByName("pdbx_core") if dapw else None
         #
         self.__useSiftsAlign = rP.getReferenceSequenceAlignmentOpt() == "SIFTS"
         # logger.info("SIFTS alignment option %r", self.__useSiftsAlign)
@@ -390,7 +391,7 @@ class DictMethodEntityHelper(object):
         return False
 
     def __salvageMissingTaxonomy(self, dataContainer, **kwargs):
-        """Add missing taxonomy identifiers using scientific name as a surogate.
+        """Add missing taxonomy identifiers using scientific name as a surrogate.
 
         Args:
             dataContainer (obj): data container object
@@ -1161,7 +1162,7 @@ class DictMethodEntityHelper(object):
             rP = kwargs.get("resourceProvider")
             ecU = None
             if hasEc:
-                ecU = rP.getResource("EnzymeProvider instance") if rP else None
+                ecU = rP.getResource("EnzymeDatabaseProvider instance") if rP else None
             #
             ncObj = None
             if dataContainer.exists("entity_name_com"):
@@ -1321,7 +1322,7 @@ class DictMethodEntityHelper(object):
     def __normalizeCsvToList(self, entryId, colL, separator=","):
         """Normalize a row containing some character delimited fields.
 
-        Expand list of uneven lists into unifornm list of lists.
+        Expand list of uneven lists into uniform list of lists.
         Only two list lengths are logically supported: 1 and second
         maximum length.
 
@@ -2387,7 +2388,7 @@ class DictMethodEntityHelper(object):
 
         Args:
             dataContainer (object): mmif.api.DataContainer object instance
-            categoryMapD  (dict): {<entity_type>: [{<source category>, <destination cateogory>, <source entity key>}, ... ], ... }
+            categoryMapD  (dict): {<entity_type>: [{<source category>, <destination category>, <source entity key>}, ... ], ... }
 
         Returns:
             bool: True for success or False otherwise

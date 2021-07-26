@@ -43,7 +43,8 @@ class DictMethodEntityInstanceHelper(object):
         #
         rP = kwargs.get("resourceProvider")
         self.__commonU = rP.getResource("DictMethodCommonUtils instance") if rP else None
-        self.__dApi = rP.getResource("Dictionary API instance (pdbx_core)") if rP else None
+        dapw = rP.getResource("DictionaryAPIProviderWrapper instance") if rP else None
+        self.__dApi = dapw.getApiByName("pdbx_core") if dapw else None
         self.__ccP = rP.getResource("ChemCompProvider instance") if rP else None
         self.__rlsP = rP.getResource("RcsbLigandScoreProvider instance") if rP else None
         self.__niP = rP.getResource("NeighborInteractionProvider instance") if rP else None

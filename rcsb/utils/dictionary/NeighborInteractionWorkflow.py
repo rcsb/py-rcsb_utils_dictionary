@@ -43,20 +43,22 @@ class NeighborInteractionWorkflow(object):
         #
         self.__cfgOb = ConfigUtil(configPath=self.__configPath, defaultSectionName=self.__configName, mockTopPath=self.__mockTopPath)
         logger.info("Configuration file path %s", self.__configPath)
-        self.__tiP = NeighborInteractionProvider(self.__cfgOb, self.__configName, self.__cachePath, useCache=self.__useCache, numProc=self.__numProc, chunkSize=self.__chunkSize)
+        self.__tiP = NeighborInteractionProvider(
+            self.__cachePath, useCache=self.__useCache, cfgOb=self.__cfgOb, configName=self.__configName, numProc=self.__numProc, chunkSize=self.__chunkSize
+        )
 
     def update(self, incremental=True):
         ok = self.__tiP.generate(distLimit=5.0, updateOnly=incremental, fmt="pickle")
         return ok
 
     def backup(self):
-        ok = self.__tiP.toStash()
+        ok = self.__tiP.backup(self.__cfgOb, self.__configName, remotePrefix=None, useStash=True, useGit=True)
         return ok
 
-    def restore(self):
-        ok1 = self.__tiP.fromStash()
+    def restore(self, minCount=0):
+        ok1 = self.__tiP.restore(self.__cfgOb, self.__configName, remotePrefix=None, useStash=True, useGit=True)
         ok2 = self.__tiP.reload()
-        ok3 = self.__tiP.testCache(minCount=80)
+        ok3 = self.__tiP.testCache(minCount=minCount)
         return ok1 and ok2 and ok3
 
     def convert(self, fmt1="json", fmt2="pickle"):
