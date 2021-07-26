@@ -80,19 +80,21 @@ class DictMethodRunnerTests(unittest.TestCase):
             rP = DictMethodResourceProvider(self.__cfgOb, configName=self.__configName, cachePath=self.__cachePath)
             dmh = DictMethodRunner(dictApi, modulePathMap=self.__modulePathMap, resourceProvider=rP)
             locatorObjList = self.__rpP.getLocatorObjList(contentType=contentType, mergeContentTypes=mergeContent)
+            logger.info("Length of locator list (%d)", len(locatorObjList))
+            self.assertGreaterEqual(len(locatorObjList), mockLength)
             if self.__isMac:
                 containerList = self.__rpP.getContainerList(locatorObjList)
             else:
                 # strip down tests for Azure linux low memory -
                 tObjL = []
                 for locatorObj in locatorObjList[:10]:
-                    if "locator" in locatorObj and "5vp2" in locatorObj["locator"]:
+                    if "locator" in locatorObj and "5vp2" in locatorObj["locator"].lower():
                         continue
                     tObjL.append(locatorObj)
                 containerList = self.__rpP.getContainerList(tObjL)
             #
-            logger.debug("Length of locator list %d\n", len(locatorObjList))
-            self.assertGreaterEqual(len(locatorObjList), mockLength)
+            logger.info("Processing container length (%d)", len(containerList))
+
             for container in containerList:
                 cName = container.getName()
                 #

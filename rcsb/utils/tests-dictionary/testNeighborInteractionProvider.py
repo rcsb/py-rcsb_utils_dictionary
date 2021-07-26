@@ -45,6 +45,7 @@ class NeighborInteractionProviderTests(unittest.TestCase):
         self.__configName = "site_info_configuration"
         self.__startTime = time.time()
         logger.info("Starting %s at %s", self.id(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()))
+        self.__fileLimit = None if platform.system() == "Darwin" else 5
         #
         self.__cfgOb = ConfigUtil(configPath=configPath, defaultSectionName=self.__configName, mockTopPath=mockTopPath)
 
@@ -58,7 +59,7 @@ class NeighborInteractionProviderTests(unittest.TestCase):
     def testNeighborInteractionProviderBootstrap(self):
         """Test case: generate and load neighbor and occupancy data"""
         try:
-            niP = NeighborInteractionProvider(self.__cachePath, useCache=False, cfgOb=self.__cfgOb, configName=self.__configName, numProc=2)
+            niP = NeighborInteractionProvider(self.__cachePath, useCache=False, cfgOb=self.__cfgOb, configName=self.__configName, numProc=2, fileLimit=self.__fileLimit)
             ok = niP.generate(distLimit=5.0, updateOnly=False, fmt="pickle")
             self.assertTrue(ok)
             ok = niP.generate(distLimit=5.0, updateOnly=True, fmt="pickle")
@@ -77,7 +78,7 @@ class NeighborInteractionProviderTests(unittest.TestCase):
 
     def testStashRemote(self):
         try:
-            niP = NeighborInteractionProvider(self.__cachePath, useCache=True, cfgOb=self.__cfgOb, configName=self.__configName, numProc=2)
+            niP = NeighborInteractionProvider(self.__cachePath, useCache=True, cfgOb=self.__cfgOb, configName=self.__configName, numProc=2, fileLimit=self.__fileLimit)
             ok = niP.testCache()
             self.assertTrue(ok)
             ok = niP.restore(self.__cfgOb, self.__configName, remotePrefix=None, useGit=True, useStash=True)
