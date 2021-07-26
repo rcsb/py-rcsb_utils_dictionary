@@ -202,6 +202,7 @@ class DictMethodResourceProvider(SingletonClass):
             return self.__providerInstanceD[providerName]
 
         if providerName in self.__providerD:
+            kwargs["holdInstance"] = True
             ok = self.__cacheProvider(providerName, self.__cfgOb, self.__configName, self.__cachePath, useCache=useCache, **kwargs)
             if ok:
                 return self.__providerInstanceD[providerName]
@@ -221,6 +222,7 @@ class DictMethodResourceProvider(SingletonClass):
             useStash (bool, optional): use stash storage for backup operations. Defaults to True.
             remotePrefix (str, optional): remote prefix for a multi-channel stash rotation. Defaults to None.
             providerSelect (str, optional): select buildable|nonbuildable|None. Defaults to None
+            holdInstance (bool, optional): hold a reference to the data for the cached provided. Defaults to True:
         Returns:
             bool: True for success or False otherwise
         """
@@ -229,6 +231,7 @@ class DictMethodResourceProvider(SingletonClass):
         rusageMax = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         logger.info("Begin %s cache for %d resources", tName, len(self.__providerD))
         #
+        kwargs["holdInstance"] = kwargs["holdInstance"] if "holdInstance" in kwargs else False
         providerSelect = kwargs.get("providerSelect", None)
         failList = []
         for providerName in self.__providerD:
@@ -301,6 +304,7 @@ class DictMethodResourceProvider(SingletonClass):
         """
         logger.debug("providerName %r configName %s cachePath %s kwargs %r", providerName, configName, cachePath, kwargs)
         #
+        holdInstance = kwargs.get("cacheInstance", True)
         classArgs = self.__getClassArgs(providerName, cfgOb, configName)
         logger.debug("%r classArgs %r", providerName, classArgs)
         #
@@ -310,7 +314,10 @@ class DictMethodResourceProvider(SingletonClass):
         except Exception as e:
             logger.exception("Failing with %s", str(e))
         #
-        self.__providerInstanceD[providerName] = prI
+        if ok and holdInstance:
+            self.__providerInstanceD[providerName] = prI
+        else:
+            del prI
         #
         return ok
 
@@ -351,6 +358,7 @@ class DictMethodResourceProvider(SingletonClass):
         isStashable = self.__providerD[providerName]["stashable"]
         logger.debug("%r classArgs %r", providerName, classArgs)
         #
+        holdInstance = kwargs.get("cacheInstance", True)
         remotePrefix = kwargs.get("remotePrefix", None)
         minCount = kwargs.get("remotePrefix", 5)
         if useCache:
@@ -373,7 +381,10 @@ class DictMethodResourceProvider(SingletonClass):
             except Exception as e:
                 logger.exception("Failing with %s", str(e))
         #
-        self.__providerInstanceD[providerName] = prI
+        if ok and holdInstance:
+            self.__providerInstanceD[providerName] = prI
+        else:
+            del prI
         #
         return ok
 
@@ -419,6 +430,7 @@ class DictMethodResourceProvider(SingletonClass):
         logger.debug("%r classArgs %r", providerName, classArgs)
         #
         ok = False
+        holdInstance = kwargs.get("cacheInstance", True)
         remotePrefix = kwargs.get("remotePrefix", None)
         if useCache:
             doRestore = kwargs.get("doRestore", True)
@@ -442,7 +454,10 @@ class DictMethodResourceProvider(SingletonClass):
             except Exception as e:
                 logger.exception("Failing with %s", str(e))
         #
-        self.__providerInstanceD[providerName] = prI
+        if ok and holdInstance:
+            self.__providerInstanceD[providerName] = prI
+        else:
+            del prI
         #
         return ok
 
