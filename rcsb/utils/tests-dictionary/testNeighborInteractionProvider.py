@@ -66,11 +66,11 @@ class NeighborInteractionProviderTests(unittest.TestCase):
             self.assertTrue(ok)
             ok = niP.reload()
             self.assertTrue(ok)
-            ok = niP.testCache(minCount=30)
+            ok = niP.testCache(minCount=self.__fileLimit if self.__fileLimit else 30)
             self.assertTrue(ok)
             #
             niP = NeighborInteractionProvider(self.__cachePath, useCache=True, cfgOb=self.__cfgOb, configName=self.__configName, numProc=2)
-            ok = niP.testCache(minCount=30)
+            ok = niP.testCache(minCount=self.__fileLimit if self.__fileLimit else 30)
             self.assertTrue(ok)
         except Exception as e:
             logger.exception("Failing with %s", str(e))
