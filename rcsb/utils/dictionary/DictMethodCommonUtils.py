@@ -148,7 +148,7 @@ class DictMethodCommonUtils(object):
         self.__wsPattern = re.compile(r"\s+", flags=re.UNICODE | re.MULTILINE)
         self.__reNonDigit = re.compile(r"[^\d]+")
         #
-        cacheSize = 5
+        cacheSize = 2
         self.__entityAndInstanceMapCache = CacheUtils(size=cacheSize, label="instance mapping")
         self.__atomInfoCache = CacheUtils(size=cacheSize, label="atom site counts and mapping")
         self.__protSSCache = CacheUtils(size=cacheSize, label="protein secondary structure")
