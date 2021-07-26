@@ -23,7 +23,7 @@
 # 16-Feb-2019 jdw add buildContainerEntityInstanceIds()
 # 19-Feb-2019 jdw add internal method __addPdbxValidateAsymIds() to add cardinal identifiers to
 #                 pdbx_validate_* categories
-# 28-Feb-2019 jdw change criteria for adding rcsb_chem_comp_container_identiers to work with ion definitions
+# 28-Feb-2019 jdw change criteria for adding rcsb_chem_comp_container_identifiers to work with ion definitions
 # 11-Mar-2019 jdw replace taxonomy file handling with calls to TaxonomyUtils()
 # 11-Mar-2019 jdw add EC lineage using EnzymeDatabaseUtils()
 # 17-Mar-2019 jdw add support for entity subcategory rcsb_macromolecular_names_combined
@@ -50,7 +50,7 @@
 # 15-May-2019 jdw add _rcsb_entry_info.na_polymer_entity_types update enumerations for _rcsb_entry_info.selected_polymer_entity_types
 # 19-May-2019 jdw add method __getStructConfInfo()
 # 21-May-2019 jdw handle odd ordering of records in struct_ref_seq_dif.
-# 25-Nov-2019 jdw add method normalizeCitiationJournalAbbrev() and dependencies
+# 25-Nov-2019 jdw add method normalizeCitationJournalAbbrev() and dependencies
 #
 ##
 """
@@ -93,7 +93,8 @@ class DictMethodEntryHelper(object):
         #
         rP = kwargs.get("resourceProvider")
         self.__commonU = rP.getResource("DictMethodCommonUtils instance") if rP else None
-        self.__dApi = rP.getResource("Dictionary API instance (pdbx_core)") if rP else None
+        dapw = rP.getResource("DictionaryAPIProviderWrapper instance") if rP else None
+        self.__dApi = dapw.getApiByName("pdbx_core") if dapw else None
         #
         self.__crP = rP.getResource("CitationReferenceProvider instance") if rP else None
         self.__jtaP = rP.getResource("JournalTitleAbbreviationProvider instance") if rP else None

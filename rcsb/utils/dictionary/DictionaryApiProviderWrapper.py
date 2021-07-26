@@ -28,22 +28,28 @@ logger = logging.getLogger(__name__)
 class DictionaryApiProviderWrapper(SingletonClass):
     """Wrapper for dictionary API provider."""
 
-    def __init__(self, cfgOb, cachePath, useCache=True, **kwargs):
+    def __init__(self, cachePath, useCache=True, cfgOb=None, configName=None, **kwargs):
         """Wrapper for dictionary API provider.
 
         Args:
-            cfgOb (object):  ConfigInfo() object instance
             cachePath (str): top path to contain the dictionary cache directory
             useCache (bool, optional): flag to use cached files. Defaults to True.
+            cfgOb (object):  ConfigInfo() object instance
+            configName (str): ConfigInfo() section
 
         """
+        # self.__cfgOb = kwargs.get("cfgOb", None)
+        # self.__configName = kwargs.get("configName", self.__cfgOb.getDefaultSectionName())
         self.__cfgOb = cfgOb
-        self.__configName = self.__cfgOb.getDefaultSectionName()
+        self.__configName = configName
         self.__contentInfoConfigName = "content_info_helper_configuration"
         self.__dictLocatorMap = self.__cfgOb.get("DICT_LOCATOR_CONFIG_MAP", sectionName=self.__contentInfoConfigName)
         dirPath = os.path.join(cachePath, self.__cfgOb.get("DICTIONARY_CACHE_DIR", sectionName=self.__configName))
         self.__dP = DictionaryApiProvider(dirPath, useCache=useCache, **kwargs)
         logger.debug("Leaving constructor")
+
+    def testCache(self):
+        return self.__cfgOb is not None
 
     def getApiByLocators(self, dictLocators, **kwargs):
         """Return a dictionary API object for the input dictionary locator list.

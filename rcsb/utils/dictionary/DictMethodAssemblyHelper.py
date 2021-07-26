@@ -41,7 +41,8 @@ class DictMethodAssemblyHelper(object):
         #
         rP = kwargs.get("resourceProvider")
         self.__commonU = rP.getResource("DictMethodCommonUtils instance") if rP else None
-        self.__dApi = rP.getResource("Dictionary API instance (pdbx_core)") if rP else None
+        dapw = rP.getResource("DictionaryAPIProviderWrapper instance") if rP else None
+        self.__dApi = dapw.getApiByName("pdbx_core") if dapw else None
         #
         logger.debug("Dictionary method helper init")
 
@@ -52,7 +53,7 @@ class DictMethodAssemblyHelper(object):
         """Build rcsb_assembly_info category.
 
         Args:
-            dataContainer (object): mmif.api.DataContainer object instance
+            dataContainer (object): mmcif.api.DataContainer object instance
             catName (str): Category name
 
         Returns:
@@ -227,7 +228,7 @@ class DictMethodAssemblyHelper(object):
         to categories, pdbx_struct_assembly and pdb_struct_assembly_gen.
 
         Args:
-            dataContainer (object): mmif.api.DataContainer object instance
+            dataContainer (object): mmcif.api.DataContainer object instance
             catName (str): Category name
 
         Returns:

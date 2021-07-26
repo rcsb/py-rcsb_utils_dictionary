@@ -18,6 +18,8 @@ __license__ = "Apache 2.0"
 
 import logging
 import os
+import platform
+import resource
 import time
 import unittest
 
@@ -31,22 +33,26 @@ logger = logging.getLogger()
 
 
 class NeighborInteractionWorkflowTests(unittest.TestCase):
-    skipFlag = True
+    skipFlag = platform.system() != "Darwin"
 
     def setUp(self):
         self.__mockTopPath = os.path.join(TOPDIR, "rcsb", "mock-data")
         self.__cachePath = os.path.join(HERE, "test-output", "CACHE")
-        self.__configPath = os.path.join(HERE, "test-data", "stash-config-example.yml")
+        self.__configPath = os.path.join(self.__mockTopPath, "config", "dbload-setup-example.yml")
         self.__configName = "site_info_configuration"
         self.__useCache = False
         self.__startTime = time.time()
         logger.info("Starting %s at %s", self.id(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()))
 
     def tearDown(self):
+        unitS = "MB" if platform.system() == "Darwin" else "GB"
+        rusageMax = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        logger.info("Maximum resident memory size %.4f %s", rusageMax / 1.0e6, unitS)
         endTime = time.time()
         logger.info("Completed %s at %s (%.4f seconds)", self.id(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - self.__startTime)
 
-    def testTargetInteractionUpdate(self):
+    @unittest.skipIf(skipFlag, "Long test")
+    def testATargetInteractionUpdate(self):
         try:
             tiWf = NeighborInteractionWorkflow(
                 configPath=self.__configPath,
@@ -58,13 +64,16 @@ class NeighborInteractionWorkflowTests(unittest.TestCase):
             )
             ok = tiWf.update(incremental=False)
             self.assertTrue(ok)
+            if ok:
+                ok = tiWf.backup()
+                self.assertTrue(ok)
 
         except Exception as e:
             logger.exception("Failing with %s", str(e))
             self.fail()
 
-    @unittest.skipIf(skipFlag, "Internal test")
-    def testTargetInteractionRestore(self):
+    @unittest.skipIf(skipFlag, "Long test")
+    def testBTargetInteractionRestore(self):
         try:
             tiWf = NeighborInteractionWorkflow(
                 configPath=self.__configPath,
@@ -74,7 +83,7 @@ class NeighborInteractionWorkflowTests(unittest.TestCase):
                 mockTopPath=self.__mockTopPath,
                 numProc=2,
             )
-            ok = tiWf.restore()
+            ok = tiWf.restore(minCount=30)
             self.assertTrue(ok)
 
         except Exception as e:
@@ -84,8 +93,8 @@ class NeighborInteractionWorkflowTests(unittest.TestCase):
 
 def targetInteractionSuite():
     suiteSelect = unittest.TestSuite()
-    suiteSelect.addTest(NeighborInteractionWorkflowTests("testTargetInteractionUpdate"))
-    suiteSelect.addTest(NeighborInteractionWorkflowTests("testTargetInteractionRestore"))
+    suiteSelect.addTest(NeighborInteractionWorkflowTests("testATargetInteractionUpdate"))
+    suiteSelect.addTest(NeighborInteractionWorkflowTests("testBTargetInteractionRestore"))
     return suiteSelect
 
 

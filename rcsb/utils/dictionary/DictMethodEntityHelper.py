@@ -49,7 +49,8 @@ class DictMethodEntityHelper(object):
         #
         rP = kwargs.get("resourceProvider")
         self.__commonU = rP.getResource("DictMethodCommonUtils instance") if rP else None
-        self.__dApi = rP.getResource("Dictionary API instance (pdbx_core)") if rP else None
+        dapw = rP.getResource("DictionaryAPIProviderWrapper instance") if rP else None
+        self.__dApi = dapw.getApiByName("pdbx_core") if dapw else None
         #
         self.__useSiftsAlign = rP.getReferenceSequenceAlignmentOpt() == "SIFTS"
         # logger.info("SIFTS alignment option %r", self.__useSiftsAlign)
@@ -64,7 +65,12 @@ class DictMethodEntityHelper(object):
         self.__ggP = rP.getResource("GlyGenProvider instance") if rP else None
         self.__pfP = rP.getResource("PfamProvider instance") if rP else None
         self.__birdP = rP.getResource("BirdProvider instance") if rP else None
-
+        self.__cardP = rP.getResource("CARDTargetFeatureProvider instance") if rP else None
+        self.__imgtP = rP.getResource("IMGTTargetFeatureProvider instance") if rP else None
+        self.__sabdabP = rP.getResource("SAbDabTargetFeatureProvider instance") if rP else None
+        self.__chemblP = rP.getResource("ChEMBLTargetCofactorProvider instance") if rP else None
+        self.__dbP = rP.getResource("DrugBankTargetCofactorProvider instance") if rP else None
+        self.__phP = rP.getResource("PharosTargetCofactorProvider instance") if rP else None
         #
         logger.debug("Dictionary entity method helper init")
 
@@ -385,7 +391,7 @@ class DictMethodEntityHelper(object):
         return False
 
     def __salvageMissingTaxonomy(self, dataContainer, **kwargs):
-        """Add missing taxonomy identifiers using scientific name as a surogate.
+        """Add missing taxonomy identifiers using scientific name as a surrogate.
 
         Args:
             dataContainer (obj): data container object
@@ -1156,7 +1162,7 @@ class DictMethodEntityHelper(object):
             rP = kwargs.get("resourceProvider")
             ecU = None
             if hasEc:
-                ecU = rP.getResource("EnzymeProvider instance") if rP else None
+                ecU = rP.getResource("EnzymeDatabaseProvider instance") if rP else None
             #
             ncObj = None
             if dataContainer.exists("entity_name_com"):
@@ -1316,7 +1322,7 @@ class DictMethodEntityHelper(object):
     def __normalizeCsvToList(self, entryId, colL, separator=","):
         """Normalize a row containing some character delimited fields.
 
-        Expand list of uneven lists into unifornm list of lists.
+        Expand list of uneven lists into uniform list of lists.
         Only two list lengths are logically supported: 1 and second
         maximum length.
 
@@ -1614,6 +1620,11 @@ class DictMethodEntityHelper(object):
 
             eObj = dataContainer.getObj("entry")
             entryId = eObj.getValue("id", 0)
+            asymIdD = self.__commonU.getInstanceEntityMap(dataContainer)
+            asymAuthIdD = self.__commonU.getAsymAuthIdMap(dataContainer)
+            instTypeD = self.__commonU.getInstanceTypes(dataContainer)
+            asymIdRangesD = self.__commonU.getInstancePolymerRanges(dataContainer)
+            eTypeD = self.__commonU.getEntityTypes(dataContainer)
             #
             # ---------------
             ii = cObj.getRowCount()
@@ -1636,6 +1647,128 @@ class DictMethodEntityHelper(object):
                 jj += 1
                 ii += 1
             #
+            # --- CARD
+            if self.__cardP:
+                for entityId, eType in eTypeD.items():
+                    if eType not in ["polymer", "branched"]:
+                        continue
+                    eId = entryId + "_" + entityId
+                    fDL = self.__cardP.getFeatures(eId)
+                    for fD in fDL:
+                        begSeqId = ";".join([str(tD["beg_seq_id"]) for tD in fD["feature_positions"]])
+                        endSeqId = ";".join([str(tD["end_seq_id"]) for tD in fD["feature_positions"]])
+                        #
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        cObj.setValue("CARD_MODEL", "type", ii)
+                        cObj.setValue(fD["feature_id"], "feature_id", ii)
+                        cObj.setValue(fD["name"], "name", ii)
+                        cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
+                        cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
+                        cObj.setValue("CARD", "provenance_source", ii)
+                        cObj.setValue(str(fD["assignment_version"]), "assignment_version", ii)
+                        addPropTupL = []
+                        addPropTupL.append(("CARD_MODEL_DESCRIPTION", fD["description"]))
+                        addPropTupL.append(("CARD_MODEL_ORGANISM", fD["query_tax_name"]))
+                        cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
+                        cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
+                        #
+                        ii += 1
+            # --- IMGT
+            if self.__imgtP:
+                imgtIdD = {}
+                imgtEidD = {}
+                for asymId, authAsymId in asymAuthIdD.items():
+                    if instTypeD[asymId] not in ["polymer", "branched"]:
+                        continue
+                    entityId = asymIdD[asymId]
+                    instId = entryId.lower() + "." + authAsymId
+                    fDL = self.__imgtP.getFeatures(instId)
+                    if fDL and entityId in imgtEidD:
+                        logger.debug("%r skipping duplicate IMGT annotation for entity %r authAsymId %r using prior authAsymId %r", entryId, entityId, authAsymId, imgtEidD[entityId])
+                        continue
+                    imgtEidD[entityId] = authAsymId
+                    for fD in fDL:
+                        fId = fD["feature_id"]
+                        if fId in imgtIdD:
+                            logger.info("%r skipping feature %r", entryId, fId)
+                            continue
+                        imgtIdD[fId] = True
+                        if fD["feature_positions"]:
+                            begSeqId = ";".join([str(tD["beg_seq_id"]) for tD in fD["feature_positions"]])
+                            endSeqId = ";".join([str(tD["end_seq_id"]) for tD in fD["feature_positions"]])
+                        else:
+                            # take the full chain
+                            begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
+                            endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
+                        #
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        cObj.setValue(fD["type"], "type", ii)
+                        cObj.setValue(fD["feature_id"], "feature_id", ii)
+                        cObj.setValue(fD["name"], "name", ii)
+                        cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
+                        cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
+                        cObj.setValue("IMGT", "provenance_source", ii)
+                        cObj.setValue(str(fD["assignment_version"]), "assignment_version", ii)
+                        #
+                        ii += 1
+            # --- SAbDab
+            if self.__sabdabP:
+                for entityId, eType in eTypeD.items():
+                    if eType not in ["polymer", "branched"]:
+                        continue
+                    eId = entryId + "_" + entityId
+                    fDL = self.__sabdabP.getFeatures(eId)
+                    fTypeD = {}
+                    for fD in fDL:
+                        if fD["type"] not in ["SABDAB_ANTIBODY_NAME", "SABDAB_ANTIBODY_TARGET"]:
+                            continue
+                        if fD["type"] in fTypeD:
+                            logger.info("%r (%r) duplicate antibody feature %r = %r", entryId, entityId, fD["type"], fD["name"])
+                        fTypeD[fD["type"]] = True
+                        begSeqId = ";".join([str(tD["beg_seq_id"]) for tD in fD["feature_positions"]])
+                        endSeqId = ";".join([str(tD["end_seq_id"]) for tD in fD["feature_positions"]])
+                        #
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        cObj.setValue(fD["type"].upper(), "type", ii)
+                        cObj.setValue(fD["feature_id"], "feature_id", ii)
+                        cObj.setValue(fD["name"], "name", ii)
+                        cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
+                        cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
+                        cObj.setValue("Therapeutic SAbDab", "provenance_source", ii)
+                        cObj.setValue(str(fD["assignment_version"]), "assignment_version", ii)
+                        #
+                        ii += 1
+                sabdabVersion = self.__sabdabP.getVersion()
+                for asymId, authAsymId in asymAuthIdD.items():
+                    if instTypeD[asymId] not in ["polymer", "branched"]:
+                        continue
+                    entityId = asymIdD[asymId]
+                    instId = entryId.lower() + "." + authAsymId
+                    for ky, fType in [("antigen_name", "SABDAB_ANTIBODY_ANTIGEN_NAME")]:
+                        fName = self.__sabdabP.getAssignment(instId, ky)
+                        if not fName or fName in ["?", "unknown"]:
+                            continue
+                        # Full sequence feature
+                        begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
+                        endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        cObj.setValue(fType, "type", ii)
+                        cObj.setValue("SAbDab_" + instId, "feature_id", ii)
+                        cObj.setValue(fName, "name", ii)
+                        cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
+                        cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
+                        cObj.setValue("SAbDab", "provenance_source", ii)
+                        cObj.setValue(str(sabdabVersion), "assignment_version", ii)
+                        #
+                        ii += 1
             # ---
             if self.__pfP:
                 polymerIdMapD = self.__commonU.getPolymerIdMap(dataContainer)
@@ -1668,7 +1801,7 @@ class DictMethodEntityHelper(object):
                             cObj.setValue(str(begSeqId), "feature_positions_beg_seq_id", ii)
                             cObj.setValue(str(endSeqId), "feature_positions_end_seq_id", ii)
                             cObj.setValue("Pfam", "provenance_source", ii)
-                            cObj.setValue(self.__pfP.getVersion(), "assignment_version", ii)
+                            cObj.setValue(str(self.__pfP.getVersion()), "assignment_version", ii)
                             #
                             ii += 1
             # ---
@@ -1776,6 +1909,366 @@ class DictMethodEntityHelper(object):
                 #
                 jj += 1
                 ii += 1
+            return True
+        except Exception as e:
+            logger.exception("%s %s failing with %s", dataContainer.getName(), catName, str(e))
+        return False
+
+    def buildRelatedTargetReferences(self, dataContainer, catName, **kwargs):
+        """Build category rcsb_related_target_references ...
+
+        Example:
+            loop_
+            _rcsb_related_target_references.ordinal
+            _rcsb_related_target_references.entry_id
+            _rcsb_related_target_references.entity_id
+            _rcsb_related_target_references.related_target_id
+            _rcsb_related_target_references.related_resource_name
+            _rcsb_related_target_references.related_resource_version
+            _rcsb_related_target_references.target_taxonomy_id
+            #
+            _rcsb_related_target_references.aligned_target_entity_beg_seq_id
+            _rcsb_related_target_references.aligned_target_target_beg_seq_id
+            _rcsb_related_target_references.aligned_target_length
+            # ...
+
+            "5FN7_1": [
+                {
+                    "entry_id": "5FN7",
+                    "entity_id": "1",
+                    "query_uniprot_id": "P08575",
+                    "query_id": "CHEMBL3243",
+                    "query_id_type": "ChEMBL",
+                    "query_name": "Leukocyte common antigen",
+                    "provenance_source": "ChEMBL",
+                    "reference_scheme": "PDB entity",
+                    "assignment_version": 28,
+                    "query_taxonomy_id": 9606,
+                    "target_taxonomy_id": 9606,
+                    "aligned_target": [
+                    {
+                        "entity_beg_seq_id": 8,
+                        "target_beg_seq_id": 225,
+                        "length": 169
+                    }
+                    ],
+                    "taxonomy_match_status": "matched",
+                    "lca_taxonomy_id": 9606,
+                    "lca_taxonomy_name": "Homo sapiens",
+                    "lca_taxonomy_rank": "species",
+                    "cofactors": []
+                },
+            ]
+        """
+        logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
+        try:
+            if catName != "rcsb_related_target_references":
+                return False
+            # Exit if source categories are missing
+            if not dataContainer.exists("entry"):
+                return False
+            #
+            # Create the new target category
+            if not dataContainer.exists(catName):
+                dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
+            cObj = dataContainer.getObj(catName)
+            eObj = dataContainer.getObj("entry")
+            entryId = eObj.getValue("id", 0)
+            eTypeD = self.__commonU.getEntityTypes(dataContainer)
+            #
+            # ---------------
+            ii = cObj.getRowCount()
+            #
+            # --- ChEMBL
+            if self.__chemblP:
+                for entityId, eType in eTypeD.items():
+                    if eType not in ["polymer", "branched"]:
+                        continue
+                    eId = entryId + "_" + entityId
+                    tDL = self.__chemblP.getTargets(eId)
+                    for tD in tDL:
+                        entityBegSeqId = ";".join([str(tD["entity_beg_seq_id"]) for tD in tD["aligned_target"]])
+                        targetBegSeqId = ";".join([str(tD["target_beg_seq_id"]) for tD in tD["aligned_target"]])
+                        alignLength = ";".join([str(tD["length"]) for tD in tD["aligned_target"]])
+                        #
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        #
+                        cObj.setValue(tD["query_id"], "related_target_id", ii)
+                        cObj.setValue(tD["query_id_type"], "related_resource_name", ii)
+                        cObj.setValue(str(tD["assignment_version"]), "related_resource_version", ii)
+                        cObj.setValue(tD["query_taxonomy_id"], "target_taxonomy_id", ii)
+                        #
+                        cObj.setValue(entityBegSeqId, "aligned_target_entity_beg_seq_id", ii)
+                        cObj.setValue(targetBegSeqId, "aligned_target_target_beg_seq_id", ii)
+                        cObj.setValue(alignLength, "aligned_target_length", ii)
+                        #
+                        ii += 1
+            #
+            if self.__dbP:
+                for entityId, eType in eTypeD.items():
+                    if eType not in ["polymer", "branched"]:
+                        continue
+                    eId = entryId + "_" + entityId
+                    tDL = self.__dbP.getTargets(eId)
+                    for tD in tDL:
+                        entityBegSeqId = ";".join([str(tD["entity_beg_seq_id"]) for tD in tD["aligned_target"]])
+                        targetBegSeqId = ";".join([str(tD["target_beg_seq_id"]) for tD in tD["aligned_target"]])
+                        alignLength = ";".join([str(tD["length"]) for tD in tD["aligned_target"]])
+                        #
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        #
+                        cObj.setValue(tD["query_id"], "related_target_id", ii)
+                        cObj.setValue(tD["query_id_type"], "related_resource_name", ii)
+                        cObj.setValue(str(tD["assignment_version"]), "related_resource_version", ii)
+                        cObj.setValue(tD["query_taxonomy_id"], "target_taxonomy_id", ii)
+                        #
+                        cObj.setValue(entityBegSeqId, "aligned_target_entity_beg_seq_id", ii)
+                        cObj.setValue(targetBegSeqId, "aligned_target_target_beg_seq_id", ii)
+                        cObj.setValue(alignLength, "aligned_target_length", ii)
+                        #
+                        ii += 1
+            #
+            if self.__phP:
+                for entityId, eType in eTypeD.items():
+                    if eType not in ["polymer", "branched"]:
+                        continue
+                    eId = entryId + "_" + entityId
+                    tDL = self.__phP.getTargets(eId)
+                    for tD in tDL:
+                        entityBegSeqId = ";".join([str(tD["entity_beg_seq_id"]) for tD in tD["aligned_target"]])
+                        targetBegSeqId = ";".join([str(tD["target_beg_seq_id"]) for tD in tD["aligned_target"]])
+                        alignLength = ";".join([str(tD["length"]) for tD in tD["aligned_target"]])
+                        #
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        #
+                        cObj.setValue(tD["query_id"], "related_target_id", ii)
+                        cObj.setValue(tD["query_id_type"], "related_resource_name", ii)
+                        cObj.setValue(str(tD["assignment_version"]), "related_resource_version", ii)
+                        cObj.setValue(tD["query_taxonomy_id"], "target_taxonomy_id", ii)
+                        #
+                        cObj.setValue(entityBegSeqId, "aligned_target_entity_beg_seq_id", ii)
+                        cObj.setValue(targetBegSeqId, "aligned_target_target_beg_seq_id", ii)
+                        cObj.setValue(alignLength, "aligned_target_length", ii)
+                        #
+                        ii += 1
+            #
+            # ---
+            return True
+        except Exception as e:
+            logger.exception("%s %s failing with %s", dataContainer.getName(), catName, str(e))
+        return False
+
+    # -- JDW
+    def buildTargetCofactors(self, dataContainer, catName, **kwargs):
+        """Build category rcsb_target_cofactors ...
+
+        Example:
+                loop_
+                _rcsb_target_cofactors.ordinal
+                _rcsb_target_cofactors.entry_id
+                _rcsb_target_cofactors.entity_id
+                #
+                _rcsb_target_cofactors.target_resource_id
+                _rcsb_target_cofactors.resource_name
+                _rcsb_target_cofactors.resource_version
+                #
+                _rcsb_target_cofactors.cofactor_resource_id
+                _rcsb_target_cofactors.cofactor_name
+                _rcsb_target_cofactors.cofactor_description
+                _rcsb_target_cofactors.cofactor_chem_comp_id
+                _rcsb_target_cofactors.cofactor_prd_id
+                _rcsb_target_cofactors.cofactor_SMILES
+                _rcsb_target_cofactors.cofactor_InChIKey
+                _rcsb_target_cofactors.mechanism_of_action
+                _rcsb_target_cofactors.binding_assay_type
+                _rcsb_target_cofactors.binding_assay_value_type
+                _rcsb_target_cofactors.binding_assay_value
+                _rcsb_target_cofactors.pubmed_ids
+                # ...
+
+            "5FN7_1": [
+                {
+                    "entry_id": "5FN7",
+                    "entity_id": "1",
+                    "query_uniprot_id": "P08575",
+                    "query_id": "CHEMBL3243",
+                    "query_id_type": "ChEMBL",
+                    "query_name": "Leukocyte common antigen",
+                    "provenance_source": "ChEMBL",
+                    "reference_scheme": "PDB entity",
+                    "assignment_version": 28,
+                    "query_taxonomy_id": 9606,
+                    "target_taxonomy_id": 9606,
+                    "aligned_target": [
+                    {
+                        "entity_beg_seq_id": 8,
+                        "target_beg_seq_id": 225,
+                        "length": 169
+                    }
+                    ],
+                    "taxonomy_match_status": "matched",
+                    "lca_taxonomy_id": 9606,
+                    "lca_taxonomy_name": "Homo sapiens",
+                    "lca_taxonomy_rank": "species",
+                    "cofactors": [
+                    {
+                        "cofactor_id": "CHEMBL314528",
+                        "assay_id": "CHEMBL656535",
+                        "assay_description": "The compound was evaluated for its inhibitory activity towards Protein tyrosine phosphatase of CD45",
+                        "measurement_type": "pIC50",
+                        "measurement_value": 2.0,
+                        "smiles": "CSc1ccnc(CSc2nc3cc(OC(C)C)ccc3[nH]2)c1",
+                        "molecule_name": null,
+                        "inchi_key": "AYURXYQPKDJRGD-UHFFFAOYSA-N",
+                        "action": null,
+                        "moa": null,
+                        "max_phase": null
+                    },
+                    {
+                        "cofactor_id": "CHEMBL390088",
+                        "assay_id": "CHEMBL918431",
+                        "assay_description": "Inhibition of CD45",
+                        "measurement_type": "pIC50",
+                        "measurement_value": 2.0,
+                        "smiles": "CC1(C)CC(NC(=O)/C=C/c2ccc(-c3ccc([N+](=O)[O-])cc3)o2)CC(C)(C)N1[O]",
+                        "molecule_name": null,
+                        "inchi_key": "SEMZZFHBJWNNRZ-ZRDIBKRKSA-N",
+                        "action": null,
+                        "moa": null,
+                        "max_phase": null
+                    },
+        """
+        logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
+        atTupMap = [
+            ("cofactor_id", "cofactor_resource_id", None),
+            # ("assay_id", ),
+            # ("assay_description", ),
+            ("measurement_type", "binding_assay_value_type", None),
+            ("measurement_value", "binding_assay_value", None),
+            ("smiles", "cofactor_SMILES", None),
+            ("molecule_name", "cofactor_name", None),
+            ("inchi_key", "cofactor_InChIKey", None),
+            # ("action", ),
+            ("moa", "mechanism_of_action", None),
+            # ("max_phase", ),
+            ("pubmed_ids", "pubmed_ids", "list"),
+            ("chem_comp_id", "cofactor_chem_comp_id", None),
+            ("prd_id", "cofactor_prd_id", None),
+            ("neighbor_in_pdb", "neighbor_flag", None),
+            ("pharmacology", "mechanism_of_action", None),
+            ("patent_nos", "patent_nos", "list"),
+        ]
+        #
+        try:
+            if catName != "rcsb_target_cofactors":
+                return False
+            # Exit if source categories are missing
+            if not dataContainer.exists("entry"):
+                return False
+            #
+            # Create the new target category
+            if not dataContainer.exists(catName):
+                dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
+            cObj = dataContainer.getObj(catName)
+            eObj = dataContainer.getObj("entry")
+            entryId = eObj.getValue("id", 0)
+            eTypeD = self.__commonU.getEntityTypes(dataContainer)
+            #
+            # ---------------
+            ii = cObj.getRowCount()
+            #
+            # --- ChEMBL
+            if self.__chemblP:
+                for entityId, eType in eTypeD.items():
+                    if eType not in ["polymer", "branched"]:
+                        continue
+                    eId = entryId + "_" + entityId
+                    tDL = self.__chemblP.getTargets(eId)
+                    for tD in tDL:
+                        cfDL = tD["cofactors"]
+                        for cfD in cfDL:
+                            #
+                            cObj.setValue(ii + 1, "ordinal", ii)
+                            cObj.setValue(entryId, "entry_id", ii)
+                            cObj.setValue(entityId, "entity_id", ii)
+                            #
+                            cObj.setValue(tD["query_id"], "target_resource_id", ii)
+                            cObj.setValue(tD["query_id_type"], "resource_name", ii)
+                            cObj.setValue(str(tD["assignment_version"]), "resource_version", ii)
+                            #
+                            cObj.setValue(tD["query_id"], "target_resource_id", ii)
+                            for ky, atName, atType in atTupMap:
+                                if ky in cfD and cfD[ky]:
+                                    if atType == "list":
+                                        cObj.setValue(",".join([str(tS) for tS in cfD[ky]]), atName, ii)
+                                    else:
+                                        cObj.setValue(cfD[ky], atName, ii)
+                            #
+                            ii += 1
+            #
+            if self.__dbP:
+                for entityId, eType in eTypeD.items():
+                    if eType not in ["polymer", "branched"]:
+                        continue
+                    eId = entryId + "_" + entityId
+                    tDL = self.__dbP.getTargets(eId)
+                    for tD in tDL:
+                        cfDL = tD["cofactors"]
+                        for cfD in cfDL:
+                            #
+                            cObj.setValue(ii + 1, "ordinal", ii)
+                            cObj.setValue(entryId, "entry_id", ii)
+                            cObj.setValue(entityId, "entity_id", ii)
+                            #
+                            cObj.setValue(tD["query_id"], "target_resource_id", ii)
+                            cObj.setValue(tD["query_id_type"], "resource_name", ii)
+                            cObj.setValue(str(tD["assignment_version"]), "resource_version", ii)
+                            #
+                            cObj.setValue(tD["query_id"], "target_resource_id", ii)
+                            for ky, atName, atType in atTupMap:
+                                if ky in cfD and cfD[ky]:
+                                    if atType == "list":
+                                        cObj.setValue(",".join([str(tS) for tS in cfD[ky]]), atName, ii)
+                                    else:
+                                        cObj.setValue(cfD[ky], atName, ii)
+                            #
+                            ii += 1
+
+            if self.__phP:
+                for entityId, eType in eTypeD.items():
+                    if eType not in ["polymer", "branched"]:
+                        continue
+                    eId = entryId + "_" + entityId
+                    tDL = self.__phP.getTargets(eId)
+                    for tD in tDL:
+                        cfDL = tD["cofactors"]
+                        for cfD in cfDL:
+                            #
+                            cObj.setValue(ii + 1, "ordinal", ii)
+                            cObj.setValue(entryId, "entry_id", ii)
+                            cObj.setValue(entityId, "entity_id", ii)
+                            #
+                            cObj.setValue(tD["query_id"], "target_resource_id", ii)
+                            cObj.setValue(tD["query_id_type"], "resource_name", ii)
+                            cObj.setValue(str(tD["assignment_version"]), "resource_version", ii)
+                            #
+                            cObj.setValue(tD["query_id"], "target_resource_id", ii)
+                            for ky, atName, atType in atTupMap:
+                                if ky in cfD and cfD[ky]:
+                                    if atType == "list":
+                                        cObj.setValue(",".join([str(tS) for tS in cfD[ky]]), atName, ii)
+                                    else:
+                                        cObj.setValue(cfD[ky], atName, ii)
+                            #
+                            ii += 1
+            #
+            # ---
             return True
         except Exception as e:
             logger.exception("%s %s failing with %s", dataContainer.getName(), catName, str(e))
@@ -1895,7 +2388,7 @@ class DictMethodEntityHelper(object):
 
         Args:
             dataContainer (object): mmif.api.DataContainer object instance
-            categoryMapD  (dict): {<entity_type>: [{<source category>, <destination cateogory>, <source entity key>}, ... ], ... }
+            categoryMapD  (dict): {<entity_type>: [{<source category>, <destination category>, <source entity key>}, ... ], ... }
 
         Returns:
             bool: True for success or False otherwise
@@ -2037,7 +2530,7 @@ class DictMethodEntityHelper(object):
                             cObj.setValue(pfamId, "annotation_id", ii)
                             cObj.setValue(details, "name", ii)
                             cObj.setValue("Pfam", "provenance_source", ii)
-                            cObj.setValue(self.__pfP.getVersion(), "assignment_version", ii)
+                            cObj.setValue(str(self.__pfP.getVersion()), "assignment_version", ii)
                             #
                             ii += 1
             # ---
@@ -2068,16 +2561,3 @@ class DictMethodEntityHelper(object):
         except Exception as e:
             logger.exception("%s %s failing with %s", dataContainer.getName(), catName, str(e))
         return False
-
-    # JDW -- REMOVE
-    def buildRelatedTargetReferences(self, dataContainer, catName, **kwargs):
-        """PLACEHOLDER"""
-        logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
-        return True
-
-    def buildTargetCofactors(self, dataContainer, catName, **kwargs):
-        """PLACEHOLDER"""
-        logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
-        return True
-
-    # JDW -- REMOVE

@@ -166,7 +166,7 @@ class DictMethodCommonUtils(object):
         logger.info(msg)
 
     def testCache(self):
-        return True
+        return len(DictMethodCommonUtils.aaDict3) > 20
 
     def isFloat(self, val):
         try:

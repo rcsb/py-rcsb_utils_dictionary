@@ -17,7 +17,7 @@ import time
 from rcsb.utils.dictionary import __version__
 from rcsb.utils.dictionary.DictMethodCommonUtils import DictMethodCommonUtils, LigandTargetInstance
 from rcsb.utils.io.MarshalUtil import MarshalUtil
-from rcsb.utils.io.StashUtil import StashUtil
+from rcsb.utils.io.StashableBase import StashableBase
 from rcsb.utils.multiproc.MultiProcUtil import MultiProcUtil
 from rcsb.utils.repository.RepositoryProvider import RepositoryProvider
 
@@ -72,25 +72,25 @@ class TargetInteractionWorker(object):
         return rD
 
 
-class NeighborInteractionProvider(object):
+class NeighborInteractionProvider(StashableBase):
     """Generators and accessors for non-polymer instance target interactions."""
 
-    def __init__(self, cfgOb, configName, cachePath, **kwargs):
+    def __init__(self, cachePath, useCache=False, cfgOb=None, configName=None, **kwargs):
         #
         self.__version = __version__
         self.__cfgOb = cfgOb
         self.__configName = configName
         self.__cachePath = cachePath
         self.__fileLimit = kwargs.get("fileLimit", None)
-        self.__dirPath = os.path.join(cachePath, "neighbor-interactions")
+        dirName = "neighbor-interactions"
+        self.__dirPath = os.path.join(cachePath, dirName)
+        super(NeighborInteractionProvider, self).__init__(self.__cachePath, [dirName])
         self.__numProc = kwargs.get("numProc", 2)
         self.__chunkSize = kwargs.get("chunkSize", 10)
-        useCache = kwargs.get("useCache", True)
+        # useCache = kwargs.get("useCache", True)
         #
         #  - Configuration for stash services -
         #    Local target directory name to be stashed.  (subdir of dirPath)
-        #
-        self.__stashDir = "ligand-target-neighbors"
         #
         self.__mU = MarshalUtil(workPath=self.__dirPath)
         self.__rpP = RepositoryProvider(cfgOb=self.__cfgOb, numProc=self.__numProc, fileLimit=self.__fileLimit, cachePath=self.__cachePath)
@@ -101,7 +101,7 @@ class NeighborInteractionProvider(object):
         try:
             if minCount == 0:
                 return True
-            if self.__neighborD and minCount and len(self.__neighborD["entries"]) >= minCount:
+            if self.__neighborD and minCount and "entries" in self.__neighborD and len(self.__neighborD["entries"]) >= minCount:
                 logger.info("Target neighbor data for (%d) entries created %r version %r", len(self.__neighborD["entries"]), self.__neighborD["created"], self.__neighborD["version"])
                 return True
         except Exception:
@@ -291,7 +291,7 @@ class NeighborInteractionProvider(object):
 
     def __getTargetFilePath(self, fmt="pickle"):
         ext = "pic" if fmt == "pickle" else "json"
-        pth = os.path.join(self.__dirPath, "ligand-target-neighbors", "neighbor-data." + ext)
+        pth = os.path.join(self.__dirPath, "neighbor-data." + ext)
         return pth
 
     def __calculateNeighbors(self, distLimit=5.0, numProc=2, chunkSize=10, updateOnly=False):
@@ -334,85 +334,6 @@ class NeighborInteractionProvider(object):
         #
         logger.info("Completed with multi-proc status %r failures %r total entries with data (%d)", ok, len(failList), len(rD))
         return rD
-
-    def toStash(self):
-        ok = False
-        try:
-            userName = self.__cfgOb.get("_STASH_AUTH_USERNAME", sectionName=self.__configName)
-            password = self.__cfgOb.get("_STASH_AUTH_PASSWORD", sectionName=self.__configName)
-            basePath = self.__cfgOb.get("_STASH_SERVER_BASE_PATH", sectionName=self.__configName)
-            url = self.__cfgOb.get("STASH_SERVER_URL", sectionName=self.__configName)
-            urlFallBack = self.__cfgOb.get("STASH_SERVER_FALLBACK_URL", sectionName=self.__configName)
-            ok = self.__toStash(url, basePath, userName=userName, password=password)
-            ok = self.__toStash(urlFallBack, basePath, userName=userName, password=password)
-        except Exception as e:
-            logger.exception("Failing with %s", str(e))
-        return ok
-
-    def __toStash(self, url, stashRemoteDirPath, userName=None, password=None, remoteStashPrefix=None):
-        """Copy tar and gzipped bundled cache data to remote server/location.
-
-        Args:
-            url (str): server URL (e.g. sftp://hostname.domain) None for local host
-            stashRemoteDirPath (str): path to target directory on remote server
-            userName (str, optional): server username. Defaults to None.
-            password (str, optional): server password. Defaults to None.
-            remoteStashPrefix (str, optional): channel prefix. Defaults to None.
-
-        Returns:
-            (bool): True for success or False otherwise
-        """
-        ok = False
-        try:
-            stU = StashUtil(os.path.join(self.__dirPath, "stash"), "ligand-target-neighbors")
-            ok = stU.makeBundle(self.__dirPath, [self.__stashDir])
-            if ok:
-                ok = stU.storeBundle(url, stashRemoteDirPath, remoteStashPrefix=remoteStashPrefix, userName=userName, password=password)
-        except Exception as e:
-            logger.error("Failing with url %r stashDirPath %r: %s", url, stashRemoteDirPath, str(e))
-        return ok
-
-    def fromStash(self):
-        try:
-            minCount = 10
-            userName = self.__cfgOb.get("_STASH_AUTH_USERNAME", sectionName=self.__configName)
-            password = self.__cfgOb.get("_STASH_AUTH_PASSWORD", sectionName=self.__configName)
-            basePath = self.__cfgOb.get("_STASH_SERVER_BASE_PATH", sectionName=self.__configName)
-            url = self.__cfgOb.get("STASH_SERVER_URL", sectionName=self.__configName)
-            #
-            ok = self.__fromStash(url, basePath, userName=userName, password=password)
-            ok = self.reload()
-            ok = self.testCache(minCount=minCount)
-            if not ok:
-                urlFallBack = self.__cfgOb.get("STASH_SERVER_FALLBACK_URL", sectionName=self.__configName)
-                ok = self.__fromStash(urlFallBack, basePath, userName=userName, password=password)
-                ok = self.testCache(minCount=minCount)
-                ok = self.reload()
-        except Exception as e:
-            logger.exception("Failing with %s", str(e))
-
-        return ok
-
-    def __fromStash(self, url, stashRemoteDirPath, userName=None, password=None, remoteStashPrefix=None):
-        """Restore local cache from a tar and gzipped bundle to fetched from a remote server/location.
-
-        Args:
-            url (str): server URL (e.g. sftp://hostname.domain) None for local host
-            stashRemoteDirPath (str): path to target directory on remote server
-            userName (str, optional): server username. Defaults to None.
-            password (str, optional): server password. Defaults to None.
-            remoteStashPrefix (str, optional): channel prefix. Defaults to None.
-
-        Returns:
-            (bool): True for success or False otherwise
-        """
-        ok = False
-        try:
-            stU = StashUtil(os.path.join(self.__dirPath, "stash"), "ligand-target-neighbors")
-            ok = stU.fetchBundle(self.__dirPath, url, stashRemoteDirPath, remoteStashPrefix=remoteStashPrefix, userName=userName, password=password)
-        except Exception as e:
-            logger.error("Failing with url %r stashDirPath %r: %s", url, stashRemoteDirPath, str(e))
-        return ok
 
     def convert(self, fmt1="json", fmt2="pickle"):
         #
