@@ -39,6 +39,8 @@ class DictmethodResourceProviderTests(unittest.TestCase):
     skipFull = platform.system() != "Darwin"
 
     def setUp(self):
+        isMac = platform.system() != "Darwin"
+        self.__excludeType = None if isMac else "optional"
         self.__mockTopPath = os.path.join(TOPDIR, "rcsb", "mock-data")
         self.__cachePath = os.path.join(HERE, "test-output", "CACHE")
         self.__configPath = os.path.join(self.__mockTopPath, "config", "dbload-setup-example.yml")
@@ -57,23 +59,38 @@ class DictmethodResourceProviderTests(unittest.TestCase):
         endTime = time.time()
         logger.info("Completed %s at %s (%.4f seconds)", self.id(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - self.__startTime)
 
-    @unittest.skipIf(skipFull, "Large test")
+    def testGetResource(self):
+        resourceName = "SiftsSummaryProvider instance"
+        rP = DictMethodResourceProvider(
+            self.__cfgOb,
+            configName=self.__configName,
+            cachePath=self.__cachePath,
+            restoreUseStash=False,
+            restoreUseGit=True,
+            providerTypeExclude=self.__excludeType,
+        )
+        obj = rP.getResource(resourceName, useCache=False, default=None, doBackup=False, useStash=False, useGit=True)
+        self.assertTrue(obj is not None)
+
     def testResourceCache(self):
-        rP = DictMethodResourceProvider(self.__cfgOb, configName=self.__configName, cachePath=self.__cachePath)
-        ok = rP.cacheResources(useCache=True, doRestore=True, useStash=False, useGit=True)
+        rP = DictMethodResourceProvider(
+            self.__cfgOb,
+            configName=self.__configName,
+            cachePath=self.__cachePath,
+            restoreUseStash=False,
+            restoreUseGit=True,
+            providerTypeExclude=self.__excludeType,
+        )
+        ok = rP.cacheResources(useCache=True, doRestore=True)
         self.assertTrue(ok)
 
     @unittest.skipIf(skipFull, "Large test")
     def testBuildResourceCache(self):
-        rP = DictMethodResourceProvider(self.__cfgOb, configName=self.__configName, cachePath=self.__cachePath)
-        ok = rP.cacheResources(useCache=False, doBackup=False, useStash=False, useGit=True)
+        rP = DictMethodResourceProvider(
+            self.__cfgOb, configName=self.__configName, cachePath=self.__cachePath, restoreUseStash=False, restoreUseGit=True, providerTypeExclude=self.__excludeType
+        )
+        ok = rP.cacheResources(useCache=False, doBackup=False, useStash=True, useGit=True)
         self.assertTrue(ok)
-
-    def testGetResource(self):
-        resourceName = "SiftsSummaryProvider instance"
-        rP = DictMethodResourceProvider(self.__cfgOb, configName=self.__configName, cachePath=self.__cachePath)
-        obj = rP.getResource(resourceName, useCache=False, default=None, doBackup=False, useStash=False, useGit=True)
-        self.assertTrue(obj is not None)
 
     @unittest.skip("Troubleshooting test")
     def testSyncResourceCache(self):

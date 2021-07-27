@@ -270,7 +270,7 @@ class DictMethodEntityHelper(object):
             entityTypeUniqueIds = self.__commonU.getEntityTypeUniqueIds(dataContainer)
             entityPolymerModMonomerIds = self.__commonU.getPolymerEntityModifiedMonomers(dataContainer)
             #
-            branchedEntityIdD = self.__glyP.getIdentifiers()
+            branchedEntityIdD = self.__glyP.getIdentifiers() if self.__glyP else {}
             #  -------
             eTypeD = self.__commonU.getEntityTypes(dataContainer)
             aObj = dataContainer.getObj("struct_asym")
