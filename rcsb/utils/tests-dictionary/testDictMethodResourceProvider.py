@@ -39,7 +39,7 @@ class DictmethodResourceProviderTests(unittest.TestCase):
     skipFull = platform.system() != "Darwin"
 
     def setUp(self):
-        isMac = platform.system() != "Darwin"
+        isMac = platform.system() == "Darwin"
         self.__excludeType = None if isMac else "optional"
         self.__mockTopPath = os.path.join(TOPDIR, "rcsb", "mock-data")
         self.__cachePath = os.path.join(HERE, "test-output", "CACHE")
