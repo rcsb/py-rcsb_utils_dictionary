@@ -77,7 +77,7 @@ class DictMethodRunnerTests(unittest.TestCase):
         try:
             dP = DictionaryApiProviderWrapper(self.__cachePath, useCache=True, cfgOb=self.__cfgOb, configName=self.__configName)
             dictApi = dP.getApiByName(contentType)
-            rP = DictMethodResourceProvider(self.__cfgOb, configName=self.__configName, cachePath=self.__cachePath)
+            rP = DictMethodResourceProvider(self.__cfgOb, configName=self.__configName, cachePath=self.__cachePath, restoreUseStash=False, restoreUseGit=True)
             dmh = DictMethodRunner(dictApi, modulePathMap=self.__modulePathMap, resourceProvider=rP)
             locatorObjList = self.__rpP.getLocatorObjList(contentType=contentType, mergeContentTypes=mergeContent)
             logger.info("Length of locator list (%d)", len(locatorObjList))
