@@ -341,7 +341,7 @@ class DictMethodResourceProvider(SingletonClass):
             },
             # --
         }
-        logger.info("Dictionary resource provider init completed")
+        logger.info("Dictionary resource provider restoreUseGit %r restoreUseStash %r providerTypeExclude %r", self.__restoreUseGit, self.__restoreUseStash, self.__providerTypeExclude)
         self.__filterProviderWarnD = {}
         #
 
