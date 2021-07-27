@@ -260,387 +260,391 @@ class DictMethodEntityInstanceHelper(object):
             pAuthAsymD = self.__commonU.getPolymerIdMap(dataContainer)
             instTypeD = self.__commonU.getInstanceTypes(dataContainer)
             # ---------------
+            ii = cObj.getRowCount()
             # Add CATH assignments
             cathU = rP.getResource("CathProvider instance") if rP else None
-            ii = cObj.getRowCount()
-            #
+            if cathU:
 
-            for asymId, authAsymId in asymAuthIdD.items():
-                if instTypeD[asymId] not in ["polymer", "branched"]:
-                    continue
-                entityId = asymIdD[asymId]
-                dL = cathU.getCathResidueRanges(entryId.lower(), authAsymId)
-                logger.debug("%s asymId %s authAsymId %s dL %r", entryId, asymId, authAsymId, dL)
-                vL = cathU.getCathVersions(entryId.lower(), authAsymId)
-                for (cathId, domId, tId, authSeqBeg, authSeqEnd) in dL:
-                    addPropTupL = []
-                    begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
-                    endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
-                    if not (begSeqId and endSeqId):
-                        # take the full chain
-                        begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
-                        endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
+                for asymId, authAsymId in asymAuthIdD.items():
+                    if instTypeD[asymId] not in ["polymer", "branched"]:
+                        continue
+                    entityId = asymIdD[asymId]
+                    dL = cathU.getCathResidueRanges(entryId.lower(), authAsymId)
+                    logger.debug("%s asymId %s authAsymId %s dL %r", entryId, asymId, authAsymId, dL)
+                    vL = cathU.getCathVersions(entryId.lower(), authAsymId)
+                    for (cathId, domId, tId, authSeqBeg, authSeqEnd) in dL:
+                        addPropTupL = []
+                        begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
+                        endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
                         if not (begSeqId and endSeqId):
-                            logger.info(
-                                "%s CATH cathId %r domId %r tId %r asymId %r authAsymId %r authSeqBeg %r authSeqEnd %r",
-                                entryId,
-                                cathId,
-                                domId,
-                                tId,
-                                asymId,
-                                authAsymId,
-                                authSeqBeg,
-                                authSeqEnd,
-                            )
-                            continue
+                            # take the full chain
+                            begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
+                            endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
+                            if not (begSeqId and endSeqId):
+                                logger.info(
+                                    "%s CATH cathId %r domId %r tId %r asymId %r authAsymId %r authSeqBeg %r authSeqEnd %r",
+                                    entryId,
+                                    cathId,
+                                    domId,
+                                    tId,
+                                    asymId,
+                                    authAsymId,
+                                    authSeqBeg,
+                                    authSeqEnd,
+                                )
+                                continue
 
-                    cObj.setValue(ii + 1, "ordinal", ii)
-                    cObj.setValue(entryId, "entry_id", ii)
-                    cObj.setValue(entityId, "entity_id", ii)
-                    cObj.setValue(asymId, "asym_id", ii)
-                    cObj.setValue(authAsymId, "auth_asym_id", ii)
-                    cObj.setValue("CATH", "type", ii)
-                    #
-                    cObj.setValue(str(cathId), "feature_id", ii)
-                    # cObj.setValue(str(domId), "feature_id", ii)
-                    # cObj.setValue(cathId, "name", ii)
-                    cObj.setValue(cathU.getCathName(cathId), "name", ii)
-                    addPropTupL.append(("CATH_NAME", cathU.getCathName(cathId)))
-                    addPropTupL.append(("CATH_DOMAIN_ID", str(domId)))
-                    cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
-                    cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
-                    #
-                    if doLineage:
-                        cObj.setValue(";".join(cathU.getNameLineage(cathId)), "annotation_lineage_name", ii)
-                        idLinL = cathU.getIdLineage(cathId)
-                        cObj.setValue(";".join(idLinL), "annotation_lineage_id", ii)
-                        cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
-                    #
-                    #
-                    cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
-                    cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
-                    #
-                    cObj.setValue("PDB entity", "reference_scheme", ii)
-                    cObj.setValue("CATH", "provenance_source", ii)
-                    cObj.setValue(vL[0], "assignment_version", ii)
-                    #
-                    ii += 1
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        cObj.setValue(asymId, "asym_id", ii)
+                        cObj.setValue(authAsymId, "auth_asym_id", ii)
+                        cObj.setValue("CATH", "type", ii)
+                        #
+                        cObj.setValue(str(cathId), "feature_id", ii)
+                        # cObj.setValue(str(domId), "feature_id", ii)
+                        # cObj.setValue(cathId, "name", ii)
+                        cObj.setValue(cathU.getCathName(cathId), "name", ii)
+                        addPropTupL.append(("CATH_NAME", cathU.getCathName(cathId)))
+                        addPropTupL.append(("CATH_DOMAIN_ID", str(domId)))
+                        cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
+                        cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
+                        #
+                        if doLineage:
+                            cObj.setValue(";".join(cathU.getNameLineage(cathId)), "annotation_lineage_name", ii)
+                            idLinL = cathU.getIdLineage(cathId)
+                            cObj.setValue(";".join(idLinL), "annotation_lineage_id", ii)
+                            cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
+                        #
+                        #
+                        cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
+                        cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
+                        #
+                        cObj.setValue("PDB entity", "reference_scheme", ii)
+                        cObj.setValue("CATH", "provenance_source", ii)
+                        cObj.setValue(vL[0], "assignment_version", ii)
+                        #
+                        ii += 1
             # ------------
             # Add SCOP assignments
             oldCode = False
             scopU = rP.getResource("ScopProvider instance") if rP else None
-            for asymId, authAsymId in asymAuthIdD.items():
-                if instTypeD[asymId] not in ["polymer", "branched"]:
-                    continue
-                entityId = asymIdD[asymId]
-                dL = scopU.getScopResidueRanges(entryId.lower(), authAsymId)
-                version = scopU.getScopVersion()
-                for (sunId, domId, sccs, tId, authSeqBeg, authSeqEnd) in dL:
-                    addPropTupL = []
-                    begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
-                    endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
-                    # logger.info("%s (first) begSeqId %r endSeqId %r", entryId, begSeqId, endSeqId)
-                    if not (begSeqId and endSeqId):
-                        # try another full range
-                        # begSeqId = asymIdRangesD[asymId]["begAuthSeqId"] if asymId in asymIdRangesD and "begAuthSeqId" in asymIdRangesD[asymId] else None
-                        # endSeqId = asymIdRangesD[asymId]["endAuthSeqId"] if asymId in asymIdRangesD and "endAuthSeqId" in asymIdRangesD[asymId] else None
-                        begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
-                        endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
-                        # logger.info("%s (altd) begSeqId %r endSeqId %r", entryId, begSeqId, endSeqId)
+            if scopU:
+                for asymId, authAsymId in asymAuthIdD.items():
+                    if instTypeD[asymId] not in ["polymer", "branched"]:
+                        continue
+                    entityId = asymIdD[asymId]
+                    dL = scopU.getScopResidueRanges(entryId.lower(), authAsymId)
+                    version = scopU.getScopVersion()
+                    for (sunId, domId, sccs, tId, authSeqBeg, authSeqEnd) in dL:
+                        addPropTupL = []
+                        begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
+                        endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
+                        # logger.info("%s (first) begSeqId %r endSeqId %r", entryId, begSeqId, endSeqId)
                         if not (begSeqId and endSeqId):
-                            logger.debug(
-                                "%s unqualified SCOP sunId %r domId %r sccs %r asymId %r authAsymId %r authSeqBeg %r authSeqEnd %r",
-                                entryId,
-                                sunId,
-                                domId,
-                                sccs,
-                                asymId,
-                                authAsymId,
-                                authSeqBeg,
-                                authSeqEnd,
-                            )
-                            continue
+                            # try another full range
+                            # begSeqId = asymIdRangesD[asymId]["begAuthSeqId"] if asymId in asymIdRangesD and "begAuthSeqId" in asymIdRangesD[asymId] else None
+                            # endSeqId = asymIdRangesD[asymId]["endAuthSeqId"] if asymId in asymIdRangesD and "endAuthSeqId" in asymIdRangesD[asymId] else None
+                            begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
+                            endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
+                            # logger.info("%s (altd) begSeqId %r endSeqId %r", entryId, begSeqId, endSeqId)
+                            if not (begSeqId and endSeqId):
+                                logger.debug(
+                                    "%s unqualified SCOP sunId %r domId %r sccs %r asymId %r authAsymId %r authSeqBeg %r authSeqEnd %r",
+                                    entryId,
+                                    sunId,
+                                    domId,
+                                    sccs,
+                                    asymId,
+                                    authAsymId,
+                                    authSeqBeg,
+                                    authSeqEnd,
+                                )
+                                continue
 
-                    cObj.setValue(ii + 1, "ordinal", ii)
-                    cObj.setValue(entryId, "entry_id", ii)
-                    cObj.setValue(entityId, "entity_id", ii)
-                    cObj.setValue(asymId, "asym_id", ii)
-                    cObj.setValue(authAsymId, "auth_asym_id", ii)
-                    cObj.setValue("SCOP", "type", ii)
-                    #
-                    # cObj.setValue(str(sunId), "domain_id", ii)
-                    cObj.setValue(domId, "feature_id", ii)
-                    cObj.setValue(scopU.getScopName(sunId), "name", ii)
-                    #
-                    addPropTupL.append(("SCOP_NAME", scopU.getScopName(sunId)))
-                    addPropTupL.append(("SCOP_DOMAIN_ID", str(domId)))
-                    addPropTupL.append(("SCOP_SUN_ID", str(sunId)))
-                    cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
-                    cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
-                    #
-                    if doLineage:
-                        tL = [t if t is not None else "" for t in scopU.getNameLineage(sunId)]
-                        cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
-                        idLinL = scopU.getIdLineage(sunId)
-                        cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
-                        cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        cObj.setValue(asymId, "asym_id", ii)
+                        cObj.setValue(authAsymId, "auth_asym_id", ii)
+                        cObj.setValue("SCOP", "type", ii)
                         #
-                    cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
-                    cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
-                    if oldCode:
-                        if begSeqId is not None and endSeqId is not None:
-                            if begSeqId == 0:
-                                begSeqId += 1
-                                endSeqId += 1
-                            cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
-                            cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
-                        else:
-                            tSeqBeg = asymIdRangesD[asymId]["begAuthSeqId"] if asymId in asymIdRangesD and "begAuthSeqId" in asymIdRangesD[asymId] else None
-                            cObj.setValue(tSeqBeg, "feature_positions_beg_seq_id", ii)
-                            tSeqEnd = asymIdRangesD[asymId]["endAuthSeqId"] if asymId in asymIdRangesD and "endAuthSeqId" in asymIdRangesD[asymId] else None
-                            cObj.setValue(tSeqEnd, "feature_positions_end_seq_id", ii)
+                        # cObj.setValue(str(sunId), "domain_id", ii)
+                        cObj.setValue(domId, "feature_id", ii)
+                        cObj.setValue(scopU.getScopName(sunId), "name", ii)
                         #
-                    cObj.setValue("PDB entity", "reference_scheme", ii)
-                    cObj.setValue("SCOPe", "provenance_source", ii)
-                    cObj.setValue(version, "assignment_version", ii)
-                    #
-                    ii += 1
+                        addPropTupL.append(("SCOP_NAME", scopU.getScopName(sunId)))
+                        addPropTupL.append(("SCOP_DOMAIN_ID", str(domId)))
+                        addPropTupL.append(("SCOP_SUN_ID", str(sunId)))
+                        cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
+                        cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
+                        #
+                        if doLineage:
+                            tL = [t if t is not None else "" for t in scopU.getNameLineage(sunId)]
+                            cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
+                            idLinL = scopU.getIdLineage(sunId)
+                            cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
+                            cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
+                            #
+                        cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
+                        cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
+                        if oldCode:
+                            if begSeqId is not None and endSeqId is not None:
+                                if begSeqId == 0:
+                                    begSeqId += 1
+                                    endSeqId += 1
+                                cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
+                                cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
+                            else:
+                                tSeqBeg = asymIdRangesD[asymId]["begAuthSeqId"] if asymId in asymIdRangesD and "begAuthSeqId" in asymIdRangesD[asymId] else None
+                                cObj.setValue(tSeqBeg, "feature_positions_beg_seq_id", ii)
+                                tSeqEnd = asymIdRangesD[asymId]["endAuthSeqId"] if asymId in asymIdRangesD and "endAuthSeqId" in asymIdRangesD[asymId] else None
+                                cObj.setValue(tSeqEnd, "feature_positions_end_seq_id", ii)
+                            #
+                        cObj.setValue("PDB entity", "reference_scheme", ii)
+                        cObj.setValue("SCOPe", "provenance_source", ii)
+                        cObj.setValue(version, "assignment_version", ii)
+                        #
+                        ii += 1
             # ------------
             # JDW - Add SCOP2 family assignments
             scopU = rP.getResource("Scop2Provider instance") if rP else None
-            version = scopU.getVersion()
-            for asymId, authAsymId in asymAuthIdD.items():
-                if instTypeD[asymId] not in ["polymer", "branched"]:
-                    continue
-                entityId = asymIdD[asymId]
-                # Family mappings
-                dL = scopU.getFamilyResidueRanges(entryId.upper(), authAsymId)
-                for (domId, familyId, _, authSeqBeg, authSeqEnd) in dL:
-                    addPropTupL = []
-                    # map to entity polymer coordinates
-                    begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
-                    endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
-                    # logger.info("%s (first) begSeqId %r endSeqId %r", entryId, begSeqId, endSeqId)
-                    if not (begSeqId and endSeqId):
-                        # Use full range
-                        begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
-                        endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
+            if scopU:
+                version = scopU.getVersion()
+                for asymId, authAsymId in asymAuthIdD.items():
+                    if instTypeD[asymId] not in ["polymer", "branched"]:
+                        continue
+                    entityId = asymIdD[asymId]
+                    # Family mappings
+                    dL = scopU.getFamilyResidueRanges(entryId.upper(), authAsymId)
+                    for (domId, familyId, _, authSeqBeg, authSeqEnd) in dL:
+                        addPropTupL = []
+                        # map to entity polymer coordinates
+                        begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
+                        endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
+                        # logger.info("%s (first) begSeqId %r endSeqId %r", entryId, begSeqId, endSeqId)
+                        if not (begSeqId and endSeqId):
+                            # Use full range
+                            begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
+                            endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
 
-                    cObj.setValue(ii + 1, "ordinal", ii)
-                    cObj.setValue(entryId, "entry_id", ii)
-                    cObj.setValue(entityId, "entity_id", ii)
-                    cObj.setValue(asymId, "asym_id", ii)
-                    cObj.setValue(authAsymId, "auth_asym_id", ii)
-                    cObj.setValue("SCOP2_FAMILY", "type", ii)
-                    #
-                    cObj.setValue(domId, "feature_id", ii)
-                    cObj.setValue(scopU.getName(familyId), "name", ii)
-                    #
-                    addPropTupL.append(("SCOP2_FAMILY_NAME", scopU.getName(familyId)))
-                    addPropTupL.append(("SCOP2_DOMAIN_ID", str(domId)))
-                    addPropTupL.append(("SCOP2_FAMILY_ID", str(familyId)))
-                    cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
-                    cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
-                    #
-                    if doLineage:
-                        tL = [t if t is not None else "" for t in scopU.getNameLineage(familyId)]
-                        cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
-                        idLinL = scopU.getIdLineage(familyId)
-                        cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
-                        cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        cObj.setValue(asymId, "asym_id", ii)
+                        cObj.setValue(authAsymId, "auth_asym_id", ii)
+                        cObj.setValue("SCOP2_FAMILY", "type", ii)
                         #
-                    cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
-                    cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
-
-                    cObj.setValue("PDB entity", "reference_scheme", ii)
-                    cObj.setValue("SCOP2", "provenance_source", ii)
-                    cObj.setValue(version, "assignment_version", ii)
-                    #
-                    ii += 1
-            # JDW - Add SCOP2 superfamily assignments
-            # ------------
-            for asymId, authAsymId in asymAuthIdD.items():
-                if instTypeD[asymId] not in ["polymer", "branched"]:
-                    continue
-                entityId = asymIdD[asymId]
-                # Family mappings
-                dL = scopU.getSuperFamilyResidueRanges(entryId.lower(), authAsymId)
-                for (domId, superfamilyId, _, authSeqBeg, authSeqEnd) in dL:
-                    addPropTupL = []
-                    # map to entity polymer coordinates
-                    begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
-                    endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
-                    if not (begSeqId and endSeqId):
-                        # Use full range
-                        begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
-                        endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
-
-                    cObj.setValue(ii + 1, "ordinal", ii)
-                    cObj.setValue(entryId, "entry_id", ii)
-                    cObj.setValue(entityId, "entity_id", ii)
-                    cObj.setValue(asymId, "asym_id", ii)
-                    cObj.setValue(authAsymId, "auth_asym_id", ii)
-                    cObj.setValue("SCOP2_SUPERFAMILY", "type", ii)
-                    #
-                    cObj.setValue(domId, "feature_id", ii)
-                    cObj.setValue(scopU.getName(superfamilyId), "name", ii)
-                    #
-                    addPropTupL.append(("SCOP2_SUPERFAMILY_NAME", scopU.getName(superfamilyId)))
-                    addPropTupL.append(("SCOP2_DOMAIN_ID", str(domId)))
-                    addPropTupL.append(("SCOP2_SUPERFAMILY_ID", str(superfamilyId)))
-                    cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
-                    cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
-                    #
-                    if doLineage:
-                        tL = [t if t is not None else "" for t in scopU.getNameLineage(superfamilyId)]
-                        cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
-                        idLinL = scopU.getIdLineage(superfamilyId)
-                        cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
-                        cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
+                        cObj.setValue(domId, "feature_id", ii)
+                        cObj.setValue(scopU.getName(familyId), "name", ii)
                         #
-                    cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
-                    cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
-
-                    cObj.setValue("PDB entity", "reference_scheme", ii)
-                    cObj.setValue("SCOP2", "provenance_source", ii)
-                    cObj.setValue(version, "assignment_version", ii)
-                    #
-                    ii += 1
-            # JDW - Add SCOP2B superfamily assignments
-            # ------------
-            for asymId, authAsymId in asymAuthIdD.items():
-                if instTypeD[asymId] not in ["polymer", "branched"]:
-                    continue
-                entityId = asymIdD[asymId]
-                # Family mappings
-                dL = scopU.getSuperFamilyResidueRanges2B(entryId.lower(), authAsymId)
-                for (domId, superfamilyId, _, authSeqBeg, authSeqEnd) in dL:
-                    addPropTupL = []
-                    # map to entity polymer coordinates
-                    begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
-                    endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
-                    if not (begSeqId and endSeqId):
-                        # Use full range
-                        begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
-                        endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
-
-                    cObj.setValue(ii + 1, "ordinal", ii)
-                    cObj.setValue(entryId, "entry_id", ii)
-                    cObj.setValue(entityId, "entity_id", ii)
-                    cObj.setValue(asymId, "asym_id", ii)
-                    cObj.setValue(authAsymId, "auth_asym_id", ii)
-                    cObj.setValue("SCOP2B_SUPERFAMILY", "type", ii)
-                    #
-                    cObj.setValue(domId, "feature_id", ii)
-                    cObj.setValue(scopU.getName(superfamilyId), "name", ii)
-                    #
-                    addPropTupL.append(("SCOP2_SUPERFAMILY_NAME", scopU.getName(superfamilyId)))
-                    addPropTupL.append(("SCOP2_DOMAIN_ID", str(domId)))
-                    addPropTupL.append(("SCOP2_SUPERFAMILY_ID", str(superfamilyId)))
-                    cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
-                    cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
-                    #
-                    if doLineage:
-                        tL = [t if t is not None else "" for t in scopU.getNameLineage(superfamilyId)]
-                        cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
-                        idLinL = scopU.getIdLineage(superfamilyId)
-                        cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
-                        cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
+                        addPropTupL.append(("SCOP2_FAMILY_NAME", scopU.getName(familyId)))
+                        addPropTupL.append(("SCOP2_DOMAIN_ID", str(domId)))
+                        addPropTupL.append(("SCOP2_FAMILY_ID", str(familyId)))
+                        cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
+                        cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
                         #
-                    cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
-                    cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
+                        if doLineage:
+                            tL = [t if t is not None else "" for t in scopU.getNameLineage(familyId)]
+                            cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
+                            idLinL = scopU.getIdLineage(familyId)
+                            cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
+                            cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
+                            #
+                        cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
+                        cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
 
-                    cObj.setValue("PDB entity", "reference_scheme", ii)
-                    cObj.setValue("SCOP2B", "provenance_source", ii)
-                    cObj.setValue(version, "assignment_version", ii)
-                    #
-                    ii += 1
+                        cObj.setValue("PDB entity", "reference_scheme", ii)
+                        cObj.setValue("SCOP2", "provenance_source", ii)
+                        cObj.setValue(version, "assignment_version", ii)
+                        #
+                        ii += 1
+                # JDW - Add SCOP2 superfamily assignments
+                # ------------
+                for asymId, authAsymId in asymAuthIdD.items():
+                    if instTypeD[asymId] not in ["polymer", "branched"]:
+                        continue
+                    entityId = asymIdD[asymId]
+                    # Family mappings
+                    dL = scopU.getSuperFamilyResidueRanges(entryId.lower(), authAsymId)
+                    for (domId, superfamilyId, _, authSeqBeg, authSeqEnd) in dL:
+                        addPropTupL = []
+                        # map to entity polymer coordinates
+                        begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
+                        endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
+                        if not (begSeqId and endSeqId):
+                            # Use full range
+                            begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
+                            endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
+
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        cObj.setValue(asymId, "asym_id", ii)
+                        cObj.setValue(authAsymId, "auth_asym_id", ii)
+                        cObj.setValue("SCOP2_SUPERFAMILY", "type", ii)
+                        #
+                        cObj.setValue(domId, "feature_id", ii)
+                        cObj.setValue(scopU.getName(superfamilyId), "name", ii)
+                        #
+                        addPropTupL.append(("SCOP2_SUPERFAMILY_NAME", scopU.getName(superfamilyId)))
+                        addPropTupL.append(("SCOP2_DOMAIN_ID", str(domId)))
+                        addPropTupL.append(("SCOP2_SUPERFAMILY_ID", str(superfamilyId)))
+                        cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
+                        cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
+                        #
+                        if doLineage:
+                            tL = [t if t is not None else "" for t in scopU.getNameLineage(superfamilyId)]
+                            cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
+                            idLinL = scopU.getIdLineage(superfamilyId)
+                            cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
+                            cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
+                            #
+                        cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
+                        cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
+
+                        cObj.setValue("PDB entity", "reference_scheme", ii)
+                        cObj.setValue("SCOP2", "provenance_source", ii)
+                        cObj.setValue(version, "assignment_version", ii)
+                        #
+                        ii += 1
+                # JDW - Add SCOP2B superfamily assignments
+                # ------------
+                for asymId, authAsymId in asymAuthIdD.items():
+                    if instTypeD[asymId] not in ["polymer", "branched"]:
+                        continue
+                    entityId = asymIdD[asymId]
+                    # Family mappings
+                    dL = scopU.getSuperFamilyResidueRanges2B(entryId.lower(), authAsymId)
+                    for (domId, superfamilyId, _, authSeqBeg, authSeqEnd) in dL:
+                        addPropTupL = []
+                        # map to entity polymer coordinates
+                        begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
+                        endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
+                        if not (begSeqId and endSeqId):
+                            # Use full range
+                            begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
+                            endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
+
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        cObj.setValue(asymId, "asym_id", ii)
+                        cObj.setValue(authAsymId, "auth_asym_id", ii)
+                        cObj.setValue("SCOP2B_SUPERFAMILY", "type", ii)
+                        #
+                        cObj.setValue(domId, "feature_id", ii)
+                        cObj.setValue(scopU.getName(superfamilyId), "name", ii)
+                        #
+                        addPropTupL.append(("SCOP2_SUPERFAMILY_NAME", scopU.getName(superfamilyId)))
+                        addPropTupL.append(("SCOP2_DOMAIN_ID", str(domId)))
+                        addPropTupL.append(("SCOP2_SUPERFAMILY_ID", str(superfamilyId)))
+                        cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
+                        cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
+                        #
+                        if doLineage:
+                            tL = [t if t is not None else "" for t in scopU.getNameLineage(superfamilyId)]
+                            cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
+                            idLinL = scopU.getIdLineage(superfamilyId)
+                            cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
+                            cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
+                            #
+                        cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
+                        cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
+
+                        cObj.setValue("PDB entity", "reference_scheme", ii)
+                        cObj.setValue("SCOP2B", "provenance_source", ii)
+                        cObj.setValue(version, "assignment_version", ii)
+                        #
+                        ii += 1
             # ------------
             # ECOD assignments -
             ecodU = rP.getResource("EcodProvider instance") if rP else None
-            version = ecodU.getVersion()
-            for asymId, authAsymId in asymAuthIdD.items():
-                if instTypeD[asymId] not in ["polymer", "branched"]:
-                    continue
-                entityId = asymIdD[asymId]
-                # Family mappings
-                dL = ecodU.getFamilyResidueRanges(entryId.lower(), authAsymId)
-                for (domId, familyId, _, authSeqBeg, authSeqEnd) in dL:
-                    addPropTupL = []
-                    # map to entity polymer coordinates
-                    begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
-                    endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
-                    if not (begSeqId and endSeqId):
-                        # Use full range
-                        begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
-                        endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
+            if ecodU:
+                version = ecodU.getVersion()
+                for asymId, authAsymId in asymAuthIdD.items():
+                    if instTypeD[asymId] not in ["polymer", "branched"]:
+                        continue
+                    entityId = asymIdD[asymId]
+                    # Family mappings
+                    dL = ecodU.getFamilyResidueRanges(entryId.lower(), authAsymId)
+                    for (domId, familyId, _, authSeqBeg, authSeqEnd) in dL:
+                        addPropTupL = []
+                        # map to entity polymer coordinates
+                        begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
+                        endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
+                        if not (begSeqId and endSeqId):
+                            # Use full range
+                            begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
+                            endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
 
-                    cObj.setValue(ii + 1, "ordinal", ii)
-                    cObj.setValue(entryId, "entry_id", ii)
-                    cObj.setValue(entityId, "entity_id", ii)
-                    cObj.setValue(asymId, "asym_id", ii)
-                    cObj.setValue(authAsymId, "auth_asym_id", ii)
-                    cObj.setValue("ECOD", "type", ii)
-                    #
-                    fName = ecodU.getName(familyId)[3:]
-                    cObj.setValue(domId, "feature_id", ii)
-                    cObj.setValue(fName, "name", ii)
-                    #
-                    addPropTupL.append(("ECOD_FAMILY_NAME", fName))
-                    addPropTupL.append(("ECOD_DOMAIN_ID", str(domId)))
-                    cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
-                    cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
-                    #
-                    if doLineage:
-                        tL = [t if t is not None else "" for t in ecodU.getNameLineage(familyId)]
-                        cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
-                        idLinL = ecodU.getIdLineage(familyId)
-                        cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
-                        cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        cObj.setValue(asymId, "asym_id", ii)
+                        cObj.setValue(authAsymId, "auth_asym_id", ii)
+                        cObj.setValue("ECOD", "type", ii)
                         #
-                    cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
-                    cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
+                        fName = ecodU.getName(familyId)[3:]
+                        cObj.setValue(domId, "feature_id", ii)
+                        cObj.setValue(fName, "name", ii)
+                        #
+                        addPropTupL.append(("ECOD_FAMILY_NAME", fName))
+                        addPropTupL.append(("ECOD_DOMAIN_ID", str(domId)))
+                        cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
+                        cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
+                        #
+                        if doLineage:
+                            tL = [t if t is not None else "" for t in ecodU.getNameLineage(familyId)]
+                            cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
+                            idLinL = ecodU.getIdLineage(familyId)
+                            cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
+                            cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
+                            #
+                        cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
+                        cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
 
-                    cObj.setValue("PDB entity", "reference_scheme", ii)
-                    cObj.setValue("ECOD", "provenance_source", ii)
-                    cObj.setValue(version, "assignment_version", ii)
-                    #
-                    ii += 1
-            #
+                        cObj.setValue("PDB entity", "reference_scheme", ii)
+                        cObj.setValue("ECOD", "provenance_source", ii)
+                        cObj.setValue(version, "assignment_version", ii)
+                        #
+                        ii += 1
+                #
             # --- SAbDab
             sabdabP = rP.getResource("SAbDabTargetFeatureProvider instance") if rP else None
-            sabdabVersion = sabdabP.getVersion()
-            for asymId, authAsymId in asymAuthIdD.items():
-                if instTypeD[asymId] not in ["polymer", "branched"]:
-                    continue
-                entityId = asymIdD[asymId]
-                instId = entryId.lower() + "." + authAsymId
-                for ky, fType in [
-                    ("light_ctype", "SABDAB_ANTIBODY_LIGHT_CHAIN_TYPE"),
-                    ("light_subclass", "SABDAB_ANTIBODY_LIGHT_CHAIN_SUBCLASS"),
-                    ("heavy_subclass", "SABDAB_ANTIBODY_HEAVY_CHAIN_SUBCLASS"),
-                ]:
-                    fName = sabdabP.getAssignment(instId, ky)
-                    if not fName or fName in ["?", "unknown"]:
+            if sabdabP:
+                sabdabVersion = sabdabP.getVersion()
+                for asymId, authAsymId in asymAuthIdD.items():
+                    if instTypeD[asymId] not in ["polymer", "branched"]:
                         continue
-                    # Full sequence feature
-                    begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
-                    endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
-                    cObj.setValue(ii + 1, "ordinal", ii)
-                    cObj.setValue(entryId, "entry_id", ii)
-                    cObj.setValue(entityId, "entity_id", ii)
-                    cObj.setValue(asymId, "asym_id", ii)
-                    cObj.setValue(authAsymId, "auth_asym_id", ii)
-                    cObj.setValue(fType, "type", ii)
-                    cObj.setValue("SAbDab_" + instId, "feature_id", ii)
-                    cObj.setValue(fName, "name", ii)
-                    cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
-                    cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
-                    cObj.setValue("SAbDab", "provenance_source", ii)
-                    cObj.setValue(sabdabVersion, "assignment_version", ii)
-                    cObj.setValue("PDB entity", "reference_scheme", ii)
-                    #
-                    ii += 1
+                    entityId = asymIdD[asymId]
+                    instId = entryId.lower() + "." + authAsymId
+                    for ky, fType in [
+                        ("light_ctype", "SABDAB_ANTIBODY_LIGHT_CHAIN_TYPE"),
+                        ("light_subclass", "SABDAB_ANTIBODY_LIGHT_CHAIN_SUBCLASS"),
+                        ("heavy_subclass", "SABDAB_ANTIBODY_HEAVY_CHAIN_SUBCLASS"),
+                    ]:
+                        fName = sabdabP.getAssignment(instId, ky)
+                        if not fName or fName in ["?", "unknown"]:
+                            continue
+                        # Full sequence feature
+                        begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
+                        endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        cObj.setValue(asymId, "asym_id", ii)
+                        cObj.setValue(authAsymId, "auth_asym_id", ii)
+                        cObj.setValue(fType, "type", ii)
+                        cObj.setValue("SAbDab_" + instId, "feature_id", ii)
+                        cObj.setValue(fName, "name", ii)
+                        cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
+                        cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
+                        cObj.setValue("SAbDab", "provenance_source", ii)
+                        cObj.setValue(sabdabVersion, "assignment_version", ii)
+                        cObj.setValue("PDB entity", "reference_scheme", ii)
+                        #
+                        ii += 1
             # ------------
             # Add sheet features
             instSheetRangeD = self.__commonU.getProtSheetFeatures(dataContainer)
@@ -1726,71 +1730,73 @@ class DictMethodEntityInstanceHelper(object):
             # asymIdRangesD = self.__commonU.getInstancePolymerRanges(dataContainer)
             # pAuthAsymD = self.__commonU.getPolymerIdMap(dataContainer)
             instTypeD = self.__commonU.getInstanceTypes(dataContainer)
+            ii = cObj.getRowCount()
             # ---------------
             # Add CATH assignments
             cathU = rP.getResource("CathProvider instance") if rP else None
-            ii = cObj.getRowCount()
-            #
-            for asymId, authAsymId in asymAuthIdD.items():
-                if instTypeD[asymId] not in ["polymer", "branched"]:
-                    continue
-                entityId = asymIdD[asymId]
-                dL = cathU.getCathResidueRanges(entryId.lower(), authAsymId)
-                logger.debug("%s asymId %s authAsymId %s dL %r", entryId, asymId, authAsymId, dL)
-                vL = cathU.getCathVersions(entryId.lower(), authAsymId)
-                for (cathId, domId, _, _, _) in dL:
-                    cObj.setValue(ii + 1, "ordinal", ii)
-                    cObj.setValue(entryId, "entry_id", ii)
-                    cObj.setValue(entityId, "entity_id", ii)
-                    cObj.setValue(asymId, "asym_id", ii)
-                    cObj.setValue(authAsymId, "auth_asym_id", ii)
-                    cObj.setValue("CATH", "type", ii)
-                    #
-                    cObj.setValue(str(cathId), "annotation_id", ii)
-                    # cObj.setValue(str(domId), "annotation_id", ii)
-                    # cObj.setValue(cathId, "name", ii)
-                    cObj.setValue(cathU.getCathName(cathId), "name", ii)
-                    #
-                    cObj.setValue(";".join(cathU.getNameLineage(cathId)), "annotation_lineage_name", ii)
-                    idLinL = cathU.getIdLineage(cathId)
-                    cObj.setValue(";".join(idLinL), "annotation_lineage_id", ii)
-                    cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
-                    #
-                    cObj.setValue("CATH", "provenance_source", ii)
-                    cObj.setValue(vL[0], "assignment_version", ii)
-                    #
-                    ii += 1
+            if cathU:
+                #
+                for asymId, authAsymId in asymAuthIdD.items():
+                    if instTypeD[asymId] not in ["polymer", "branched"]:
+                        continue
+                    entityId = asymIdD[asymId]
+                    dL = cathU.getCathResidueRanges(entryId.lower(), authAsymId)
+                    logger.debug("%s asymId %s authAsymId %s dL %r", entryId, asymId, authAsymId, dL)
+                    vL = cathU.getCathVersions(entryId.lower(), authAsymId)
+                    for (cathId, domId, _, _, _) in dL:
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        cObj.setValue(asymId, "asym_id", ii)
+                        cObj.setValue(authAsymId, "auth_asym_id", ii)
+                        cObj.setValue("CATH", "type", ii)
+                        #
+                        cObj.setValue(str(cathId), "annotation_id", ii)
+                        # cObj.setValue(str(domId), "annotation_id", ii)
+                        # cObj.setValue(cathId, "name", ii)
+                        cObj.setValue(cathU.getCathName(cathId), "name", ii)
+                        #
+                        cObj.setValue(";".join(cathU.getNameLineage(cathId)), "annotation_lineage_name", ii)
+                        idLinL = cathU.getIdLineage(cathId)
+                        cObj.setValue(";".join(idLinL), "annotation_lineage_id", ii)
+                        cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
+                        #
+                        cObj.setValue("CATH", "provenance_source", ii)
+                        cObj.setValue(vL[0], "assignment_version", ii)
+                        #
+                        ii += 1
             # ------------
             # Add SCOP assignments
             scopU = rP.getResource("ScopProvider instance") if rP else None
-            for asymId, authAsymId in asymAuthIdD.items():
-                if instTypeD[asymId] not in ["polymer", "branched"]:
-                    continue
-                entityId = asymIdD[asymId]
-                dL = scopU.getScopResidueRanges(entryId.lower(), authAsymId)
-                version = scopU.getScopVersion()
-                for (sunId, domId, _, _, _, _) in dL:
-                    cObj.setValue(ii + 1, "ordinal", ii)
-                    cObj.setValue(entryId, "entry_id", ii)
-                    cObj.setValue(entityId, "entity_id", ii)
-                    cObj.setValue(asymId, "asym_id", ii)
-                    cObj.setValue(authAsymId, "auth_asym_id", ii)
-                    cObj.setValue("SCOP", "type", ii)
-                    #
-                    # cObj.setValue(str(sunId), "domain_id", ii)
-                    cObj.setValue(domId, "annotation_id", ii)
-                    cObj.setValue(scopU.getScopName(sunId), "name", ii)
-                    #
-                    tL = [t if t is not None else "" for t in scopU.getNameLineage(sunId)]
-                    cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
-                    idLinL = scopU.getIdLineage(sunId)
-                    cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
-                    cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
-                    #
-                    cObj.setValue("SCOPe", "provenance_source", ii)
-                    cObj.setValue(version, "assignment_version", ii)
-                    #
-                    ii += 1
+            if scopU:
+                for asymId, authAsymId in asymAuthIdD.items():
+                    if instTypeD[asymId] not in ["polymer", "branched"]:
+                        continue
+                    entityId = asymIdD[asymId]
+                    dL = scopU.getScopResidueRanges(entryId.lower(), authAsymId)
+                    version = scopU.getScopVersion()
+                    for (sunId, domId, _, _, _, _) in dL:
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        cObj.setValue(asymId, "asym_id", ii)
+                        cObj.setValue(authAsymId, "auth_asym_id", ii)
+                        cObj.setValue("SCOP", "type", ii)
+                        #
+                        # cObj.setValue(str(sunId), "domain_id", ii)
+                        cObj.setValue(domId, "annotation_id", ii)
+                        cObj.setValue(scopU.getScopName(sunId), "name", ii)
+                        #
+                        tL = [t if t is not None else "" for t in scopU.getNameLineage(sunId)]
+                        cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
+                        idLinL = scopU.getIdLineage(sunId)
+                        cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
+                        cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
+                        #
+                        cObj.setValue("SCOPe", "provenance_source", ii)
+                        cObj.setValue(version, "assignment_version", ii)
+                        #
+                        ii += 1
             # ------------
             #  Add covalent attachment property
             npbD = self.__commonU.getBoundNonpolymersByInstance(dataContainer)
@@ -1824,7 +1830,6 @@ class DictMethodEntityInstanceHelper(object):
                         "description",
                         ii,
                     )
-
                     cObj.setValue("PDB", "provenance_source", ii)
                     cObj.setValue("V1.0", "assignment_version", ii)
                     #
@@ -1921,6 +1926,8 @@ class DictMethodEntityInstanceHelper(object):
             if not dataContainer.exists("exptl"):
                 return False
             #
+            if not self.__rlsP or not self.__niP:
+                return False
             eObj = dataContainer.getObj("entry")
             entryId = eObj.getValue("id", 0)
             # ---

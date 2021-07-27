@@ -43,6 +43,7 @@ TOPDIR = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
 class DictMethodRunnerTests(unittest.TestCase):
     def setUp(self):
         self.__isMac = platform.system() == "Darwin"
+        self.__excludeType = None if self.__isMac else "optional"
         self.__export = True
         self.__numProc = 2
         self.__fileLimit = 200
@@ -77,7 +78,14 @@ class DictMethodRunnerTests(unittest.TestCase):
         try:
             dP = DictionaryApiProviderWrapper(self.__cachePath, useCache=True, cfgOb=self.__cfgOb, configName=self.__configName)
             dictApi = dP.getApiByName(contentType)
-            rP = DictMethodResourceProvider(self.__cfgOb, configName=self.__configName, cachePath=self.__cachePath)
+            rP = DictMethodResourceProvider(
+                self.__cfgOb,
+                configName=self.__configName,
+                cachePath=self.__cachePath,
+                restoreUseStash=False,
+                restoreUseGit=True,
+                providerTypeExclude=self.__excludeType,
+            )
             dmh = DictMethodRunner(dictApi, modulePathMap=self.__modulePathMap, resourceProvider=rP)
             locatorObjList = self.__rpP.getLocatorObjList(contentType=contentType, mergeContentTypes=mergeContent)
             logger.info("Length of locator list (%d)", len(locatorObjList))
@@ -112,7 +120,14 @@ class DictMethodRunnerTests(unittest.TestCase):
 
     @unittest.skip("Redundant test")
     def testResourceCache(self):
-        rP = DictMethodResourceProvider(self.__cfgOb, configName=self.__configName, cachePath=self.__cachePath)
+        rP = DictMethodResourceProvider(
+            self.__cfgOb,
+            configName=self.__configName,
+            cachePath=self.__cachePath,
+            restoreUseStash=False,
+            restoreUseGit=True,
+            providerTypeExclude=self.__excludeType,
+        )
         ok = rP.cacheResources(useCache=True, doRestore=True, useStash=False, useGit=True)
         self.assertTrue(ok)
 
@@ -126,7 +141,14 @@ class DictMethodRunnerTests(unittest.TestCase):
         try:
             dP = DictionaryApiProviderWrapper(self.__cachePath, useCache=True, cfgOb=self.__cfgOb, configName=self.__configName)
             dictApi = dP.getApiByName("pdbx")
-            rP = DictMethodResourceProvider(self.__cfgOb, configName=self.__configName, cachePath=self.__cachePath)
+            rP = DictMethodResourceProvider(
+                self.__cfgOb,
+                configName=self.__configName,
+                cachePath=self.__cachePath,
+                restoreUseStash=False,
+                restoreUseGit=True,
+                providerTypeExclude=self.__excludeType,
+            )
             dmh = DictMethodRunner(dictApi, modulePathMap=self.__modulePathMap, resourceProvider=rP)
             ok = dmh is not None
             self.assertTrue(ok)

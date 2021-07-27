@@ -18,6 +18,7 @@
 #  29-Oct-2020 jdw add method getReferenceSequenceAlignmentOpt()
 #  18-Feb-2021 jdw add TargerInteractionProvider()
 #  25-Jul-2021 jdw refactored with common provider api
+#  27-Jul-2021 jdw add exclusion filter for testing
 ##
 ##
 """
@@ -94,12 +95,14 @@ class DictMethodResourceProvider(SingletonClass):
             cachePath (str, optional): path used for temporary file management (default: '.')
             restoreUseStash (bool, optional): use remote stash storage for restore operations
             restoreUseGit (bool, optional): use remote storage for restore operations
+            providerTypeExclude (str, optional): exclude providers containing this name string. Defaults to None.
         """
         self.__cfgOb = cfgOb
         self.__configName = kwargs.get("configName", self.__cfgOb.getDefaultSectionName())
         self.__cachePath = kwargs.get("cachePath", ".")
         self.__restoreUseStash = kwargs.get("restoreUseStash", True)
         self.__restoreUseGit = kwargs.get("restoreUseGit", True)
+        self.__providerTypeExclude = kwargs.get("providerTypeExclude", None)
         # --
         self.__providerInstanceD = {}
         self.__providerD = {
@@ -111,8 +114,15 @@ class DictMethodResourceProvider(SingletonClass):
                 },
                 "stashable": False,
                 "buildable": False,
+                "providerType": "core",
             },
-            "DictMethodCommonUtils instance": {"class": DictMethodCommonUtils, "configArgMap": {}, "stashable": False, "buildable": False},
+            "DictMethodCommonUtils instance": {
+                "class": DictMethodCommonUtils,
+                "configArgMap": {},
+                "stashable": False,
+                "buildable": False,
+                "providerType": "core",
+            },
             "NeighborInteractionProvider instance": {
                 "class": NeighborInteractionProvider,
                 "configArgMap": {
@@ -121,11 +131,36 @@ class DictMethodResourceProvider(SingletonClass):
                 },
                 "stashable": True,
                 "buildable": False,
+                "providerType": "core",
             },
-            "Scop2Provider instance": {"class": Scop2ClassificationProvider, "configArgMap": {}, "stashable": True, "buildable": True},
-            "EcodProvider instance": {"class": EcodClassificationProvider, "configArgMap": {}, "stashable": True, "buildable": True},
-            "ScopProvider instance": {"class": ScopClassificationProvider, "configArgMap": {}, "stashable": True, "buildable": True},
-            "CathProvider instance": {"class": CathClassificationProvider, "configArgMap": {}, "stashable": True, "buildable": True},
+            "Scop2Provider instance": {
+                "class": Scop2ClassificationProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": True,
+                "providerType": "optional_1",
+            },
+            "EcodProvider instance": {
+                "class": EcodClassificationProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": True,
+                "providerType": "optional_1",
+            },
+            "ScopProvider instance": {
+                "class": ScopClassificationProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": True,
+                "providerType": "optional_1",
+            },
+            "CathProvider instance": {
+                "class": CathClassificationProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": True,
+                "providerType": "optional_1",
+            },
             "DrugBankProvider instance": {
                 "class": DrugBankProvider,
                 "configArgMap": {
@@ -135,25 +170,116 @@ class DictMethodResourceProvider(SingletonClass):
                 },
                 "stashable": True,
                 "buildable": True,
+                "providerType": "core",
             },
-            "AtcProvider instance": {"class": AtcProvider, "configArgMap": {}, "stashable": True, "buildable": True},
-            "BirdProvider instance": {"class": BirdProvider, "configArgMap": {}, "stashable": True, "buildable": True},
-            "ChemCompModelProvider instance": {"class": ChemCompModelProvider, "configArgMap": {}, "stashable": True, "buildable": True},
-            "ChemCompProvider instance": {"class": ChemCompProvider, "configArgMap": {}, "stashable": True, "buildable": True},
+            "AtcProvider instance": {
+                "class": AtcProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": True,
+                "providerType": "core",
+            },
+            "BirdProvider instance": {
+                "class": BirdProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": True,
+                "providerType": "core",
+            },
+            "ChemCompModelProvider instance": {
+                "class": ChemCompModelProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": True,
+                "providerType": "core",
+            },
+            "ChemCompProvider instance": {
+                "class": ChemCompProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": True,
+                "providerType": "core",
+            },
             #
-            "PharosProvider instance": {"class": PharosProvider, "configArgMap": {}, "stashable": True, "buildable": False},
-            "PsiModProvider instance": {"class": PsiModProvider, "configArgMap": {}, "stashable": True, "buildable": True},
-            "PubChemProvider instance": {"class": PubChemProvider, "configArgMap": {}, "stashable": True, "buildable": False},
-            "RcsbLigandScoreProvider instance": {"class": RcsbLigandScoreProvider, "configArgMap": {}, "stashable": True, "buildable": True},
-            "ResidProvider instance": {"class": ResidProvider, "configArgMap": {}, "stashable": True, "buildable": True},
+            "PharosProvider instance": {
+                "class": PharosProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": False,
+                "providerType": "optional_1",
+            },
+            "PsiModProvider instance": {
+                "class": PsiModProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": True,
+                "providerType": "optional_1",
+            },
+            "PubChemProvider instance": {
+                "class": PubChemProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": False,
+                "providerType": "core",
+            },
+            "RcsbLigandScoreProvider instance": {
+                "class": RcsbLigandScoreProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": True,
+                "providerType": "core",
+            },
+            "ResidProvider instance": {
+                "class": ResidProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": True,
+                "providerType": "core",
+            },
             #
-            "CitationReferenceProvider instance": {"class": CitationReferenceProvider, "configArgMap": {}, "stashable": True, "buildable": True},
-            "JournalTitleAbbreviationProvider instance": {"class": JournalTitleAbbreviationProvider, "configArgMap": {}, "stashable": True, "buildable": True},
-            "TaxonomyProvider instance": {"class": TaxonomyProvider, "configArgMap": {}, "stashable": True, "buildable": True},
-            "EnzymeDatabaseProvider instance": {"class": EnzymeDatabaseProvider, "configArgMap": {}, "stashable": True, "buildable": True},
+            "CitationReferenceProvider instance": {
+                "class": CitationReferenceProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": True,
+                "providerType": "core",
+            },
+            "JournalTitleAbbreviationProvider instance": {
+                "class": JournalTitleAbbreviationProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": True,
+                "providerType": "core",
+            },
+            "TaxonomyProvider instance": {
+                "class": TaxonomyProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": True,
+                "providerType": "core",
+            },
+            "EnzymeDatabaseProvider instance": {
+                "class": EnzymeDatabaseProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": True,
+                "providerType": "core",
+            },
             #
-            "GlyGenProvider instance": {"class": GlyGenProvider, "configArgMap": {}, "stashable": True, "buildable": True},
-            "GlycanProvider instance": {"class": GlycanProvider, "configArgMap": {}, "stashable": True, "buildable": False},
+            "GlyGenProvider instance": {
+                "class": GlyGenProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": True,
+                "providerType": "optional_1",
+            },
+            "GlycanProvider instance": {
+                "class": GlycanProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": False,
+                "providerType": "optional_1",
+            },
             "SiftsSummaryProvider instance": {
                 "class": SiftsSummaryProvider,
                 "configArgMap": {
@@ -162,17 +288,61 @@ class DictMethodResourceProvider(SingletonClass):
                 },
                 "stashable": True,
                 "buildable": True,
+                "providerType": "core",
             },
-            "PfamProvider instance": {"class": PfamProvider, "configArgMap": {}, "stashable": True, "buildable": True},
-            "DrugBankTargetCofactorProvider instance": {"class": DrugBankTargetCofactorProvider, "configArgMap": {}, "stashable": True, "buildable": False},
-            "ChEMBLTargetCofactorProvider instance": {"class": ChEMBLTargetCofactorProvider, "configArgMap": {}, "stashable": True, "buildable": False},
-            "PharosTargetCofactorProvider instance": {"class": PharosTargetCofactorProvider, "configArgMap": {}, "stashable": True, "buildable": False},
-            "CARDTargetFeatureProvider instance": {"class": CARDTargetFeatureProvider, "configArgMap": {}, "stashable": True, "buildable": False},
-            "IMGTTargetFeatureProvider instance": {"class": IMGTTargetFeatureProvider, "configArgMap": {}, "stashable": True, "buildable": False},
-            "SAbDabTargetFeatureProvider instance": {"class": SAbDabTargetFeatureProvider, "configArgMap": {}, "stashable": True, "buildable": False},
+            "PfamProvider instance": {
+                "class": PfamProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": True,
+                "providerType": "optional_1",
+            },
+            "DrugBankTargetCofactorProvider instance": {
+                "class": DrugBankTargetCofactorProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": False,
+                "providerType": "optional_1",
+            },
+            "ChEMBLTargetCofactorProvider instance": {
+                "class": ChEMBLTargetCofactorProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": False,
+                "providerType": "optional_1",
+            },
+            "PharosTargetCofactorProvider instance": {
+                "class": PharosTargetCofactorProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": False,
+                "providerType": "optional_1",
+            },
+            "CARDTargetFeatureProvider instance": {
+                "class": CARDTargetFeatureProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": False,
+                "providerType": "optional_1",
+            },
+            "IMGTTargetFeatureProvider instance": {
+                "class": IMGTTargetFeatureProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": False,
+                "providerType": "optional_1",
+            },
+            "SAbDabTargetFeatureProvider instance": {
+                "class": SAbDabTargetFeatureProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": False,
+                "providerType": "optional_1",
+            },
             # --
         }
         logger.info("Dictionary resource provider init completed")
+        self.__filterProviderWarnD = {}
         #
 
     def echo(self, msg):
@@ -193,22 +363,33 @@ class DictMethodResourceProvider(SingletonClass):
             useGit (bool, optional): use git repository storage for backup operations. Defaults to False.
             useStash (bool, optional): use stash storage and backup operations. Defaults to True.
             remotePrefix (str, optional): remote prefix for a multi-channel stash rotation. Defaults to None.
-            holdInstance (bool, optional): hold a reference to the data for the cached provided. Defaults to True.
+            cacheInstance (bool, optional): hold a reference to the data for the cached provided. Defaults to True.
 
         Returns:
             (obj): instance of the resource object or default value
         """
         logger.debug("Requesting cached provider resource %r (useCache %r)", providerName, useCache)
+        #
+        if providerName not in self.__providerD:
+            logger.error("Request for unsupported provider resource %r returning %r", providerName, default)
+            return default
+
+        # Apply exclusions
+        if self.__providerTypeExclude and self.__providerTypeExclude in self.__providerD[providerName]["providerType"]:
+            if providerName not in self.__filterProviderWarnD:
+                logger.info("Provider %r excluded by filter %r", providerName, self.__providerTypeExclude)
+            self.__filterProviderWarnD[providerName] = True
+            return default
+
+        # Return a cached instance
         if useCache and providerName in self.__providerInstanceD and self.__providerInstanceD[providerName]:
             return self.__providerInstanceD[providerName]
-        kwargs["holdInstance"] = kwargs["holdInstance"] if "holdInstance" in kwargs else True
-        if providerName in self.__providerD:
-            kwargs["holdInstance"] = True
-            ok = self.__cacheProvider(providerName, self.__cfgOb, self.__configName, self.__cachePath, useCache=useCache, **kwargs)
-            if ok and holdInstance:
-                return self.__providerInstanceD[providerName]
-        else:
-            logger.error("Request for unsupported provider resource %r returning %r", providerName, default)
+        #
+        # Reload the instance into the cache and optionally store the instance
+        kwargs["cacheInstance"] = kwargs["cacheInstance"] if "cacheInstance" in kwargs else True
+        ok = self.__cacheProvider(providerName, self.__cfgOb, self.__configName, self.__cachePath, useCache=useCache, **kwargs)
+        if ok and kwargs["cacheInstance"]:
+            return self.__providerInstanceD[providerName]
         #
         return default
 
@@ -223,19 +404,23 @@ class DictMethodResourceProvider(SingletonClass):
             useStash (bool, optional): use stash storage for backup operations. Defaults to True.
             remotePrefix (str, optional): remote prefix for a multi-channel stash rotation. Defaults to None.
             providerSelect (str, optional): select buildable|nonbuildable|None. Defaults to None
-            holdInstance (bool, optional): hold a reference to the data for the cached provided. Defaults to False.
+            cacheInstance (bool, optional): hold a reference to the data for the cached provided. Defaults to False.
         Returns:
             bool: True for success or False otherwise
         """
         ret = True
-        tName = "CHECKING" if useCache else "REBUILDING"
+        tName = "CHECKING" if useCache else "REBUILDING/RELOADING"
         rusageMax = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
         logger.info("Begin %s cache for %d resources", tName, len(self.__providerD))
         #
-        kwargs["holdInstance"] = kwargs["holdInstance"] if "holdInstance" in kwargs else False
+        kwargs["cacheInstance"] = kwargs["cacheInstance"] if "cacheInstance" in kwargs else False
         providerSelect = kwargs.get("providerSelect", None)
         failList = []
-        for providerName in self.__providerD:
+        for providerName in sorted(self.__providerD):
+            if self.__providerTypeExclude and self.__providerTypeExclude in self.__providerD[providerName]["providerType"]:
+                logger.info("Provider excluded by filter %r", providerName)
+                continue
+            #
             rusageMax = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
             bFlag = self.__providerD[providerName]["buildable"]
             if providerSelect and (bFlag == (providerSelect != "buildable")):
@@ -305,7 +490,7 @@ class DictMethodResourceProvider(SingletonClass):
         """
         logger.debug("providerName %r configName %s cachePath %s kwargs %r", providerName, configName, cachePath, kwargs)
         #
-        holdInstance = kwargs.get("cacheInstance", True)
+        cacheInstance = kwargs.get("cacheInstance", True)
         classArgs = self.__getClassArgs(providerName, cfgOb, configName)
         logger.debug("%r classArgs %r", providerName, classArgs)
         #
@@ -315,7 +500,7 @@ class DictMethodResourceProvider(SingletonClass):
         except Exception as e:
             logger.exception("Failing with %s", str(e))
         #
-        if ok and holdInstance:
+        if ok and cacheInstance:
             self.__providerInstanceD[providerName] = prI
         else:
             del prI
@@ -359,7 +544,7 @@ class DictMethodResourceProvider(SingletonClass):
         isStashable = self.__providerD[providerName]["stashable"]
         logger.debug("%r classArgs %r", providerName, classArgs)
         #
-        holdInstance = kwargs.get("cacheInstance", True)
+        cacheInstance = kwargs.get("cacheInstance", True)
         remotePrefix = kwargs.get("remotePrefix", None)
         minCount = kwargs.get("remotePrefix", 5)
         if useCache:
@@ -382,7 +567,7 @@ class DictMethodResourceProvider(SingletonClass):
             except Exception as e:
                 logger.exception("Failing with %s", str(e))
         #
-        if ok and holdInstance:
+        if ok and cacheInstance:
             self.__providerInstanceD[providerName] = prI
         else:
             del prI
@@ -431,7 +616,7 @@ class DictMethodResourceProvider(SingletonClass):
         logger.debug("%r classArgs %r", providerName, classArgs)
         #
         ok = False
-        holdInstance = kwargs.get("cacheInstance", True)
+        cacheInstance = kwargs.get("cacheInstance", True)
         remotePrefix = kwargs.get("remotePrefix", None)
         if useCache:
             doRestore = kwargs.get("doRestore", True)
@@ -455,7 +640,7 @@ class DictMethodResourceProvider(SingletonClass):
             except Exception as e:
                 logger.exception("Failing with %s", str(e))
         #
-        if ok and holdInstance:
+        if ok and cacheInstance:
             self.__providerInstanceD[providerName] = prI
         else:
             del prI

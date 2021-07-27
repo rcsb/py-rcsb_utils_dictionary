@@ -106,95 +106,98 @@ class DictMethodChemRefHelper(object):
                 #
             #  ------------ ----------------------- ----------------------- ----------------------- -----------
             ccmProvider = rP.getResource("ChemCompModelProvider instance") if rP else None
-            csdMapD = ccmProvider.getMapping()
-            #
-            if csdMapD and ccId in csdMapD:
-                if not dataContainer.exists(catName):
-                    dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
-                wObj = dataContainer.getObj(catName)
-                logger.debug("Using CSD model mapping length %d", len(csdMapD))
-                dbId = csdMapD[ccId][0]["db_code"]
-                rL = wObj.selectIndices("CCDC/CSD", "resource_name")
-                if rL:
-                    ok = wObj.removeRows(rL)
-                    if not ok:
-                        logger.debug("Error removing rows in %r %r", catName, rL)
-                iRow = wObj.getRowCount()
-                wObj.setValue(ccId, "comp_id", iRow)
-                wObj.setValue(iRow + 1, "ordinal", iRow)
-                wObj.setValue("CCDC/CSD", "resource_name", iRow)
-                wObj.setValue(dbId, "resource_accession_code", iRow)
-                wObj.setValue("assigned by PDB", "related_mapping_method", iRow)
-            #
-            residProvider = rP.getResource("ResidProvider instance") if rP else None
-            residMapD = residProvider.getMapping()
-            #
-            if residMapD and ccId in residMapD:
-                if not dataContainer.exists(catName):
-                    dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
-                wObj = dataContainer.getObj(catName)
-                rL = wObj.selectIndices("RESID", "resource_name")
-                if rL:
-                    ok = wObj.removeRows(rL)
-                    if not ok:
-                        logger.debug("Error removing rows in %r %r", catName, rL)
-                logger.debug("Using RESID model mapping length %d", len(residMapD))
-                for rD in residMapD[ccId]:
-                    dbId = rD["residCode"]
-                    iRow = wObj.getRowCount()
-                    wObj.setValue(ccId, "comp_id", iRow)
-                    wObj.setValue(iRow + 1, "ordinal", iRow)
-                    wObj.setValue("RESID", "resource_name", iRow)
-                    wObj.setValue(dbId, "resource_accession_code", iRow)
-                    wObj.setValue("matching by RESID resource", "related_mapping_method", iRow)
-            #
-            pubchemProvider = rP.getResource("PubChemProvider instance") if rP else None
-            pubchemMapD = pubchemProvider.getIdentifiers()
-            if pubchemMapD and ccId in pubchemMapD:
-                pharosProvider = rP.getResource("PharosProvider instance") if rP else None
-                pharosChemblD = pharosProvider.getIdentifiers()
-
-                if not dataContainer.exists(catName):
-                    dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
-                wObj = dataContainer.getObj(catName)
-                for rName in ["ChEBI", "ChEMBL", "CAS", "PubChem"]:
-                    rL = wObj.selectIndices(rName, "resource_name")
+            if ccmProvider:
+                csdMapD = ccmProvider.getMapping()
+                #
+                if csdMapD and ccId in csdMapD:
+                    if not dataContainer.exists(catName):
+                        dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
+                    wObj = dataContainer.getObj(catName)
+                    logger.debug("Using CSD model mapping length %d", len(csdMapD))
+                    dbId = csdMapD[ccId][0]["db_code"]
+                    rL = wObj.selectIndices("CCDC/CSD", "resource_name")
                     if rL:
                         ok = wObj.removeRows(rL)
                         if not ok:
                             logger.debug("Error removing rows in %r %r", catName, rL)
+                    iRow = wObj.getRowCount()
+                    wObj.setValue(ccId, "comp_id", iRow)
+                    wObj.setValue(iRow + 1, "ordinal", iRow)
+                    wObj.setValue("CCDC/CSD", "resource_name", iRow)
+                    wObj.setValue(dbId, "resource_accession_code", iRow)
+                    wObj.setValue("assigned by PDB", "related_mapping_method", iRow)
+            #
+            residProvider = rP.getResource("ResidProvider instance") if rP else None
+            if residProvider:
+                residMapD = residProvider.getMapping()
                 #
-                logger.debug("Using PubChem mapping length %d", len(pubchemMapD))
-                xD = {}
-                for rD in pubchemMapD[ccId]:
-                    for tName, tObj in rD.items():
-                        if tName == "pcId":
-                            xD.setdefault("PubChem", set()).add(tObj)
-                        elif tName in ["CAS", "ChEBI"]:
-                            for tId in tObj:
-                                xD.setdefault(tName, set()).add(tId)
-                        elif tName in ["ChEMBL"]:
-                            for tId in tObj:
-                                xD.setdefault(tName, set()).add(tId)
-                                if pharosChemblD and tId in pharosChemblD:
-                                    logger.debug("Mapping ccId %r to Pharos %r", ccId, tId)
-                                    xD.setdefault("Pharos", set()).add(tId)
-
-                #
-                for rName, rIdS in xD.items():
-                    if rName in ["PubChem", "Pharos"]:
-                        aMethod = "matching InChIKey in PubChem"
-                    elif rName in ["CAS", "ChEMBL", "ChEBI"]:
-                        aMethod = "assigned by PubChem resource"
-                    elif rName in ["Pharos"]:
-                        aMethod = "matching ChEMBL ID in Pharos"
-                    for rId in rIdS:
+                if residMapD and ccId in residMapD:
+                    if not dataContainer.exists(catName):
+                        dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
+                    wObj = dataContainer.getObj(catName)
+                    rL = wObj.selectIndices("RESID", "resource_name")
+                    if rL:
+                        ok = wObj.removeRows(rL)
+                        if not ok:
+                            logger.debug("Error removing rows in %r %r", catName, rL)
+                    logger.debug("Using RESID model mapping length %d", len(residMapD))
+                    for rD in residMapD[ccId]:
+                        dbId = rD["residCode"]
                         iRow = wObj.getRowCount()
                         wObj.setValue(ccId, "comp_id", iRow)
                         wObj.setValue(iRow + 1, "ordinal", iRow)
-                        wObj.setValue(rName, "resource_name", iRow)
-                        wObj.setValue(rId, "resource_accession_code", iRow)
-                        wObj.setValue(aMethod, "related_mapping_method", iRow)
+                        wObj.setValue("RESID", "resource_name", iRow)
+                        wObj.setValue(dbId, "resource_accession_code", iRow)
+                        wObj.setValue("matching by RESID resource", "related_mapping_method", iRow)
+            #
+            pubchemProvider = rP.getResource("PubChemProvider instance") if rP else None
+            pharosProvider = rP.getResource("PharosProvider instance") if rP else None
+            if pubchemProvider and pharosProvider:
+                pubchemMapD = pubchemProvider.getIdentifiers()
+                if pubchemMapD and ccId in pubchemMapD:
+                    pharosChemblD = pharosProvider.getIdentifiers()
+
+                    if not dataContainer.exists(catName):
+                        dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
+                    wObj = dataContainer.getObj(catName)
+                    for rName in ["ChEBI", "ChEMBL", "CAS", "PubChem"]:
+                        rL = wObj.selectIndices(rName, "resource_name")
+                        if rL:
+                            ok = wObj.removeRows(rL)
+                            if not ok:
+                                logger.debug("Error removing rows in %r %r", catName, rL)
+                    #
+                    logger.debug("Using PubChem mapping length %d", len(pubchemMapD))
+                    xD = {}
+                    for rD in pubchemMapD[ccId]:
+                        for tName, tObj in rD.items():
+                            if tName == "pcId":
+                                xD.setdefault("PubChem", set()).add(tObj)
+                            elif tName in ["CAS", "ChEBI"]:
+                                for tId in tObj:
+                                    xD.setdefault(tName, set()).add(tId)
+                            elif tName in ["ChEMBL"]:
+                                for tId in tObj:
+                                    xD.setdefault(tName, set()).add(tId)
+                                    if pharosChemblD and tId in pharosChemblD:
+                                        logger.debug("Mapping ccId %r to Pharos %r", ccId, tId)
+                                        xD.setdefault("Pharos", set()).add(tId)
+
+                    #
+                    for rName, rIdS in xD.items():
+                        if rName in ["PubChem", "Pharos"]:
+                            aMethod = "matching InChIKey in PubChem"
+                        elif rName in ["CAS", "ChEMBL", "ChEBI"]:
+                            aMethod = "assigned by PubChem resource"
+                        elif rName in ["Pharos"]:
+                            aMethod = "matching ChEMBL ID in Pharos"
+                        for rId in rIdS:
+                            iRow = wObj.getRowCount()
+                            wObj.setValue(ccId, "comp_id", iRow)
+                            wObj.setValue(iRow + 1, "ordinal", iRow)
+                            wObj.setValue(rName, "resource_name", iRow)
+                            wObj.setValue(rId, "resource_accession_code", iRow)
+                            wObj.setValue(aMethod, "related_mapping_method", iRow)
 
             return True
         except Exception as e:
