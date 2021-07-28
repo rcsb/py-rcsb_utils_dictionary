@@ -39,3 +39,4 @@
 26-Jun-2021 - V0.47 Add bypass option for retaining object instances in cache construction.
 27-Jun-2021 - V0.48 Update dictionary methods to gracefully handle missing providers
 27-Jun-2021 - V0.49 Add providerTypeExclude optional filter to further reduce test scope.
+28-Jun-2021 - V0.50 Restore the default to always preserve instances when the cache is reloaded.

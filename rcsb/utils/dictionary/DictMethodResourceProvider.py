@@ -370,6 +370,10 @@ class DictMethodResourceProvider(SingletonClass):
         """
         logger.debug("Requesting cached provider resource %r (useCache %r)", providerName, useCache)
         #
+        # Return a cached instance
+        if useCache and providerName in self.__providerInstanceD and self.__providerInstanceD[providerName]:
+            return self.__providerInstanceD[providerName]
+        #
         if providerName not in self.__providerD:
             logger.error("Request for unsupported provider resource %r returning %r", providerName, default)
             return default
@@ -380,10 +384,6 @@ class DictMethodResourceProvider(SingletonClass):
                 logger.info("Provider %r excluded by filter %r", providerName, self.__providerTypeExclude)
             self.__filterProviderWarnD[providerName] = True
             return default
-
-        # Return a cached instance
-        if useCache and providerName in self.__providerInstanceD and self.__providerInstanceD[providerName]:
-            return self.__providerInstanceD[providerName]
         #
         # Reload the instance into the cache and optionally store the instance
         kwargs["cacheInstance"] = kwargs["cacheInstance"] if "cacheInstance" in kwargs else True
@@ -411,9 +411,9 @@ class DictMethodResourceProvider(SingletonClass):
         ret = True
         tName = "CHECKING" if useCache else "REBUILDING/RELOADING"
         rusageMax = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-        logger.info("Begin %s cache for %d resources", tName, len(self.__providerD))
+        logger.info("Begin %s cache for %d candidate resources", tName, len(self.__providerD))
         #
-        kwargs["cacheInstance"] = kwargs["cacheInstance"] if "cacheInstance" in kwargs else False
+        kwargs["cacheInstance"] = kwargs["cacheInstance"] if "cacheInstance" in kwargs else True
         providerSelect = kwargs.get("providerSelect", None)
         failList = []
         for providerName in sorted(self.__providerD):
@@ -427,17 +427,26 @@ class DictMethodResourceProvider(SingletonClass):
                 continue
             startTime = time.time()
             rusageMax = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-            logger.debug("Caching resources for %r", providerName)
+            #
+            # Check the current instance cache --
+            if useCache and providerName in self.__providerInstanceD:
+                ok = self.__providerInstanceD[providerName].testCache()
+                if ok:
+                    continue
+            #
+            # Update the cache if necessary
+            logger.debug("Updating cache resources for %r", providerName)
             ok = self.__cacheProvider(providerName, self.__cfgOb, self.__configName, self.__cachePath, useCache=useCache, **kwargs)
             if not ok:
                 logger.error("%s %s fails", tName, providerName)
                 failList.append(providerName)
+            #
             ret = ret and ok
             if not ret:
                 logger.info("%s resource %r step status %r cumulative status %r", tName, providerName, ok, ret)
             self.__resourceUsageReport(providerName, startTime, rusageMax)
         #
-        logger.info("Completed %s %d resources status (%r) failures %r", tName, len(self.__providerD), ret, failList)
+        logger.info("Completed %s %d resource instances status (%r) failures %r", tName, len(self.__providerInstanceD), ret, failList)
         return ret
 
     def __getClassArgs(self, providerName, cfgOb, configName):
