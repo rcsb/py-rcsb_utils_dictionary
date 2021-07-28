@@ -7,7 +7,7 @@
 #
 ##
 """
-Tests for applying dictionary methods defined as references to helper plugin methods .
+Tests for caching resources used by dictionary methods.
 
 """
 

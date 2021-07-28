@@ -41,3 +41,4 @@
 27-Jun-2021 - V0.49 Add providerTypeExclude optional filter to further reduce test scope.
 28-Jun-2021 - V0.50 Restore the default to always preserve instances when the cache is reloaded.
 28-Jun-2021 - V0.51 Handle duplicate SAbDab feature records.
+28-Jun-2021 - V0.52 Add DictMethodResourceCacheWorkflow module
