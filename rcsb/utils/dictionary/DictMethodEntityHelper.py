@@ -1726,9 +1726,10 @@ class DictMethodEntityHelper(object):
                     for fD in fDL:
                         if fD["type"] not in ["SABDAB_ANTIBODY_NAME", "SABDAB_ANTIBODY_TARGET"]:
                             continue
-                        if fD["type"] in fTypeD:
-                            logger.info("%r (%r) duplicate antibody feature %r = %r", entryId, entityId, fD["type"], fD["name"])
-                        fTypeD[fD["type"]] = True
+                        if (fD["type"], fD["name"]) in fTypeD:
+                            logger.info("%r (%r) skipping duplicate antibody feature %r = %r", entryId, entityId, fD["type"], fD["name"])
+                            continue
+                        fTypeD[(fD["type"], fD["name"])] = True
                         begSeqId = ";".join([str(tD["beg_seq_id"]) for tD in fD["feature_positions"]])
                         endSeqId = ";".join([str(tD["end_seq_id"]) for tD in fD["feature_positions"]])
                         #
