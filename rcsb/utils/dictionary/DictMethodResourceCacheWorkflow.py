@@ -28,14 +28,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s]-%(mo
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-HERE = os.path.abspath(os.path.dirname(__file__))
-
 
 class DictMethodResourceCacheWorkflow(object):
-    def __init__(self):
-        self.__mockTopPath = None
-        self.__cachePath = os.path.join(HERE, "CACHE")
-        self.__configPath = os.path.join(HERE, "exdb-config-example.yml")
+    def __init__(self, workPath):
+        self.__cachePath = os.path.join(workPath, "CACHE")
+        self.__configPath = os.path.join(workPath, "exdb-config-example.yml")
         configName = "site_info_remote_configuration"
         self.__configName = configName
         self.__cfgOb = ConfigUtil(configPath=self.__configPath, defaultSectionName=configName)
@@ -77,6 +74,6 @@ class DictMethodResourceCacheWorkflow(object):
 
 
 if __name__ == "__main__":
-    dmrWf = DictMethodResourceCacheWorkflow()
+    dmrWf = DictMethodResourceCacheWorkflow(workPath="./")
     dmrWf.buildResourceCache()
     dmrWf.syncResourceCache()

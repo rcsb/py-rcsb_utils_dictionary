@@ -36,9 +36,10 @@
 30-Jun-2021 - V0.44 Adjust error handling/reporting for atom counts in DictMethodEntityInstanceHelper(), update GlycanProvider() api in DictMethodResourceProvider()
 14-Jun-2021 - V0.45 Add SCOP2/B, ECOD, IMGT, SAbDab features, and add rcsb_related_target_references and rcsb_target_cofactors
 14-Jun-2021 - V0.46 Refactor DictMethodResourceProvider() to support stashable provider API pattern
-26-Jun-2021 - V0.47 Add bypass option for retaining object instances in cache construction.
-27-Jun-2021 - V0.48 Update dictionary methods to gracefully handle missing providers
-27-Jun-2021 - V0.49 Add providerTypeExclude optional filter to further reduce test scope.
-28-Jun-2021 - V0.50 Restore the default to always preserve instances when the cache is reloaded.
-28-Jun-2021 - V0.51 Handle duplicate SAbDab feature records.
-28-Jun-2021 - V0.52 Add DictMethodResourceCacheWorkflow module
+26-Jul-2021 - V0.47 Add bypass option for retaining object instances in cache construction.
+27-Jul-2021 - V0.48 Update dictionary methods to gracefully handle missing providers
+27-Jul-2021 - V0.49 Add providerTypeExclude optional filter to further reduce test scope.
+28-Jul-2021 - V0.50 Restore the default to always preserve instances when the cache is reloaded.
+28-Jul-2021 - V0.51 Handle duplicate SAbDab feature records.
+28-Jul-2021 - V0.52 Add DictMethodResourceCacheWorkflow module
+28-Jul-2021 - V0.53 Update constructor API for DictMethodResourceCacheWorkflow()
