@@ -33,7 +33,8 @@ logger = logging.getLogger()
 
 
 class NeighborInteractionWorkflowTests(unittest.TestCase):
-    skipFlag = platform.system() != "Darwin"
+    # skipFlag = platform.system() != "Darwin"
+    skipFlag = True
 
     def setUp(self):
         self.__mockTopPath = os.path.join(TOPDIR, "rcsb", "mock-data")
