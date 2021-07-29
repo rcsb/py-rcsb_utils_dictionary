@@ -36,7 +36,7 @@ logger = logging.getLogger()
 
 
 class NeighborInteractionProviderTests(unittest.TestCase):
-    skipFlag = True
+    skipFlag = platform.system() != "Darwin"
 
     def setUp(self):
         mockTopPath = os.path.join(TOPDIR, "rcsb", "mock-data")
@@ -76,6 +76,7 @@ class NeighborInteractionProviderTests(unittest.TestCase):
             logger.exception("Failing with %s", str(e))
             self.fail()
 
+    @unittest.skipIf(skipFlag, "Long test")
     def testStashRemote(self):
         try:
             niP = NeighborInteractionProvider(self.__cachePath, useCache=True, cfgOb=self.__cfgOb, configName=self.__configName, numProc=2, fileLimit=self.__fileLimit)
