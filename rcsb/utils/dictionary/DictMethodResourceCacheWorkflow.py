@@ -23,6 +23,7 @@ import time
 
 from rcsb.utils.dictionary.DictMethodResourceProvider import DictMethodResourceProvider
 from rcsb.utils.config.ConfigUtil import ConfigUtil
+from rcsb.utils.io.FileUtil import FileUtil
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s]-%(module)s.%(funcName)s: %(message)s")
 logger = logging.getLogger()
@@ -57,6 +58,38 @@ class DictMethodResourceCacheWorkflow(object):
         )
         ok = rP.cacheResources(useCache=False, doBackup=True, useStash=True, useGit=True)
         logger.info("Cache rebuild status (%r)", ok)
+
+    def testRecoverCacheFromStash(self):
+        # remove any cache directory
+        fU = FileUtil()
+        fU.remove(self.__cachePath)
+        #
+        rP = DictMethodResourceProvider(
+            self.__cfgOb,
+            configName=self.__configName,
+            cachePath=self.__cachePath,
+            restoreUseStash=True,
+            restoreUseGit=False,
+            providerTypeExclude=None,
+        )
+        ok = rP.cacheResources(useCache=True, doRestore=True, doBackup=False)
+        logger.info(">>> Stash recovery test status (%r)", ok)
+
+    def testRecoverCacheFromGit(self):
+        # remove any cache directory
+        fU = FileUtil()
+        fU.remove(self.__cachePath)
+        #
+        rP = DictMethodResourceProvider(
+            self.__cfgOb,
+            configName=self.__configName,
+            cachePath=self.__cachePath,
+            restoreUseStash=False,
+            restoreUseGit=True,
+            providerTypeExclude=None,
+        )
+        ok = rP.cacheResources(useCache=True, doRestore=True, doBackup=False)
+        logger.info(">>> Stash recovery test status (%r)", ok)
 
     def syncResourceCache(self):
         for providerName in [
