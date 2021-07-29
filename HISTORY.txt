@@ -43,3 +43,4 @@
 28-Jul-2021 - V0.51 Handle duplicate SAbDab feature records.
 28-Jul-2021 - V0.52 Add DictMethodResourceCacheWorkflow module
 28-Jul-2021 - V0.53 Update constructor API for DictMethodResourceCacheWorkflow()
+28-Jul-2021 - V0.54 Update dependencies and workflow path

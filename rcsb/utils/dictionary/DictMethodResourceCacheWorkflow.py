@@ -31,7 +31,7 @@ logger.setLevel(logging.INFO)
 
 class DictMethodResourceCacheWorkflow(object):
     def __init__(self, workPath):
-        self.__cachePath = os.path.join(workPath, "CACHE")
+        self.__cachePath = os.path.join(workPath, "workflow-output", "CACHE")
         self.__configPath = os.path.join(workPath, "exdb-config-example.yml")
         configName = "site_info_remote_configuration"
         self.__configName = configName
