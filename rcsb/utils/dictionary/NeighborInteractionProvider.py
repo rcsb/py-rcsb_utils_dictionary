@@ -97,7 +97,7 @@ class NeighborInteractionProvider(StashableBase):
         self.__neighborD = self.__reload(fmt="pickle", useCache=useCache)
         #
 
-    def testCache(self, minCount=0):
+    def testCache(self, minCount=1):
         try:
             if minCount == 0:
                 return True

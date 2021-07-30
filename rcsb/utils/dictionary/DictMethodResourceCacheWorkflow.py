@@ -61,8 +61,13 @@ class DictMethodResourceCacheWorkflow(object):
 
     def testRecoverCacheFromStash(self):
         # remove any cache directory
+
         fU = FileUtil()
-        fU.remove(self.__cachePath)
+        cPth = os.path.abspath(self.__cachePath)
+        if fU.exists(cPth):
+            fU.remove(cPth)
+        else:
+            logger.info("Bad cache path %r", cPth)
         #
         rP = DictMethodResourceProvider(
             self.__cfgOb,
@@ -78,7 +83,11 @@ class DictMethodResourceCacheWorkflow(object):
     def testRecoverCacheFromGit(self):
         # remove any cache directory
         fU = FileUtil()
-        fU.remove(self.__cachePath)
+        cPth = os.path.abspath(self.__cachePath)
+        if fU.exists(cPth):
+            fU.remove(cPth)
+        else:
+            logger.info("Bad cache path %r", cPth)
         #
         rP = DictMethodResourceProvider(
             self.__cfgOb,
@@ -89,7 +98,7 @@ class DictMethodResourceCacheWorkflow(object):
             providerTypeExclude=None,
         )
         ok = rP.cacheResources(useCache=True, doRestore=True, doBackup=False)
-        logger.info(">>> Stash recovery test status (%r)", ok)
+        logger.info(">>> Git recovery test status (%r)", ok)
 
     def syncResourceCache(self):
         for providerName in [

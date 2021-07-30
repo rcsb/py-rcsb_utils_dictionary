@@ -47,3 +47,4 @@
 29-Jul-2021 - V0.55 Add cache recovery methods to DictMethodResourceCacheWorkflow()
 29-Jul-2021 - V0.56 Adjust testing protocol to avoid NeighborInteractionProvider backup to git
 29-Jul-2021 - V0.57 Update dependencies
+30-Jul-2021 - V0.58 Further adjustments to cache testing protocol, change testCache() criteria in NeighborInteractionProvider()
