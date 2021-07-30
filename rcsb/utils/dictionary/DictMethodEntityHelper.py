@@ -1679,6 +1679,7 @@ class DictMethodEntityHelper(object):
             if self.__imgtP:
                 imgtIdD = {}
                 imgtEidD = {}
+                # entityPolymerLengthD = self.__commonU.getPolymerEntityLengthsEnumerated(dataContainer)
                 for asymId, authAsymId in asymAuthIdD.items():
                     if instTypeD[asymId] not in ["polymer", "branched"]:
                         continue
@@ -1698,6 +1699,9 @@ class DictMethodEntityHelper(object):
                         if fD["feature_positions"]:
                             begSeqId = ";".join([str(tD["beg_seq_id"]) for tD in fD["feature_positions"]])
                             endSeqId = ";".join([str(tD["end_seq_id"]) for tD in fD["feature_positions"]])
+                            if not self.__isStringInt(begSeqId) or not self.__isStringInt(endSeqId):
+                                begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
+                                endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
                         else:
                             # take the full chain
                             begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
@@ -1727,7 +1731,7 @@ class DictMethodEntityHelper(object):
                         if fD["type"] not in ["SABDAB_ANTIBODY_NAME", "SABDAB_ANTIBODY_TARGET"]:
                             continue
                         if (fD["type"], fD["name"]) in fTypeD:
-                            logger.info("%r (%r) skipping duplicate antibody feature %r = %r", entryId, entityId, fD["type"], fD["name"])
+                            logger.debug("%r (%r) skipping duplicate antibody feature %r = %r", entryId, entityId, fD["type"], fD["name"])
                             continue
                         fTypeD[(fD["type"], fD["name"])] = True
                         begSeqId = ";".join([str(tD["beg_seq_id"]) for tD in fD["feature_positions"]])
@@ -1914,6 +1918,13 @@ class DictMethodEntityHelper(object):
         except Exception as e:
             logger.exception("%s %s failing with %s", dataContainer.getName(), catName, str(e))
         return False
+
+    def __isStringInt(self, tS):
+        try:
+            int(tS)
+            return True
+        except ValueError:
+            return False
 
     def buildRelatedTargetReferences(self, dataContainer, catName, **kwargs):
         """Build category rcsb_related_target_references ...
@@ -2195,6 +2206,14 @@ class DictMethodEntityHelper(object):
                         cfDL = tD["cofactors"]
                         for cfD in cfDL:
                             #
+                            skipThis = False
+                            for ky, atName, atType in atTupMap:
+                                if ky == "measurement_type" and cfD[ky] not in ["pEC50", "pIC50", "pKd", "pKi"]:
+                                    logger.debug("%r skipping measurement type %r", entryId, cfD[ky])
+                                    skipThis = True
+                            if skipThis:
+                                continue
+                            #
                             cObj.setValue(ii + 1, "ordinal", ii)
                             cObj.setValue(entryId, "entry_id", ii)
                             cObj.setValue(entityId, "entity_id", ii)
@@ -2250,6 +2269,14 @@ class DictMethodEntityHelper(object):
                     for tD in tDL:
                         cfDL = tD["cofactors"]
                         for cfD in cfDL:
+                            #
+                            skipThis = False
+                            for ky, atName, atType in atTupMap:
+                                if ky == "measurement_type" and cfD[ky] not in ["pEC50", "pIC50", "pKd", "pKi"]:
+                                    logger.debug("%r skipping measurement type %r", entryId, cfD[ky])
+                                    skipThis = True
+                            if skipThis:
+                                continue
                             #
                             cObj.setValue(ii + 1, "ordinal", ii)
                             cObj.setValue(entryId, "entry_id", ii)

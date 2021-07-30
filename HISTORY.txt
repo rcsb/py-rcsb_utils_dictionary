@@ -48,3 +48,4 @@
 29-Jul-2021 - V0.56 Adjust testing protocol to avoid NeighborInteractionProvider backup to git
 29-Jul-2021 - V0.57 Update dependencies
 30-Jul-2021 - V0.58 Further adjustments to cache testing protocol, change testCache() criteria in NeighborInteractionProvider()
+30-Jul-2021 - V0.59 Fix issues with missing entity ranges and unsupported measurement types for cofactors
