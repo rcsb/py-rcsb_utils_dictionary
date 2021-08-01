@@ -40,6 +40,7 @@ class DictMethodChemRefHelper(object):
         rP = kwargs.get("resourceProvider")
         dapw = rP.getResource("DictionaryAPIProviderWrapper instance") if rP else None
         self.__dApi = dapw.getApiByName("pdbx_core") if dapw else None
+        self.__ccP = rP.getResource("ChemCompProvider instance") if rP else None
         logger.debug("Dictionary method helper init")
 
     def echo(self, msg):
@@ -559,7 +560,7 @@ class DictMethodChemRefHelper(object):
             if dataContainer.exists("chem_comp"):
                 cObj = dataContainer.getObj("chem_comp")
                 if cObj.hasAttribute("pdbx_initial_date"):
-                    releaseDate = cObj.getValueOrDefault("pdbx_initial_date", 0, defaultValue=None)
+                    createDate = cObj.getValueOrDefault("pdbx_initial_date", 0, defaultValue=None)
                 if cObj.hasAttribute("pdbx_modified_date"):
                     reviseDate = cObj.getValueOrDefault("pdbx_modified_date", 0, defaultValue=None)
             if dataContainer.exists(catName):
@@ -574,8 +575,8 @@ class DictMethodChemRefHelper(object):
                         releaseDate = dateVal
                 reviseDate = cObj.getValueOrDefault("date", cObj.getRowCount() - 1, defaultValue=None)
             #
-            if not releaseDate and createDate:
-                releaseDate = createDate
+            # if not releaseDate and createDate:
+            #    releaseDate = createDate
         except Exception as e:
             logger.exception("Failing with %s", str(e))
         return createDate, releaseDate, reviseDate
@@ -639,7 +640,10 @@ class DictMethodChemRefHelper(object):
                 createDate, releaseDate, revisionDate = self.__getAuditDates(dataContainer, "pdbx_prd_audit")
             else:
                 createDate, releaseDate, revisionDate = self.__getAuditDates(dataContainer, "pdbx_chem_comp_audit")
-            #
+            # ---
+            if self.__ccP and not releaseDate:
+                releaseDate = self.__ccP.getReleaseDate(ccId)
+            # ---
             if not releaseDate or not revisionDate:
                 logger.warning("%s(%s) created %r released %r revised %r", ccId, prdId, createDate, releaseDate, revisionDate)
             #  --------- --------- --------- ---------
@@ -680,6 +684,7 @@ class DictMethodChemRefHelper(object):
             #
             wObj.setValue(releaseDate, "initial_release_date", 0)
             wObj.setValue(revisionDate, "revision_date", 0)
+            wObj.setValue(createDate, "initial_deposition_date", 0)
             #
             wObj.setValue(numAtoms, "atom_count", 0)
             wObj.setValue(numAtomsChiral, "atom_count_chiral", 0)

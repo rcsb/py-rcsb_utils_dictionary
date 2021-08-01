@@ -427,7 +427,7 @@ class DictMethodEntityHelper(object):
                                 logger.debug("%s salvaged taxId %r using %r", dataContainer.getName(), taxId, sn)
                                 sObj.setValue(str(taxId), atTaxId, ii)
                             else:
-                                logger.warning("%s taxId salvage fails for scientific name %s", dataContainer.getName(), sn)
+                                logger.debug("%s taxId salvage fails for scientific name %s", dataContainer.getName(), sn)
             ok = True
         except Exception as e:
             logger.exception("Failing for %r with %s", dataContainer.getName(), str(e))
@@ -1681,7 +1681,7 @@ class DictMethodEntityHelper(object):
                 imgtEidD = {}
                 # entityPolymerLengthD = self.__commonU.getPolymerEntityLengthsEnumerated(dataContainer)
                 for asymId, authAsymId in asymAuthIdD.items():
-                    if instTypeD[asymId] not in ["polymer", "branched"]:
+                    if instTypeD[asymId] not in ["polymer"]:
                         continue
                     entityId = asymIdD[asymId]
                     instId = entryId.lower() + "." + authAsymId
@@ -1722,7 +1722,7 @@ class DictMethodEntityHelper(object):
             # --- SAbDab
             if self.__sabdabP:
                 for entityId, eType in eTypeD.items():
-                    if eType not in ["polymer", "branched"]:
+                    if eType not in ["polymer"]:
                         continue
                     eId = entryId + "_" + entityId
                     fDL = self.__sabdabP.getFeatures(eId)
@@ -1790,7 +1790,7 @@ class DictMethodEntityHelper(object):
                         endSeqId = polymerIdMapD[pfTupEnd]["seq_id"]
                         pfD.setdefault(entityId, set()).add((mD["pfamId"], begSeqId, endSeqId))
                     else:
-                        logger.warning("%s noncorresponding Pfam feature %r %r", entryId, pfTupBeg, pfTupEnd)
+                        logger.debug("%s noncorresponding Pfam feature %r %r", entryId, pfTupBeg, pfTupEnd)
                     #
                 #
                 for entityId, pfamTupS in sorted(pfD.items()):
@@ -2208,7 +2208,7 @@ class DictMethodEntityHelper(object):
                             #
                             skipThis = False
                             for ky, atName, atType in atTupMap:
-                                if ky == "measurement_type" and cfD[ky] not in ["pEC50", "pIC50", "pKd", "pKi"]:
+                                if ky == "measurement_type" and cfD[ky] not in ["pAC50", "pEC50", "pIC50", "pKd", "pKi"]:
                                     logger.debug("%r skipping measurement type %r", entryId, cfD[ky])
                                     skipThis = True
                             if skipThis:
@@ -2272,7 +2272,7 @@ class DictMethodEntityHelper(object):
                             #
                             skipThis = False
                             for ky, atName, atType in atTupMap:
-                                if ky == "measurement_type" and cfD[ky] not in ["pEC50", "pIC50", "pKd", "pKi"]:
+                                if ky == "measurement_type" and cfD[ky] not in ["pAC50", "pEC50", "pIC50", "pKd", "pKi"]:
                                     logger.debug("%r skipping measurement type %r", entryId, cfD[ky])
                                     skipThis = True
                             if skipThis:
