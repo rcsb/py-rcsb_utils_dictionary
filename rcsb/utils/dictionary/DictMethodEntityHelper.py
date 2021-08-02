@@ -2544,7 +2544,7 @@ class DictMethodEntityHelper(object):
                         entityId = instEntityD[asymId]
                         pfD.setdefault(entityId, set()).add(mD["pfamId"])
                     else:
-                        logger.warning("%s noncorresponding Pfam annotation %r", entryId, pfTup)
+                        logger.debug("%s noncorresponding Pfam annotation %r", entryId, pfTup)
                         logger.debug("polymerIdMapD %r", polymerIdMapD)
                 #
                 for entityId, pfamIdS in pfD.items():
