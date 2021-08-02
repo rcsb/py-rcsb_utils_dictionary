@@ -72,6 +72,20 @@ class DictmethodResourceProviderTests(unittest.TestCase):
         obj = rP.getResource(resourceName, useCache=False, default=None, doBackup=False, useStash=False, useGit=True)
         self.assertTrue(obj is not None)
 
+    @unittest.skip("Maintenance test")
+    def testCacheResourceToGit(self):
+        resourceName = "ChemCompProvider instance"
+        rP = DictMethodResourceProvider(
+            self.__cfgOb,
+            configName=self.__configName,
+            cachePath=self.__cachePath,
+            restoreUseStash=False,
+            restoreUseGit=False,
+            providerTypeExclude=self.__excludeType,
+        )
+        obj = rP.getResource(resourceName, useCache=False, default=None, doBackup=True, useStash=False, useGit=True)
+        self.assertTrue(obj is not None)
+
     def testResourceCache(self):
         rP = DictMethodResourceProvider(
             self.__cfgOb,

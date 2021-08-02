@@ -615,7 +615,7 @@ class DictMethodEntityInstanceHelper(object):
             if sabdabP:
                 sabdabVersion = sabdabP.getVersion()
                 for asymId, authAsymId in asymAuthIdD.items():
-                    if instTypeD[asymId] not in ["polymer", "branched"]:
+                    if instTypeD[asymId] not in ["polymer"]:
                         continue
                     entityId = asymIdD[asymId]
                     instId = entryId.lower() + "." + authAsymId

@@ -645,7 +645,7 @@ class DictMethodChemRefHelper(object):
                 releaseDate = self.__ccP.getReleaseDate(ccId)
             # ---
             if not releaseDate or not revisionDate:
-                logger.warning("%s(%s) created %r released %r revised %r", ccId, prdId, createDate, releaseDate, revisionDate)
+                logger.debug("%s(%s) created %r released %r revised %r", ccId, prdId, createDate, releaseDate, revisionDate)
             #  --------- --------- --------- ---------
             # Create the new target category
             #
