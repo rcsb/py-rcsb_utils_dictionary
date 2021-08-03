@@ -26,6 +26,7 @@ import unittest
 from rcsb.utils.dictionary.DictMethodResourceProvider import DictMethodResourceProvider
 from rcsb.utils.dictionary.NeighborInteractionProvider import NeighborInteractionProvider
 from rcsb.utils.config.ConfigUtil import ConfigUtil
+from rcsb.utils.io.FileUtil import FileUtil
 from rcsb.utils.io.MarshalUtil import MarshalUtil
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s]-%(module)s.%(funcName)s: %(message)s")
@@ -37,7 +38,7 @@ TOPDIR = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
 
 
 class DictmethodResourceProviderTests(unittest.TestCase):
-    skipFull = platform.system() != "Darwin"
+    # skipFull = platform.system() != "Darwin"
     buildTestingCache = False
 
     def setUp(self):
@@ -63,7 +64,7 @@ class DictmethodResourceProviderTests(unittest.TestCase):
 
     def testGetResource(self):
         """Test restore a single packages from  git stash storage"""
-        resourceName = "SiftsSummaryProvider instance"
+        resourceName = "PubChemProvider instance"
         rP = DictMethodResourceProvider(
             self.__cfgOb,
             configName=self.__configName,
@@ -88,9 +89,9 @@ class DictmethodResourceProviderTests(unittest.TestCase):
         ok = rP.cacheResources(useCache=True, doRestore=True)
         self.assertTrue(ok)
 
-    # ---- Maintenance tests -----
-    @unittest.skipUnless(buildTestingCache, "Maintenance task to construct testing cache")
-    def testBuildResourceCache(self):
+    # ---- Maintenance tests ----- ---- Maintenance tests ----- ---- Maintenance tests -----
+    @unittest.skipUnless(buildTestingCache, "Maintenance task to construct testing cache Step 1")
+    def testBuildResourceCacheStep1(self):
         """Build the testing cache resources from scratch and update git storage"""
         rP = DictMethodResourceProvider(
             self.__cfgOb,
@@ -112,40 +113,117 @@ class DictmethodResourceProviderTests(unittest.TestCase):
         if ok:
             okB = niP.backup(self.__cfgOb, self.__configName, remotePrefix=None, useGit=True, useStash=False)
             self.assertTrue(okB)
-        # --- Sync the other non-buildable resource data
+
+    @unittest.skipUnless(buildTestingCache, "Maintenance task to construct testing cache Step 2")
+    def testBuildResourceCacheStep2(self):
+        # --- Restore Nonbuildable provider from stash store to local cache
         configName = "site_info_remote_configuration"
         cfgOb = ConfigUtil(configPath=self.__configPath, defaultSectionName=configName, mockTopPath=self.__mockTopPath)
-        rP = DictMethodResourceProvider(cfgOb, configName=configName, cachePath=self.__cachePath, restoreUseStash=True, restoreUseGit=True)
+        rP = DictMethodResourceProvider(
+            cfgOb,
+            configName=configName,
+            cachePath=self.__cachePath,
+            restoreUseStash=True,
+            restoreUseGit=False,
+        )
         for providerName in [
             "CARDTargetFeatureProvider instance",
             "ChEMBLTargetCofactorProvider instance",
             "DrugBankTargetCofactorProvider instance",
             "GlycanProvider instance",
             "IMGTTargetFeatureProvider instance",
-            # "NeighborInteractionProvider instance",
             "PharosProvider instance",
             "PharosTargetCofactorProvider instance",
             "PubChemProvider instance",
             "SAbDabTargetFeatureProvider instance",
         ]:
-            # ok = rP.syncCache(providerName, cfgOb, configName, self.__cachePath, remotePrefix=None, sourceCache="stash")
-            obj = rP.getResource(providerName, useCache=False, default=None, doRestore=True, doBackup=False, useStash=False, useGit=False)
+            obj = rP.getResource(providerName, useCache=True, default=None, doRestore=True, doBackup=False, useStash=False, useGit=False)
             self.assertTrue(obj is not None)
 
-    @unittest.skip("Maintenance test")
-    def testCacheResourceToGit(self):
-        """Update the cache for an individual buildable resource"""
-        resourceName = "Scop2Provider instance"
+    @unittest.skipUnless(buildTestingCache, "Maintenance task to construct testing cache Step 3")
+    def testBuildResourceCacheStep3(self):
+        # --- Push local cache to git
         rP = DictMethodResourceProvider(
             self.__cfgOb,
             configName=self.__configName,
             cachePath=self.__cachePath,
-            restoreUseStash=True,
+            restoreUseStash=False,
+            restoreUseGit=False,
+        )
+        for providerName in [
+            "CARDTargetFeatureProvider instance",
+            "ChEMBLTargetCofactorProvider instance",
+            "DrugBankTargetCofactorProvider instance",
+            "GlycanProvider instance",
+            "IMGTTargetFeatureProvider instance",
+            "PharosProvider instance",
+            "PharosTargetCofactorProvider instance",
+            "PubChemProvider instance",
+            "SAbDabTargetFeatureProvider instance",
+        ]:
+            okB = False
+            obj = rP.getResource(providerName, useCache=True, default=None, doRestore=False, doBackup=False, useStash=False, useGit=False)
+            if obj:
+                okB = obj.backup(self.__cfgOb, self.__configName, remotePrefix=None, useGit=True, useStash=False)
+            self.assertTrue(okB)
+
+    @unittest.skipUnless(buildTestingCache, "Maintenance task to construct testing cache Step 4")
+    def testBuildResourceCacheStep4(self):
+        #  Test a full cache restore -
+        fU = FileUtil()
+        fU.remove(self.__cachePath)
+        rP = DictMethodResourceProvider(
+            self.__cfgOb,
+            configName=self.__configName,
+            cachePath=self.__cachePath,
+            restoreUseStash=False,
+            restoreUseGit=True,
+            providerTypeExclude=self.__excludeType,
+        )
+        ok = rP.cacheResources(useCache=True, doRestore=True)
+        self.assertTrue(ok)
+
+    @unittest.skipUnless(buildTestingCache, "Maintenance test")
+    def testCacheBuildabeResourceToGit(self):
+        """Update the git cache for an individual buildable resource"""
+        resourceName = "AtcProvider instance"
+        rP = DictMethodResourceProvider(
+            self.__cfgOb,
+            configName=self.__configName,
+            cachePath=self.__cachePath,
+            restoreUseStash=False,
             restoreUseGit=False,
             providerTypeExclude=self.__excludeType,
         )
         obj = rP.getResource(resourceName, useCache=False, default=None, doBackup=True, useStash=False, useGit=True)
         self.assertTrue(obj is not None)
+
+    @unittest.skipUnless(buildTestingCache, "Maintenance test")
+    def testCacheNonBuildabeResourceToGit(self):
+        """Update the git cache for an individual nonbuildable resource using stash storage as source"""
+        configName = "site_info_remote_configuration"
+        cfgOb = ConfigUtil(configPath=self.__configPath, defaultSectionName=configName, mockTopPath=self.__mockTopPath)
+        rP = DictMethodResourceProvider(
+            cfgOb,
+            configName=configName,
+            cachePath=self.__cachePath,
+            restoreUseStash=True,
+            restoreUseGit=False,
+            providerTypeExclude=None,
+        )
+        for providerName in [
+            "CARDTargetFeatureProvider instance",
+            "ChEMBLTargetCofactorProvider instance",
+            "DrugBankTargetCofactorProvider instance",
+            "GlycanProvider instance",
+            "IMGTTargetFeatureProvider instance",
+            "PharosProvider instance",
+            "PharosTargetCofactorProvider instance",
+            "PubChemProvider instance",
+            "SAbDabTargetFeatureProvider instance",
+        ]:
+            obj = rP.getResource(providerName, useCache=False, default=None, doRestore=True, doBackup=True, useStash=False, useGit=True)
+            self.assertTrue(obj is not None)
 
 
 def dictResourceCacheSuite():

@@ -19,6 +19,7 @@
 #  18-Feb-2021 jdw add TargerInteractionProvider()
 #  25-Jul-2021 jdw refactored with common provider api
 #  27-Jul-2021 jdw add exclusion filter for testing
+#   3-Aug-2021 jdw add backup options for nonbuildable providers
 ##
 ##
 """
@@ -576,11 +577,17 @@ class DictMethodResourceProvider(SingletonClass):
             except Exception as e:
                 logger.exception("Failing with %s", str(e))
         else:
+            doBackup = kwargs.get("doBackup", False)
             try:
                 prI = self.__providerD[providerName]["class"](cachePath=cachePath, useCache=useCache, **classArgs)
                 prI.restore(cfgOb, configName, remotePrefix=remotePrefix, useStash=self.__restoreUseStash, useGit=self.__restoreUseGit)
                 prI = self.__providerD[providerName]["class"](cachePath=cachePath, useCache=True, **classArgs)
                 ok = prI.testCache(minCount=minCount)
+                if ok and doBackup and isStashable:
+                    useGit = kwargs.get("useGit", False)
+                    useStash = kwargs.get("useStash", True)
+                    okB = prI.backup(cfgOb, configName, remotePrefix=remotePrefix, useStash=useStash, useGit=useGit)
+                    ok = ok and okB
             except Exception as e:
                 logger.exception("Failing with %s", str(e))
         #
