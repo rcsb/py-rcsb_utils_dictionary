@@ -51,3 +51,4 @@
 30-Jul-2021 - V0.59 Fix issues with missing entity ranges and unsupported measurement types for cofactors
  1-Aug-2021 - V0.60 Add extra release date data source for chemical components.  Restrict antibody annotation to polymer entities. Allow pAC50.
  1-Aug-2021 - V0.61 Further restrict antibody annotation mapping.  Suppress warnings on release date details.
+ 2-Aug-2021 - V0.62 Further adjustments for testing cache construction.

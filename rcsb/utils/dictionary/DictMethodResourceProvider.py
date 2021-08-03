@@ -55,6 +55,7 @@ from rcsb.utils.dictionary.DictionaryApiProviderWrapper import DictionaryApiProv
 from rcsb.utils.dictionary.DictMethodCommonUtils import DictMethodCommonUtils
 from rcsb.utils.dictionary.NeighborInteractionProvider import NeighborInteractionProvider
 from rcsb.utils.ec.EnzymeDatabaseProvider import EnzymeDatabaseProvider
+from rcsb.utils.io.FileUtil import FileUtil
 from rcsb.utils.io.SingletonClass import SingletonClass
 
 # ---
@@ -405,6 +406,7 @@ class DictMethodResourceProvider(SingletonClass):
             remotePrefix (str, optional): remote prefix for a multi-channel stash rotation. Defaults to None.
             providerSelect (str, optional): select buildable|nonbuildable|None. Defaults to None
             cacheInstance (bool, optional): hold a reference to the data for the cached provided. Defaults to False.
+            clearCache (bool, optional): clear the cache directory before rebuilding.
         Returns:
             bool: True for success or False otherwise
         """
@@ -415,7 +417,13 @@ class DictMethodResourceProvider(SingletonClass):
         #
         kwargs["cacheInstance"] = kwargs["cacheInstance"] if "cacheInstance" in kwargs else True
         providerSelect = kwargs.get("providerSelect", None)
+        clearCache = kwargs.get("clearCache", None)
         failList = []
+        #
+        if not useCache and clearCache:
+            fU = FileUtil()
+            fU.remove(self.__cachePath)
+        #
         for providerName in sorted(self.__providerD):
             if self.__providerTypeExclude and self.__providerTypeExclude in self.__providerD[providerName]["providerType"]:
                 logger.info("Provider excluded by filter %r", providerName)
@@ -657,7 +665,7 @@ class DictMethodResourceProvider(SingletonClass):
         return ok
 
     def syncCache(self, providerName, cfgOb, configName, cachePath, remotePrefix=None, sourceCache="stash"):
-        """Synchronize cache data for the input provider from the input source cache
+        """Synchronize cache data for the input provider from the input source cache to git stash storage
 
         Args:
             providerName (str): provider name

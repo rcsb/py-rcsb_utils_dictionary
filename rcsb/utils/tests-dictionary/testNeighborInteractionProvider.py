@@ -37,6 +37,7 @@ logger = logging.getLogger()
 
 class NeighborInteractionProviderTests(unittest.TestCase):
     skipFlag = platform.system() != "Darwin"
+    buildTestingCache = True
 
     def setUp(self):
         mockTopPath = os.path.join(TOPDIR, "rcsb", "mock-data")
