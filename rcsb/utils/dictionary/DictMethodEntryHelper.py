@@ -674,7 +674,7 @@ class DictMethodEntryHelper(object):
                 return False
             #
             if catName == "pdbx_related_exp_data_set":
-                logger.info("Filtering %r %r", dataContainer.getName(), catName)
+                logger.debug("Filtering %r %r", dataContainer.getName(), catName)
                 try:
                     cObj.removeAttribute("ordinal")
                     cObj.removeDuplicateRows()
