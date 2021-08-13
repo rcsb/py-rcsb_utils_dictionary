@@ -2195,6 +2195,7 @@ class DictMethodEntityHelper(object):
             # ---------------
             ii = cObj.getRowCount()
             #
+            #  JDW "cofactor_id" -> 'cofactor_resource_id': 'DB14031', 'target_resource_id': 'P06276',
             # --- ChEMBL
             if self.__chemblP:
                 for entityId, eType in eTypeD.items():
@@ -2202,9 +2203,17 @@ class DictMethodEntityHelper(object):
                         continue
                     eId = entryId + "_" + entityId
                     tDL = self.__chemblP.getTargets(eId)
+                    # --
+                    dupD = {}
+                    # --
                     for tD in tDL:
                         cfDL = tD["cofactors"]
                         for cfD in cfDL:
+                            # ---
+                            if (tD["query_id"], cfD["cofactor_id"]) in dupD:
+                                continue
+                            dupD[(tD["query_id"], cfD["cofactor_id"])] = entityId
+                            # ---
                             #
                             skipThis = False
                             for ky, atName, atType in atTupMap:
@@ -2238,9 +2247,17 @@ class DictMethodEntityHelper(object):
                         continue
                     eId = entryId + "_" + entityId
                     tDL = self.__dbP.getTargets(eId)
+                    # --
+                    dupD = {}
+                    # --
                     for tD in tDL:
                         cfDL = tD["cofactors"]
                         for cfD in cfDL:
+                            # ---
+                            if (tD["query_id"], cfD["cofactor_id"]) in dupD:
+                                continue
+                            dupD[(tD["query_id"], cfD["cofactor_id"])] = entityId
+                            # ---
                             #
                             cObj.setValue(ii + 1, "ordinal", ii)
                             cObj.setValue(entryId, "entry_id", ii)
@@ -2266,9 +2283,17 @@ class DictMethodEntityHelper(object):
                         continue
                     eId = entryId + "_" + entityId
                     tDL = self.__phP.getTargets(eId)
+                    # --
+                    dupD = {}
+                    # --
                     for tD in tDL:
                         cfDL = tD["cofactors"]
                         for cfD in cfDL:
+                            # ---
+                            if (tD["query_id"], cfD["cofactor_id"]) in dupD:
+                                continue
+                            dupD[(tD["query_id"], cfD["cofactor_id"])] = entityId
+                            # ---
                             #
                             skipThis = False
                             for ky, atName, atType in atTupMap:
