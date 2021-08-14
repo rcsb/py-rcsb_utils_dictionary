@@ -55,4 +55,5 @@
  3-Aug-2021 - V0.63 Add backup option for nonbuildable caches
  4-Aug-2021 - V0.64 Update dependencies and logging verbosity
 13-Aug-2021 - V0.65 Remove possible redundancy in target cofactor data
-
+13-Aug-2021 - V0.66 Remove possible redundancy in target reference assignments
+#

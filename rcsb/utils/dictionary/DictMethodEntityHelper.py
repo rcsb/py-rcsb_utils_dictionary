@@ -1998,7 +1998,12 @@ class DictMethodEntityHelper(object):
                         continue
                     eId = entryId + "_" + entityId
                     tDL = self.__chemblP.getTargets(eId)
+                    dupD = {}
                     for tD in tDL:
+                        if tD["query_id"] in dupD:
+                            continue
+                        dupD[tD["query_id"]] = entityId
+                        #
                         entityBegSeqId = ";".join([str(tD["entity_beg_seq_id"]) for tD in tD["aligned_target"]])
                         targetBegSeqId = ";".join([str(tD["target_beg_seq_id"]) for tD in tD["aligned_target"]])
                         alignLength = ";".join([str(tD["length"]) for tD in tD["aligned_target"]])
@@ -2024,7 +2029,11 @@ class DictMethodEntityHelper(object):
                         continue
                     eId = entryId + "_" + entityId
                     tDL = self.__dbP.getTargets(eId)
+                    dupD = {}
                     for tD in tDL:
+                        if tD["query_id"] in dupD:
+                            continue
+                        dupD[tD["query_id"]] = entityId
                         entityBegSeqId = ";".join([str(tD["entity_beg_seq_id"]) for tD in tD["aligned_target"]])
                         targetBegSeqId = ";".join([str(tD["target_beg_seq_id"]) for tD in tD["aligned_target"]])
                         alignLength = ";".join([str(tD["length"]) for tD in tD["aligned_target"]])
@@ -2050,7 +2059,11 @@ class DictMethodEntityHelper(object):
                         continue
                     eId = entryId + "_" + entityId
                     tDL = self.__phP.getTargets(eId)
+                    dupD = {}
                     for tD in tDL:
+                        if tD["query_id"] in dupD:
+                            continue
+                        dupD[tD["query_id"]] = entityId
                         entityBegSeqId = ";".join([str(tD["entity_beg_seq_id"]) for tD in tD["aligned_target"]])
                         targetBegSeqId = ";".join([str(tD["target_beg_seq_id"]) for tD in tD["aligned_target"]])
                         alignLength = ";".join([str(tD["length"]) for tD in tD["aligned_target"]])
