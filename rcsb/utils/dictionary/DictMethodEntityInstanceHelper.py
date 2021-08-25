@@ -610,6 +610,7 @@ class DictMethodEntityInstanceHelper(object):
                         #
                         ii += 1
                 #
+
             # --- SAbDab
             sabdabP = rP.getResource("SAbDabTargetFeatureProvider instance") if rP else None
             if sabdabP:
@@ -1794,6 +1795,130 @@ class DictMethodEntityInstanceHelper(object):
                         cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
                         #
                         cObj.setValue("SCOPe", "provenance_source", ii)
+                        cObj.setValue(version, "assignment_version", ii)
+                        #
+                        ii += 1
+            # JDW - Add SCOP2 family assignments
+            scopU = rP.getResource("Scop2Provider instance") if rP else None
+            if scopU:
+                version = scopU.getVersion()
+                for asymId, authAsymId in asymAuthIdD.items():
+                    if instTypeD[asymId] not in ["polymer", "branched"]:
+                        continue
+                    entityId = asymIdD[asymId]
+                    # Family mappings
+                    dL = scopU.getFamilyResidueRanges(entryId.upper(), authAsymId)
+                    for (domId, familyId, _, _, _) in dL:
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        cObj.setValue(asymId, "asym_id", ii)
+                        cObj.setValue(authAsymId, "auth_asym_id", ii)
+                        cObj.setValue("SCOP2", "type", ii)
+                        #
+                        cObj.setValue(domId, "annotation_id", ii)
+                        cObj.setValue(scopU.getName(familyId), "name", ii)
+                        #
+                        tL = [t if t is not None else "" for t in scopU.getNameLineage(familyId)]
+                        cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
+                        idLinL = scopU.getIdLineage(familyId)
+                        cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
+                        cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
+                        #
+                        cObj.setValue("SCOP2", "provenance_source", ii)
+                        cObj.setValue(version, "assignment_version", ii)
+                        #
+                        ii += 1
+                # ------------
+                # Add SCOP2 superfamily assignments
+                for asymId, authAsymId in asymAuthIdD.items():
+                    if instTypeD[asymId] not in ["polymer", "branched"]:
+                        continue
+                    entityId = asymIdD[asymId]
+                    # Family mappings
+                    dL = scopU.getSuperFamilyResidueRanges(entryId.lower(), authAsymId)
+                    for (domId, superfamilyId, _, _, _) in dL:
+
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        cObj.setValue(asymId, "asym_id", ii)
+                        cObj.setValue(authAsymId, "auth_asym_id", ii)
+                        cObj.setValue("SCOP2", "type", ii)
+                        #
+                        cObj.setValue(domId, "annotation_id", ii)
+                        cObj.setValue(scopU.getName(superfamilyId), "name", ii)
+                        #
+                        tL = [t if t is not None else "" for t in scopU.getNameLineage(superfamilyId)]
+                        cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
+                        idLinL = scopU.getIdLineage(superfamilyId)
+                        cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
+                        cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
+                        #
+                        cObj.setValue("SCOP2", "provenance_source", ii)
+                        cObj.setValue(version, "assignment_version", ii)
+                        #
+                        ii += 1
+                # ----
+                # Add SCOP2B superfamily assignments
+                for asymId, authAsymId in asymAuthIdD.items():
+                    if instTypeD[asymId] not in ["polymer", "branched"]:
+                        continue
+                    entityId = asymIdD[asymId]
+                    # Family mappings
+                    dL = scopU.getSuperFamilyResidueRanges2B(entryId.lower(), authAsymId)
+                    for (domId, superfamilyId, _, _, _) in dL:
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        cObj.setValue(asymId, "asym_id", ii)
+                        cObj.setValue(authAsymId, "auth_asym_id", ii)
+                        cObj.setValue("SCOP2", "type", ii)
+                        #
+                        cObj.setValue(domId, "annotation_id", ii)
+                        cObj.setValue(scopU.getName(superfamilyId), "name", ii)
+                        #
+                        tL = [t if t is not None else "" for t in scopU.getNameLineage(superfamilyId)]
+                        cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
+                        idLinL = scopU.getIdLineage(superfamilyId)
+                        cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
+                        cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
+                        #
+                        cObj.setValue("SCOP2B", "provenance_source", ii)
+                        cObj.setValue(version, "assignment_version", ii)
+                        #
+                        ii += 1
+            # ------------
+            # ECOD assignments -
+            ecodU = rP.getResource("EcodProvider instance") if rP else None
+            if ecodU:
+                version = ecodU.getVersion()
+                for asymId, authAsymId in asymAuthIdD.items():
+                    if instTypeD[asymId] not in ["polymer", "branched"]:
+                        continue
+                    entityId = asymIdD[asymId]
+                    # Family mappings
+                    dL = ecodU.getFamilyResidueRanges(entryId.lower(), authAsymId)
+                    for (domId, familyId, _, _, _) in dL:
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        cObj.setValue(asymId, "asym_id", ii)
+                        cObj.setValue(authAsymId, "auth_asym_id", ii)
+                        cObj.setValue("ECOD", "type", ii)
+                        #
+                        fName = ecodU.getName(familyId)[3:]
+                        cObj.setValue(domId, "annotation_id", ii)
+                        cObj.setValue(fName, "name", ii)
+                        #
+
+                        tL = [t if t is not None else "" for t in ecodU.getNameLineage(familyId)]
+                        cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
+                        idLinL = ecodU.getIdLineage(familyId)
+                        cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
+                        cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
+                        #
+                        cObj.setValue("ECOD", "provenance_source", ii)
                         cObj.setValue(version, "assignment_version", ii)
                         #
                         ii += 1

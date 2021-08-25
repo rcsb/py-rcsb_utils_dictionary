@@ -6,6 +6,7 @@ test-output/
 CACHE/
 LOGTOX
 .tox/
+.vscode/
 # C extensions
 *.so
 
