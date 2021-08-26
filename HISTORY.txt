@@ -57,5 +57,6 @@
 13-Aug-2021 - V0.65 Remove possible redundancy in target cofactor data
 13-Aug-2021 - V0.66 Remove possible redundancy in target reference assignments
 25-Aug-2021 - V0.67 Add SCOP2/ECOD polymer entity instance annotations
+26-Aug-2021 - V0.68 Add redundancy filters for polymer entity instance annotations
 #
 #

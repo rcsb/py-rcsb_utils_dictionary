@@ -1744,7 +1744,11 @@ class DictMethodEntityInstanceHelper(object):
                     dL = cathU.getCathResidueRanges(entryId.lower(), authAsymId)
                     logger.debug("%s asymId %s authAsymId %s dL %r", entryId, asymId, authAsymId, dL)
                     vL = cathU.getCathVersions(entryId.lower(), authAsymId)
+                    qD = {}
                     for (cathId, domId, _, _, _) in dL:
+                        if cathId in qD:
+                            continue
+                        qD[cathId] = domId
                         cObj.setValue(ii + 1, "ordinal", ii)
                         cObj.setValue(entryId, "entry_id", ii)
                         cObj.setValue(entityId, "entity_id", ii)
@@ -1776,7 +1780,11 @@ class DictMethodEntityInstanceHelper(object):
                     entityId = asymIdD[asymId]
                     dL = scopU.getScopResidueRanges(entryId.lower(), authAsymId)
                     version = scopU.getScopVersion()
+                    qD = {}
                     for (sunId, domId, _, _, _, _) in dL:
+                        if sunId in qD:
+                            continue
+                        qD[sunId] = domId
                         cObj.setValue(ii + 1, "ordinal", ii)
                         cObj.setValue(entryId, "entry_id", ii)
                         cObj.setValue(entityId, "entity_id", ii)
@@ -1808,7 +1816,11 @@ class DictMethodEntityInstanceHelper(object):
                     entityId = asymIdD[asymId]
                     # Family mappings
                     dL = scopU.getFamilyResidueRanges(entryId.upper(), authAsymId)
+                    qD = {}
                     for (domId, familyId, _, _, _) in dL:
+                        if familyId in qD:
+                            continue
+                        qD[familyId] = domId
                         cObj.setValue(ii + 1, "ordinal", ii)
                         cObj.setValue(entryId, "entry_id", ii)
                         cObj.setValue(entityId, "entity_id", ii)
@@ -1837,8 +1849,11 @@ class DictMethodEntityInstanceHelper(object):
                     entityId = asymIdD[asymId]
                     # Family mappings
                     dL = scopU.getSuperFamilyResidueRanges(entryId.lower(), authAsymId)
+                    qD = {}
                     for (domId, superfamilyId, _, _, _) in dL:
-
+                        if superfamilyId in qD:
+                            continue
+                        qD[superfamilyId] = domId
                         cObj.setValue(ii + 1, "ordinal", ii)
                         cObj.setValue(entryId, "entry_id", ii)
                         cObj.setValue(entityId, "entity_id", ii)
@@ -1867,7 +1882,10 @@ class DictMethodEntityInstanceHelper(object):
                     entityId = asymIdD[asymId]
                     # Family mappings
                     dL = scopU.getSuperFamilyResidueRanges2B(entryId.lower(), authAsymId)
+                    qD = {}
                     for (domId, superfamilyId, _, _, _) in dL:
+                        if superfamilyId in qD:
+                            qD[superfamilyId] = domId
                         cObj.setValue(ii + 1, "ordinal", ii)
                         cObj.setValue(entryId, "entry_id", ii)
                         cObj.setValue(entityId, "entity_id", ii)
@@ -1899,7 +1917,11 @@ class DictMethodEntityInstanceHelper(object):
                     entityId = asymIdD[asymId]
                     # Family mappings
                     dL = ecodU.getFamilyResidueRanges(entryId.lower(), authAsymId)
+                    qD = {}
                     for (domId, familyId, _, _, _) in dL:
+                        if familyId in qD:
+                            continue
+                        qD[familyId] = domId
                         cObj.setValue(ii + 1, "ordinal", ii)
                         cObj.setValue(entryId, "entry_id", ii)
                         cObj.setValue(entityId, "entity_id", ii)
