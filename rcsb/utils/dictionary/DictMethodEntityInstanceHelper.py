@@ -1806,12 +1806,14 @@ class DictMethodEntityInstanceHelper(object):
                         cObj.setValue(version, "assignment_version", ii)
                         #
                         ii += 1
-            # JDW - Add SCOP2 family assignments
+            # JDW - Add SCOP2 family annotation assignments
             scopU = rP.getResource("Scop2Provider instance") if rP else None
             if scopU:
                 version = scopU.getVersion()
                 for asymId, authAsymId in asymAuthIdD.items():
-                    if instTypeD[asymId] not in ["polymer", "branched"]:
+                    # JDW
+                    # if instTypeD[asymId] not in ["polymer", "branched"]:
+                    if instTypeD[asymId] not in ["polymer"]:
                         continue
                     entityId = asymIdD[asymId]
                     # Family mappings
@@ -1842,9 +1844,11 @@ class DictMethodEntityInstanceHelper(object):
                         #
                         ii += 1
                 # ------------
-                # Add SCOP2 superfamily assignments
+                # Add SCOP2 superfamily annotation assignments
                 for asymId, authAsymId in asymAuthIdD.items():
-                    if instTypeD[asymId] not in ["polymer", "branched"]:
+                    # JDW
+                    # if instTypeD[asymId] not in ["polymer", "branched"]:
+                    if instTypeD[asymId] not in ["polymer"]:
                         continue
                     entityId = asymIdD[asymId]
                     # Family mappings
@@ -1875,9 +1879,11 @@ class DictMethodEntityInstanceHelper(object):
                         #
                         ii += 1
                 # ----
-                # Add SCOP2B superfamily assignments
+                # Add SCOP2B superfamily annotation assignments
                 for asymId, authAsymId in asymAuthIdD.items():
-                    if instTypeD[asymId] not in ["polymer", "branched"]:
+                    # JDW
+                    # if instTypeD[asymId] not in ["polymer", "branched"]:
+                    if instTypeD[asymId] not in ["polymer"]:
                         continue
                     entityId = asymIdD[asymId]
                     # Family mappings
@@ -1907,12 +1913,14 @@ class DictMethodEntityInstanceHelper(object):
                         #
                         ii += 1
             # ------------
-            # ECOD assignments -
+            # ECOD annotation assignments -
             ecodU = rP.getResource("EcodProvider instance") if rP else None
             if ecodU:
                 version = ecodU.getVersion()
                 for asymId, authAsymId in asymAuthIdD.items():
-                    if instTypeD[asymId] not in ["polymer", "branched"]:
+                    # JDW FIX
+                    # if instTypeD[asymId] not in ["polymer", "branched"]:
+                    if instTypeD[asymId] not in ["polymer"]:
                         continue
                     entityId = asymIdD[asymId]
                     # Family mappings

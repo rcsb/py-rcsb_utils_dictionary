@@ -59,5 +59,5 @@
 25-Aug-2021 - V0.67 Add SCOP2/ECOD polymer entity instance annotations
 26-Aug-2021 - V0.68 Add redundancy filters for polymer entity instance annotations
 26-Aug-2021 - V0.69 Update dependencies
-#
+28-Aug-2021 - V0.70 Suppress SCOP2/ECOD for branched entities
 #
