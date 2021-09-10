@@ -60,4 +60,5 @@
 26-Aug-2021 - V0.68 Add redundancy filters for polymer entity instance annotations
 26-Aug-2021 - V0.69 Update dependencies
 28-Aug-2021 - V0.70 Suppress SCOP2/ECOD for branched entities
+10-Aug-2021 - V0.71 Update dependencies for SCOP2 in rcsb.utils.struct
 #
