@@ -68,6 +68,7 @@ from rcsb.utils.seq.SiftsSummaryProvider import SiftsSummaryProvider
 # ---
 from rcsb.utils.struct.CathClassificationProvider import CathClassificationProvider
 from rcsb.utils.struct.EcodClassificationProvider import EcodClassificationProvider
+from rcsb.utils.struct.EntryInfoProvider import EntryInfoProvider
 from rcsb.utils.struct.Scop2ClassificationProvider import Scop2ClassificationProvider
 from rcsb.utils.struct.ScopClassificationProvider import ScopClassificationProvider
 
@@ -336,6 +337,13 @@ class DictMethodResourceProvider(SingletonClass):
             },
             "SAbDabTargetFeatureProvider instance": {
                 "class": SAbDabTargetFeatureProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": False,
+                "providerType": "optional_1",
+            },
+            "EntryInfoProvider instance": {
+                "class": EntryInfoProvider,
                 "configArgMap": {},
                 "stashable": True,
                 "buildable": False,
