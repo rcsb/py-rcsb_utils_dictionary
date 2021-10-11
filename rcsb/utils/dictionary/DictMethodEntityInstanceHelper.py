@@ -22,6 +22,7 @@ import time
 from collections import OrderedDict
 
 from mmcif.api.DataCategory import DataCategory
+from rcsb.utils.dictionary.DictMethodSecStructUtils import DictMethodSecStructUtils
 
 logger = logging.getLogger(__name__)
 
@@ -43,11 +44,20 @@ class DictMethodEntityInstanceHelper(object):
         #
         rP = kwargs.get("resourceProvider")
         self.__commonU = rP.getResource("DictMethodCommonUtils instance") if rP else None
-        dapw = rP.getResource("DictionaryAPIProviderWrapper instance") if rP else None
-        self.__dApi = dapw.getApiByName("pdbx_core") if dapw else None
+
+        # dapw = rP.getResource("DictionaryAPIProviderWrapper instance") if rP else None
+        # self.__dApi = dapw.getApiByName("pdbx_core") if dapw else None
+        self.__dApi = kwargs.get("dictionaryApi", None)
+        if self.__dApi:
+            logger.debug("Loaded API for: %r", self.__dApi.getDictionaryTitle())
+        else:
+            logger.error("Missing dictionary API %r", kwargs)
+        #
         self.__ccP = rP.getResource("ChemCompProvider instance") if rP else None
         self.__rlsP = rP.getResource("RcsbLigandScoreProvider instance") if rP else None
         self.__niP = rP.getResource("NeighborInteractionProvider instance") if rP else None
+        #
+        self.__ssU = DictMethodSecStructUtils(rP, raiseExceptions=self._raiseExceptions)
         #
         logger.debug("Dictionary entity-instance level method helper init")
 
@@ -647,9 +657,9 @@ class DictMethodEntityInstanceHelper(object):
                         #
                         ii += 1
             # ------------
-            # Add sheet features
-            instSheetRangeD = self.__commonU.getProtSheetFeatures(dataContainer)
-            sheetSenseD = self.__commonU.getProtSheetSense(dataContainer)
+            # Add  sheet/strn features
+            instSheetRangeD = self.__ssU.getProtSecStructFeatures(dataContainer, "sheet")
+            sheetSenseD = self.__ssU.getProtSheetSense(dataContainer)
             for sId, sD in instSheetRangeD.items():
                 for asymId, rTupL in sD.items():
                     addPropTupL = []
@@ -660,7 +670,7 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue(entityId, "entity_id", ii)
                     cObj.setValue(asymId, "asym_id", ii)
                     cObj.setValue(authAsymId, "auth_asym_id", ii)
-                    cObj.setValue("SHEET", "type", ii)
+                    cObj.setValue(rTupL[0][2], "type", ii)
                     #
                     cObj.setValue(str(sId), "feature_id", ii)
                     cObj.setValue("sheet", "name", ii)
@@ -677,39 +687,42 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue(tSeqId, "feature_positions_end_seq_id", ii)
                     #
                     cObj.setValue("PDB entity", "reference_scheme", ii)
-                    cObj.setValue("PROMOTIF", "provenance_source", ii)
-                    cObj.setValue("V1.0", "assignment_version", ii)
+                    cObj.setValue(rTupL[0][3], "provenance_source", ii)
+                    cObj.setValue(rTupL[0][4], "assignment_version", ii)
                     #
                     ii += 1
             # ------------------
             # Helix features
-            helixRangeD = self.__commonU.getProtHelixFeatures(dataContainer)
-            for hId, hL in helixRangeD.items():
-                for (asymId, begSeqId, endSeqId) in hL:
-                    entityId = asymIdD[asymId]
-                    authAsymId = asymAuthIdD[asymId]
-                    cObj.setValue(ii + 1, "ordinal", ii)
-                    cObj.setValue(entryId, "entry_id", ii)
-                    cObj.setValue(entityId, "entity_id", ii)
-                    cObj.setValue(asymId, "asym_id", ii)
-                    cObj.setValue(authAsymId, "auth_asym_id", ii)
-                    cObj.setValue("HELIX_P", "type", ii)
-                    #
-                    cObj.setValue(str(hId), "feature_id", ii)
-                    cObj.setValue("helix", "name", ii)
-                    #
-                    cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
-                    cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
-                    #
-                    cObj.setValue("PDB entity", "reference_scheme", ii)
-                    cObj.setValue("PROMOTIF", "provenance_source", ii)
-                    cObj.setValue("V1.0", "assignment_version", ii)
-                    #
-                    ii += 1
+            for ssType in ["helix", "bend", "turn"]:
+                myRangeD = self.__ssU.getProtSecStructFeatures(dataContainer, ssType)
+                # helixRangeD = self.__ssU.getProtHelixFeatures(dataContainer)
+                for hId, hL in myRangeD.items():
+                    for (asymId, begSeqId, endSeqId, confType, provCode, provVer) in hL:
+                        entityId = asymIdD[asymId]
+                        authAsymId = asymAuthIdD[asymId]
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        cObj.setValue(asymId, "asym_id", ii)
+                        cObj.setValue(authAsymId, "auth_asym_id", ii)
+                        cObj.setValue(confType, "type", ii)
+                        #
+                        cObj.setValue(str(hId), "feature_id", ii)
+                        cObj.setValue(ssType, "name", ii)
+                        #
+                        cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
+                        cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
+                        #
+                        cObj.setValue("PDB entity", "reference_scheme", ii)
+                        cObj.setValue(provCode, "provenance_source", ii)
+                        cObj.setValue(provVer, "assignment_version", ii)
+                        #
+                        ii += 1
             #
             # ------------------
             # Unassigned SS features
-            unassignedRangeD = self.__commonU.getProtUnassignedSecStructFeatures(dataContainer)
+            unassignedProvD = self.__ssU.getProtUnassignedSecStructProvenance(dataContainer)
+            unassignedRangeD = self.__ssU.getProtUnassignedSecStructFeatures(dataContainer)
             for asymId, rTupL in unassignedRangeD.items():
                 if not rTupL:
                     continue
@@ -729,12 +742,12 @@ class DictMethodEntityInstanceHelper(object):
                 cObj.setValue(";".join([str(rTup[1]) for rTup in rTupL]), "feature_positions_end_seq_id", ii)
                 #
                 cObj.setValue("PDB entity", "reference_scheme", ii)
-                cObj.setValue("PROMOTIF", "provenance_source", ii)
-                cObj.setValue("V1.0", "assignment_version", ii)
+                cObj.setValue(unassignedProvD["provenance"], "provenance_source", ii)
+                cObj.setValue(unassignedProvD["version"], "assignment_version", ii)
                 #
                 ii += 1
             #
-            cisPeptideD = self.__commonU.getCisPeptides(dataContainer)
+            cisPeptideD = self.__ssU.getCisPeptides(dataContainer)
             for cId, cL in cisPeptideD.items():
                 for (asymId, begSeqId, endSeqId, modelId, omegaAngle) in cL:
                     addPropTupL = []
@@ -970,12 +983,13 @@ class DictMethodEntityInstanceHelper(object):
         return False
 
     def addProtSecStructInfo(self, dataContainer, catName, **kwargs):
-        """
+        """DEPRECATED METHOD - UNLINKED in Dictionary
         Add category rcsb_prot_sec_struct_info.
 
         """
         try:
-            logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
+            # JDWJDW
+            logger.info("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
             # Exit if source categories are missing
             if not dataContainer.exists("entry") and not (dataContainer.exists("struct_conf") or dataContainer.exists("struct_sheet_range")):
                 return False
@@ -983,7 +997,7 @@ class DictMethodEntityInstanceHelper(object):
             # Create the new target category rcsb_prot_sec_struct_info
             if not dataContainer.exists(catName):
                 dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
-            sD = self.__commonU.getProtSecStructFeatures(dataContainer)
+            sD = self.__commonU.getProtSecStructFeaturesAll(dataContainer)
             # catName = rcsb_prot_sec_struct_info
             cObj = dataContainer.getObj(catName)
             #
@@ -1432,6 +1446,7 @@ class DictMethodEntityInstanceHelper(object):
                 return False
 
             if not dataContainer.exists(catName):
+                logger.debug("building %s with %r", catName, self.__dApi.getAttributeNameList(catName))
                 dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
             #
             eObj = dataContainer.getObj("entry")
@@ -1504,7 +1519,7 @@ class DictMethodEntityInstanceHelper(object):
                 eType = instTypeD[asymId]
                 authAsymId = asymAuthD[asymId]
                 fTypeL = self.__getInstanceFeatureTypes(eType)
-                logger.debug("Feature type list %r", fTypeL)
+                # logger.info("Feature type list %r", fTypeL)
                 # All entity type specific features
                 for fType in fTypeL:
                     sObj.setValue(ii + 1, "ordinal", ii)
@@ -1527,7 +1542,11 @@ class DictMethodEntityInstanceHelper(object):
                         if entityId in entityPolymerLengthD:
                             fracC = float(sum(fMonomerCountD[asymId][fType])) / float(entityPolymerLengthD[entityId])
 
-                        if fType in ["CATH", "SCOP", "HELIX_P", "SHEET", "UNASSIGNED_SEC_STRUCT", "UNOBSERVED_RESIDUE_XYZ", "ZERO_OCCUPANCY_RESIDUE_XYZ"]:
+                        if (
+                            fType
+                            in ["CATH", "SCOP", "HELIX_P", "SHEET", "UNASSIGNED_SEC_STRUCT", "UNOBSERVED_RESIDUE_XYZ", "ZERO_OCCUPANCY_RESIDUE_XYZ"]
+                            + DictMethodSecStructUtils.dsspTypeNames
+                        ):
                             minL = min(fMonomerCountD[asymId][fType])
                             maxL = max(fMonomerCountD[asymId][fType])
 

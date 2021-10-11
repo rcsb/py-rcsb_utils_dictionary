@@ -73,7 +73,7 @@ class DictionaryApiProvider(SingletonClass):
             if useCache and self.__fileU.exists(cacheFilePath):
                 # nothing to do
                 continue
-            logger.debug("Fetching url %s caching in %s", dictLocator, cacheFilePath)
+            logger.info("Fetching url %s caching in %s", dictLocator, cacheFilePath)
             ok = self.__fileU.get(dictLocator, cacheFilePath)
             ret = ret and ok
         return ret

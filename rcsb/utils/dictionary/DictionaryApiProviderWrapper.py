@@ -77,4 +77,5 @@ class DictionaryApiProviderWrapper(SingletonClass):
         else:
             dictLocators = [self.__cfgOb.getPath(configLocator, sectionName=self.__configName) for configLocator in self.__dictLocatorMap[databaseName]]
         #
+        logger.info("Fetching dictionary API for %s using %r", databaseName, dictLocators)
         return self.__dP.getApi(dictLocators, **kwargs)
