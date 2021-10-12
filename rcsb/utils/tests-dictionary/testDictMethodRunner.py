@@ -145,10 +145,16 @@ class DictMethodRunnerTests(unittest.TestCase):
                 "idCodeList": pdbIdList,
             },
             {
-                "contentType": "bird_chem_comp_core",
+                "contentType": "chem_comp",
                 "mergeContent": None,
-                "fileLimit": 40,
-                "idCodeList": prdIdList + ccIdList,
+                "fileLimit": None,
+                "idCodeList": ccIdList,
+            },
+            {
+                "contentType": "bird",
+                "mergeContent": None,
+                "fileLimit": None,
+                "idCodeList": prdIdList,
             },
         ]
         #
