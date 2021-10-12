@@ -13,3 +13,4 @@ rcsb.utils.struct >= 0.37
 rcsb.utils.targets >= 0.56
 rcsb.utils.taxonomy >= 0.39
 rcsb.utils.validation >= 0.25
+rcsb.utils.insilico >= 0.15
