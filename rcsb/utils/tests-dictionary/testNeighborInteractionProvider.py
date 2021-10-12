@@ -46,7 +46,7 @@ class NeighborInteractionProviderTests(unittest.TestCase):
         self.__configName = "site_info_configuration"
         self.__startTime = time.time()
         logger.info("Starting %s at %s", self.id(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()))
-        self.__fileLimit = None if platform.system() == "Darwin" else 5
+        self.__fileLimit = 10 if platform.system() == "Darwin" else 5
         #
         self.__cfgOb = ConfigUtil(configPath=configPath, defaultSectionName=self.__configName, mockTopPath=mockTopPath)
 
