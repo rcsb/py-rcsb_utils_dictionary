@@ -41,9 +41,10 @@ class DictMethodAssemblyHelper(object):
         #
         rP = kwargs.get("resourceProvider")
         self.__commonU = rP.getResource("DictMethodCommonUtils instance") if rP else None
-        dapw = rP.getResource("DictionaryAPIProviderWrapper instance") if rP else None
-        self.__dApi = dapw.getApiByName("pdbx_core") if dapw else None
-        #
+        # dapw = rP.getResource("DictionaryAPIProviderWrapper instance") if rP else None
+        # self.__dApi = dapw.getApiByName("pdbx_core") if dapw else None
+        self.__dApi = kwargs.get("dictionaryApi", None)
+
         logger.debug("Dictionary method helper init")
 
     def echo(self, msg):

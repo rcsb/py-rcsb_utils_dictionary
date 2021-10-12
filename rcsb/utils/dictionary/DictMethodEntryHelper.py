@@ -70,6 +70,7 @@ import logging
 from string import capwords
 
 from mmcif.api.DataCategory import DataCategory
+from rcsb.utils.dictionary.DictMethodSecStructUtils import DictMethodSecStructUtils
 
 logger = logging.getLogger(__name__)
 
@@ -93,12 +94,18 @@ class DictMethodEntryHelper(object):
         #
         rP = kwargs.get("resourceProvider")
         self.__commonU = rP.getResource("DictMethodCommonUtils instance") if rP else None
-        dapw = rP.getResource("DictionaryAPIProviderWrapper instance") if rP else None
-        self.__dApi = dapw.getApiByName("pdbx_core") if dapw else None
+        # dapw = rP.getResource("DictionaryAPIProviderWrapper instance") if rP else None
+        # self.__dApi = dapw.getApiByName("pdbx_core") if dapw else None
+        self.__dApi = kwargs.get("dictionaryApi", None)
+        if self.__dApi:
+            logger.info("Loaded API for: %r", self.__dApi.getDictionaryTitle())
+        else:
+            logger.error("Missing dictionary API %r", kwargs)
         #
         self.__crP = rP.getResource("CitationReferenceProvider instance") if rP else None
         self.__jtaP = rP.getResource("JournalTitleAbbreviationProvider instance") if rP else None
         #
+        self.__ssU = DictMethodSecStructUtils(rP, raiseExceptions=self._raiseExceptions)
         # logger.debug("Dictionary entry method helper init")
 
     def echo(self, msg):
@@ -890,7 +897,7 @@ class DictMethodEntryHelper(object):
             cObj.setValue(bCountsD["metalc"], "inter_mol_metalic_bond_count", 0)
             cObj.setValue(bCountsD["covale"], "inter_mol_covalent_bond_count", 0)
             #
-            cisPeptideD = self.__commonU.getCisPeptides(dataContainer)
+            cisPeptideD = self.__ssU.getCisPeptides(dataContainer)
             cObj.setValue(len(cisPeptideD), "cis_peptide_count", 0)
             #
             # This is reset in anothor method - filterSourceOrganismDetails()

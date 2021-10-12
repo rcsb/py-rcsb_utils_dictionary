@@ -38,8 +38,9 @@ class DictMethodChemRefHelper(object):
         self._raiseExceptions = kwargs.get("raiseExceptions", False)
         #
         rP = kwargs.get("resourceProvider")
-        dapw = rP.getResource("DictionaryAPIProviderWrapper instance") if rP else None
-        self.__dApi = dapw.getApiByName("pdbx_core") if dapw else None
+        # dapw = rP.getResource("DictionaryAPIProviderWrapper instance") if rP else None
+        # self.__dApi = dapw.getApiByName("pdbx_core") if dapw else None
+        self.__dApi = kwargs.get("dictionaryApi", None)
         self.__ccP = rP.getResource("ChemCompProvider instance") if rP else None
         logger.debug("Dictionary method helper init")
 
