@@ -46,7 +46,6 @@ class DictMethodRunnerTests(unittest.TestCase):
         self.__excludeType = None if self.__isMac else "optional"
         self.__export = True
         self.__numProc = 2
-        self.__fileLimit = 200
         mockTopPath = os.path.join(TOPDIR, "rcsb", "mock-data")
         self.__cachePath = os.path.join(HERE, "test-output", "CACHE")
         configPath = os.path.join(mockTopPath, "config", "dbload-setup-example.yml")
@@ -54,11 +53,109 @@ class DictMethodRunnerTests(unittest.TestCase):
         self.__configName = configName
         self.__cfgOb = ConfigUtil(configPath=configPath, defaultSectionName=configName, mockTopPath=mockTopPath)
         self.__mU = MarshalUtil(workPath=self.__cachePath)
-        self.__rpP = RepositoryProvider(cfgOb=self.__cfgOb, numProc=self.__numProc, fileLimit=self.__fileLimit, cachePath=self.__cachePath)
+
         #
+        pdbIdList = [
+            "1ah1",
+            "1b5f",
+            "1bmv",
+            "1c58",
+            "1dsr",
+            "1dul",
+            "1kqe",
+            "1o3q",
+            "1sfo",
+            "2hw3",
+            "2hyv",
+            "2osl",
+            "2voo",
+            "2wmg",
+            "3ad7",
+            "3hya",
+            "3iyd",
+            "3mbg",
+            "3rer",
+            "3vd8",
+            "3vfj",
+            "3x11",
+            "3ztj",
+            "4e2o",
+            "4en8",
+            "4mey",
+            "5eu8",
+            "5kds",
+            "5tm0",
+            "5vh4",
+            "5vp2",
+            "6fsz",
+            "6lu7",
+            "6nn7",
+            "6q20",
+            "6rfk",
+            "6rku",
+            "6yrq",
+        ]
+        ccIdList = [
+            "0EG",
+            "0F7",
+            "0G7",
+            "0PP",
+            "1G1",
+            "2RT",
+            "2XL",
+            "2XN",
+            "ATP",
+            "BJA",
+            "BM3",
+            "CNC",
+            "DAL",
+            "DDZ",
+            "DHA",
+            "DSN",
+            "GTP",
+            "HKL",
+            "JS4",
+            "NAC",
+            "NAG",
+            "NND",
+            "PTR",
+            "SEP",
+            "SMJ",
+            "STL",
+            "UNK",
+            "UNX",
+            "UVL",
+        ]
+        prdIdList = [
+            "PRD_000009",
+            "PRD_000010",
+            "PRD_000060",
+            "PRD_000154",
+            "PRD_000198",
+            "PRD_000220",
+            "PRD_000877",
+            "PRD_000882",
+            "PRD_000979",
+        ]
         self.__testCaseList = [
-            {"contentType": "pdbx_core", "mockLength": 30, "mergeContent": ["vrpt"]},
-            {"contentType": "bird_chem_comp_core", "mockLength": 17, "mergeContent": None},
+            {
+                "contentType": "pdbx_core",
+                "mergeContent": ["vrpt"],
+                "fileLimit": 10,
+                "idCodeList": pdbIdList,
+            },
+            {
+                "contentType": "chem_comp",
+                "mergeContent": None,
+                "fileLimit": None,
+                "idCodeList": ccIdList,
+            },
+            {
+                "contentType": "bird",
+                "mergeContent": None,
+                "fileLimit": None,
+                "idCodeList": prdIdList,
+            },
         ]
         #
         self.__modulePathMap = self.__cfgOb.get("DICT_METHOD_HELPER_MODULE_PATH_MAP", sectionName=configName)
@@ -73,7 +170,12 @@ class DictMethodRunnerTests(unittest.TestCase):
         endTime = time.time()
         logger.info("Completed %s at %s (%.4f seconds)", self.id(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - self.__startTime)
 
-    def __runContentType(self, contentType, mockLength, mergeContent):
+    def testMethodRunner(self):
+        """Test method runner for multiple content types."""
+        for tD in self.__testCaseList:
+            self.__runContentType(tD["contentType"], tD["mergeContent"], tD["fileLimit"], tD["idCodeList"])
+
+    def __runContentType(self, contentType, mergeContent, fileLimit, idCodeList):
         """Read and process test fixture data files from the input content type."""
         try:
             dP = DictionaryApiProviderWrapper(self.__cachePath, useCache=True, cfgOb=self.__cfgOb, configName=self.__configName)
@@ -87,11 +189,11 @@ class DictMethodRunnerTests(unittest.TestCase):
                 providerTypeExclude=self.__excludeType,
             )
             dmh = DictMethodRunner(dictApi, modulePathMap=self.__modulePathMap, resourceProvider=rP)
-            locatorObjList = self.__rpP.getLocatorObjList(contentType=contentType, mergeContentTypes=mergeContent)
+            rpP = RepositoryProvider(cfgOb=self.__cfgOb, numProc=self.__numProc, fileLimit=fileLimit, cachePath=self.__cachePath)
+            locatorObjList = rpP.getLocatorObjList(contentType=contentType, mergeContentTypes=mergeContent, inputIdCodeList=idCodeList)
             logger.info("Length of locator list (%d)", len(locatorObjList))
-            self.assertGreaterEqual(len(locatorObjList), mockLength)
             if self.__isMac:
-                containerList = self.__rpP.getContainerList(locatorObjList)
+                containerList = rpP.getContainerList(locatorObjList)
             else:
                 # strip down tests for Azure linux low memory -
                 tObjL = []
@@ -99,19 +201,17 @@ class DictMethodRunnerTests(unittest.TestCase):
                     if "locator" in locatorObj and "5vp2" in locatorObj["locator"].lower():
                         continue
                     tObjL.append(locatorObj)
-                containerList = self.__rpP.getContainerList(tObjL)
+                containerList = rpP.getContainerList(tObjL)
             #
             logger.info("Processing container length (%d)", len(containerList))
 
             for container in containerList:
                 cName = container.getName()
                 #
-                # if cName not in ["1B5F"]:
-                #    continue
-                logger.debug("Processing container %s", cName)
+                logger.info("Processing container %s", cName)
                 dmh.apply(container)
                 if self.__export:
-                    savePath = os.path.join(HERE, "test-output", cName + "-with-method.cif")
+                    savePath = os.path.join(HERE, "test-output", "export-cif", cName + "-with-method.cif")
                     self.__mU.doExport(savePath, [container], fmt="mmcif")
 
         except Exception as e:
@@ -130,11 +230,6 @@ class DictMethodRunnerTests(unittest.TestCase):
         )
         ok = rP.cacheResources(useCache=True, doRestore=True, useStash=False, useGit=True)
         self.assertTrue(ok)
-
-    def testMethodRunner(self):
-        """Test method runner for multiple content types."""
-        for tD in self.__testCaseList:
-            self.__runContentType(tD["contentType"], tD["mockLength"], tD["mergeContent"])
 
     def testMethodRunnerSetup(self):
         """Test the setup methods for method runner class"""

@@ -51,7 +51,7 @@ class TargetInteractionWorker(object):
                     rD = self.__getNeighborInfo(procName, dataContainer, distLimit)
                     retList.append((entryId, rD))
             #
-            successList = sorted(set(dataList) - set(failList))
+            successList = list(set(dataList) - set(failList))
             if failList:
                 logger.info("%s returns %d definitions with failures: %r", procName, len(failList), failList)
 
