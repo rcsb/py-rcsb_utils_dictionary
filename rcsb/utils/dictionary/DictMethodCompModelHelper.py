@@ -74,7 +74,7 @@ class DictMethodCompModelHelper(object):
         # self.__dApi = dapw.getApiByName("pdbx_core") if dapw else None
         self.__dApi = kwargs.get("dictionaryApi", None)
         if self.__dApi:
-            logger.info("Loaded API for: %r", self.__dApi.getDictionaryTitle())
+            logger.debug("Loaded API for: %r", self.__dApi.getDictionaryTitle())
         else:
             logger.error("Missing dictionary API %r", kwargs)
 
