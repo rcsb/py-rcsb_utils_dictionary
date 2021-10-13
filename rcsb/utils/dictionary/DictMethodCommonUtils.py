@@ -441,6 +441,7 @@ class DictMethodCommonUtils(object):
             #
             if not dataContainer.exists("entity") or not dataContainer.exists("struct_asym"):
                 return {}
+            logger.debug("Starting for container %s", dataContainer.getName())
             eFwD = {}
             instanceTypeD = {}
             instancePolymerTypeD = {}
@@ -2592,8 +2593,16 @@ class DictMethodCommonUtils(object):
                 expMethod = "EM"
             elif mS in ["NEUTRON DIFFRACTION"]:
                 expMethod = "Neutron"
-            elif mS in ["SOLUTION SCATTERING", "EPR", "THEORETICAL MODEL", "INFRARED SPECTROSCOPY", "FLUORESCENCE TRANSFER"]:
+            elif mS in [
+                "SOLUTION SCATTERING",
+                "EPR",
+                "THEORETICAL MODEL",
+                "INFRARED SPECTROSCOPY",
+                "FLUORESCENCE TRANSFER",
+            ]:
                 expMethod = "Other"
+            elif mS in ["AB INITIO MODEL"]:
+                expMethod = "Computational modeling"
             else:
                 logger.error("Unexpected method ")
 

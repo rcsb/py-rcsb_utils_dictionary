@@ -733,7 +733,9 @@ class DictMethodEntryHelper(object):
         try:
             logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
             # Exit if source categories are missing
-            if not (dataContainer.exists("exptl") and dataContainer.exists("entity")):
+            if not (dataContainer.exists("entity") and dataContainer.exists("entry")):
+                return False
+            if not (dataContainer.exists("exptl") or dataContainer.exists("ma_model_list")):
                 return False
             #
             # Create the new target category rcsb_entry_info
@@ -746,10 +748,20 @@ class DictMethodEntryHelper(object):
             # --------------------------------------------------------------------------------------------------------
             #  Filter experimental methods
             #
-            xObj = dataContainer.getObj("exptl")
-            entryId = xObj.getValue("entry_id", 0)
-            methodL = xObj.getAttributeValueList("method")
-            methodCount, expMethod = self.__commonU.filterExperimentalMethod(methodL)
+            methodCount = 0
+            expMethod = None
+            if dataContainer.exists("exptl"):
+                xObj = dataContainer.getObj("exptl")
+                entryId = xObj.getValue("entry_id", 0)
+                methodL = xObj.getAttributeValueList("method")
+                methodCount, expMethod = self.__commonU.filterExperimentalMethod(methodL)
+            elif dataContainer.exists("ma_model_list"):
+                tObj = dataContainer.getObj("entry")
+                entryId = tObj.getValue("id", 0)
+                mObj = dataContainer.getObj("ma_model_list")
+                methodL = mObj.getAttributeUniqueValueList("model_type")
+                methodCount, expMethod = self.__commonU.filterExperimentalMethod(methodL)
+            #
             cObj.setValue(entryId, "entry_id", 0)
             cObj.setValue(expMethod, "experimental_method", 0)
             cObj.setValue(methodCount, "experimental_method_count", 0)

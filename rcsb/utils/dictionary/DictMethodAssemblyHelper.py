@@ -65,13 +65,10 @@ class DictMethodAssemblyHelper(object):
         try:
             if not (dataContainer.exists("entry") and dataContainer.exists("pdbx_struct_assembly")):
                 return False
-            logger.debug("%s beginning for %s", dataContainer.getName(), catName)
             # Create the new target category rcsb_assembly_info
             if not dataContainer.exists(catName):
                 dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
             #
-            #
-            logger.debug("%s beginning for %s", dataContainer.getName(), catName)
             #
             # Get assembly comp details -
             #
@@ -236,10 +233,13 @@ class DictMethodAssemblyHelper(object):
             bool: True for success or False otherwise
 
         """
+        isCompModel = False
         logger.debug("Starting catName %s kwargs %r", catName, kwargs)
         try:
             if not dataContainer.exists("struct_asym"):
                 return False
+            if catName == "ma_data":
+                isCompModel = True
             if not dataContainer.exists("pdbx_struct_assembly"):
                 dataContainer.append(
                     DataCategory(
@@ -298,19 +298,28 @@ class DictMethodAssemblyHelper(object):
             # Ordinal is added by subsequent attribure-level method.
             tObj = dataContainer.getObj("pdbx_struct_assembly_gen")
             rowIdx = tObj.getRowCount()
-            tObj.setValue("deposited", "assembly_id", rowIdx)
+            if isCompModel:
+                tObj.setValue("computed_model", "assembly_id", rowIdx)
+            else:
+                tObj.setValue("deposited", "assembly_id", rowIdx)
             tObj.setValue("1", "oper_expression", rowIdx)
             tObj.setValue(",".join(asymIdL), "asym_id_list", rowIdx)
             #
             tObj = dataContainer.getObj("pdbx_struct_assembly")
             rowIdx = tObj.getRowCount()
-            tObj.setValue("deposited", "id", rowIdx)
-            tObj.setValue("deposited_coordinates", "details", rowIdx)
+            if isCompModel:
+                tObj.setValue("computed_model", "id", rowIdx)
+                tObj.setValue("software_defined_assembly", "details", rowIdx)
+            else:
+                tObj.setValue("deposited", "id", rowIdx)
+                tObj.setValue("deposited_coordinates", "details", rowIdx)
             #
             for atName in ["oligomeric_details", "method_details", "oligomeric_count"]:
                 if tObj.hasAttribute(atName):
                     tObj.setValue("?", atName, rowIdx)
             #
+            if isCompModel:
+                tObj.setValue(str(len(asymIdL)), "oligomeric_count", rowIdx)
             #
             #
             logger.debug("Full row is %r", tObj.getRow(rowIdx))
@@ -386,7 +395,7 @@ class DictMethodAssemblyHelper(object):
         return False
 
     def assignAssemblyCandidates(self, dataContainer, catName, **kwargs):
-        """Flag candidate biological assemblies as 'author_defined_assembly' ad author_and_software_defined_assembly'
+        """Flag candidate biological assemblies as 'author_defined_assembly' and author_and_software_defined_assembly'
 
         Args:
             dataContainer (object): mmif.api.DataContainer object instance

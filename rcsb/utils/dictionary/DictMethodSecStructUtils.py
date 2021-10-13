@@ -86,7 +86,6 @@ class DictMethodSecStructUtils(object):
             # return wD["sheetRangeD"] if "sheetRangeD" in wD else {}
             return wD["instSheetRangeD"] if "instSheetRangeD" in wD else {}
         elif ssType.lower() in ["bend"]:
-            logger.info("%s %s", dataContainer.getName(), ssType)
             return wD["bendRangeD"] if "bendRangeD" in wD else {}
         elif ssType.lower() in ["turn"]:
             return wD["turnRangeD"] if "turnRangeD" in wD else {}

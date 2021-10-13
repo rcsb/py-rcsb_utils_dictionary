@@ -121,7 +121,11 @@ class DictMethodEntityHelper(object):
         #
         entityRefAlignmentD = self.__commonU.getEntityReferenceAlignments(dataContainer)
         pdbEntityAlignD = {}
-        # --- PDB alignments -
+        #
+        provSourceDefault = "PDB"
+        if dataContainer.exists("ma_data"):
+            provSourceDefault = "UniProt"
+        # --- PDB embedded alignments ---
         for entityId, seqAlignObjL in entityRefAlignmentD.items():
             # seqAlignObjL = [SeqAlign("PDB", **sa) for sa in entityAlignL]
             if seqAlignObjL:
@@ -138,7 +142,7 @@ class DictMethodEntityHelper(object):
                         try:
                             tLen = grpAlignL[idxMax].getEntityAlignLength()
                             if tLen and tLen > 0:
-                                pdbEntityAlignD.setdefault((entryId, entityId, "PDB"), {}).setdefault((dbName, dbAcc, dbIsoform), []).append(grpAlignL[idxMax])
+                                pdbEntityAlignD.setdefault((entryId, entityId, provSourceDefault), {}).setdefault((dbName, dbAcc, dbIsoform), []).append(grpAlignL[idxMax])
                             else:
                                 logger.warning("Skipping %s inconsistent alignment for entity %r %r", entryId, entityId, seqAlignObjL)
                         except Exception:
@@ -258,6 +262,12 @@ class DictMethodEntityHelper(object):
             if not dataContainer.exists(catName):
                 dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
             #
+            # isCompModel = False
+            provSourceDefault = "PDB"
+            if dataContainer.exists("ma_data"):
+                # isCompModel = True
+                provSourceDefault = "UniProt"
+            #
             cObj = dataContainer.getObj(catName)
             #
             tObj = dataContainer.getObj("entry")
@@ -321,7 +331,7 @@ class DictMethodEntityHelper(object):
                         elif entityId in seqEntityRefDbD:
                             for dbD in seqEntityRefDbD[entityId]:
                                 refSeqIdD["dbName"].append(dbD["dbName"])
-                                refSeqIdD["provSource"].append("PDB")
+                                refSeqIdD["provSource"].append(provSourceDefault)
                                 refSeqIdD["dbAccession"].append(dbD["dbAccession"])
                                 #
                                 if dbD["dbIsoform"]:
@@ -333,7 +343,7 @@ class DictMethodEntityHelper(object):
                         if entityId in seqEntityRefDbD:
                             for dbD in seqEntityRefDbD[entityId]:
                                 refSeqIdD["dbName"].append(dbD["dbName"])
-                                refSeqIdD["provSource"].append("PDB")
+                                refSeqIdD["provSource"].append(provSourceDefault)
                                 refSeqIdD["dbAccession"].append(dbD["dbAccession"])
                                 #
                                 if dbD["dbIsoform"]:
@@ -513,6 +523,10 @@ class DictMethodEntityHelper(object):
             rP = kwargs.get("resourceProvider")
             taxU = rP.getResource("TaxonomyProvider instance") if rP else None
             #
+            isCompModel = False
+            if dataContainer.exists("ma_data"):
+                isCompModel = True
+            #
             cObj = dataContainer.getObj(catName)
             hObj = dataContainer.getObj(hostCatName)
             #
@@ -549,6 +563,7 @@ class DictMethodEntityHelper(object):
                 ("pdbx_src_id", "pdbx_src_id"),
                 ("pdbx_beg_seq_num", "beg_seq_num"),
                 ("pdbx_end_seq_num", "end_seq_num"),
+                ("rcsb_gene_name", "rcsb_gene_name_value"),
             ]
             at2SL, at2L = self.__getAttribList(s2Obj, at2TupL)
             #
@@ -566,7 +581,10 @@ class DictMethodEntityHelper(object):
             #
             eObj = dataContainer.getObj("entity")
             entityIdL = eObj.getAttributeValueList("id")
-            provSource = "PDB Primary Data"
+            if isCompModel:
+                provSource = "UniProt"
+            else:
+                provSource = "PDB Primary Data"
             #
             partCountD = {}
             srcL = []
