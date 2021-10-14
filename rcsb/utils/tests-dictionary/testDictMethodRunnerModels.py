@@ -18,6 +18,7 @@ __author__ = "John Westbrook"
 __email__ = "jwest@rcsb.rutgers.edu"
 __license__ = "Apache 2.0"
 
+import glob
 import logging
 import os
 import platform
@@ -30,7 +31,9 @@ from rcsb.utils.dictionary.DictionaryApiProviderWrapper import DictionaryApiProv
 from rcsb.utils.dictionary.DictMethodResourceProvider import DictMethodResourceProvider
 from rcsb.utils.repository.RepositoryProvider import RepositoryProvider
 from rcsb.utils.config.ConfigUtil import ConfigUtil
-from rcsb.utils.insilico3d.AlphaFoldModelProvider import AlphaFoldModelProvider
+
+# from rcsb.utils.insilico3d.AlphaFoldModelProvider import AlphaFoldModelProvider
+from rcsb.utils.io.FileUtil import FileUtil
 from rcsb.utils.io.MarshalUtil import MarshalUtil
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s]-%(module)s.%(funcName)s: %(message)s")
@@ -41,8 +44,10 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 TOPDIR = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
 
 
-class DictMethodRunnerTests(unittest.TestCase):
+class DictMethodRunnerModelsTests(unittest.TestCase):
+    #
     def setUp(self):
+
         self.__isMac = platform.system() == "Darwin"
         self.__excludeType = None if self.__isMac else "optional"
         self.__export = True
@@ -50,6 +55,7 @@ class DictMethodRunnerTests(unittest.TestCase):
         self.__fileLimit = 5
         mockTopPath = os.path.join(TOPDIR, "rcsb", "mock-data")
         self.__cachePath = os.path.join(HERE, "test-output", "CACHE")
+        self.__dataPath = os.path.join(HERE, "test-data")
         configPath = os.path.join(mockTopPath, "config", "dbload-setup-example.yml")
         configName = "site_info_configuration"
         self.__configName = configName
@@ -63,6 +69,7 @@ class DictMethodRunnerTests(unittest.TestCase):
         #
         self.__modulePathMap = self.__cfgOb.get("DICT_METHOD_HELPER_MODULE_PATH_MAP", sectionName=configName)
         #
+        self.__modelFixture()
         self.__startTime = time.time()
         logger.debug("Starting %s at %s", self.id(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()))
 
@@ -73,10 +80,21 @@ class DictMethodRunnerTests(unittest.TestCase):
         endTime = time.time()
         logger.info("Completed %s at %s (%.4f seconds)", self.id(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - self.__startTime)
 
-    def testFetchModels(self):
-        aFMP = AlphaFoldModelProvider(cachePath=self.__cachePath, useCache=True, alphaFoldRequestedSpeciesList=["Staphylococcus aureus"])
-        ok = aFMP.testCache()
-        self.assertTrue(ok)
+    def __modelFixture(self):
+        fU = FileUtil()
+        modelSourcePath = os.path.join(self.__dataPath, "AF")
+        for iPath in glob.iglob(os.path.join(modelSourcePath, "*.cif.gz")):
+            fn = os.path.basename(iPath)
+            uId = fn.split("-")[1]
+            h2 = uId[-2:]
+            h1 = uId[-4:-2]
+            oPath = os.path.join(self.__cachePath, "AlphaFold", h1, h2, fn)
+            fU.put(iPath, oPath)
+
+    # def testFetchModels(self):
+    #    aFMP = AlphaFoldModelProvider(cachePath=self.__cachePath, useCache=True, alphaFoldRequestedSpeciesList=["Staphylococcus aureus"])
+    #    ok = aFMP.testCache()
+    #    self.assertTrue(ok)
 
     def testMethodModelRunner(self):
         """Test method runner for multiple content types."""
@@ -118,7 +136,7 @@ class DictMethodRunnerTests(unittest.TestCase):
 
 def dictMethodRunnerSuite():
     suiteSelect = unittest.TestSuite()
-    suiteSelect.addTest(DictMethodRunnerTests("testMethodModelRunner"))
+    suiteSelect.addTest(DictMethodRunnerModelsTests("testMethodModelRunner"))
     return suiteSelect
 
 

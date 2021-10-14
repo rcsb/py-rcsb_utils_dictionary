@@ -63,4 +63,5 @@
 10-Aug-2021 - V0.71 Update dependencies for SCOP2 in rcsb.utils.struct
 29-Aug-2021 - V0.72 Add resource EntryInfoProvider() to DictMethodResourceProvider()
 12-Oct-2021 - V0.73 Added module DictMethodSecStructUtils() and support for DSSP annotations.
+14-Oct-2021 - V0.74 Added preliminary support for computed model extensions in assembly, entry, and entity_info categories.
 #
