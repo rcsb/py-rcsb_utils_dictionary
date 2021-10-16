@@ -53,13 +53,13 @@ class DictMethodRunnerModelsTests(unittest.TestCase):
         self.__export = True
         self.__numProc = 2
         self.__fileLimit = 5
-        mockTopPath = os.path.join(TOPDIR, "rcsb", "mock-data")
+        self.__mockTopPath = os.path.join(TOPDIR, "rcsb", "mock-data")
         self.__cachePath = os.path.join(HERE, "test-output", "CACHE")
         self.__dataPath = os.path.join(HERE, "test-data")
-        configPath = os.path.join(mockTopPath, "config", "dbload-setup-example.yml")
+        configPath = os.path.join(self.__mockTopPath, "config", "dbload-setup-example.yml")
         configName = "site_info_configuration"
         self.__configName = configName
-        self.__cfgOb = ConfigUtil(configPath=configPath, defaultSectionName=configName, mockTopPath=mockTopPath)
+        self.__cfgOb = ConfigUtil(configPath=configPath, defaultSectionName=configName, mockTopPath=self.__mockTopPath)
         self.__mU = MarshalUtil(workPath=self.__cachePath)
         self.__rpP = RepositoryProvider(cfgOb=self.__cfgOb, numProc=self.__numProc, fileLimit=self.__fileLimit, cachePath=self.__cachePath)
         #
@@ -82,7 +82,7 @@ class DictMethodRunnerModelsTests(unittest.TestCase):
 
     def __modelFixture(self):
         fU = FileUtil()
-        modelSourcePath = os.path.join(self.__dataPath, "AF")
+        modelSourcePath = os.path.join(self.__mockTopPath, "AF")
         for iPath in glob.iglob(os.path.join(modelSourcePath, "*.cif.gz")):
             fn = os.path.basename(iPath)
             uId = fn.split("-")[1]

@@ -64,4 +64,4 @@
 29-Aug-2021 - V0.72 Add resource EntryInfoProvider() to DictMethodResourceProvider()
 12-Oct-2021 - V0.73 Added module DictMethodSecStructUtils() and support for DSSP annotations.
 14-Oct-2021 - V0.74 Added preliminary support for computed model extensions in assembly, entry, and entity_info categories.
-#
+16-Oct-2021 - V0.75 Add test fixture to speed up computed model tests, suppress verbose dictionary api logging
