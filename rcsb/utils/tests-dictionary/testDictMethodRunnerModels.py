@@ -89,7 +89,7 @@ class DictMethodRunnerModelsTests(unittest.TestCase):
             h3 = uId[-2:]
             h2 = uId[-4:-2]
             h1 = uId[-6:-4]
-            oPath = os.path.join(self.__cachePath, "AlphaFold", h1, h2, h3, fn)
+            oPath = os.path.join(self.__cachePath, "computed-models", h1, h2, h3, fn)
             fU.put(iPath, oPath)
 
     # def testFetchModels(self):
