@@ -245,6 +245,7 @@ class DictMethodEntityInstanceHelper(object):
             _rcsb_entity_instance_feature.feature_positions_value
 
         """
+        # print("\n\n Starting - buildEntityInstanceFeatures \n\n")
         doLineage = False
         logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
         try:
@@ -274,7 +275,7 @@ class DictMethodEntityInstanceHelper(object):
             # Add CATH assignments
             cathU = rP.getResource("CathProvider instance") if rP else None
             if cathU:
-
+                # print("\t\t in cathU")
                 for asymId, authAsymId in asymAuthIdD.items():
                     if instTypeD[asymId] not in ["polymer", "branched"]:
                         continue
@@ -284,8 +285,8 @@ class DictMethodEntityInstanceHelper(object):
                     vL = cathU.getCathVersions(entryId.lower(), authAsymId)
                     for (cathId, domId, tId, authSeqBeg, authSeqEnd) in dL:
                         addPropTupL = []
-                        begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
-                        endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
+                        begSeqId = pAuthAsymD[(authAsymId, str(authSeqBeg), None)]["seq_id"] if (authAsymId, str(authSeqBeg), None) in pAuthAsymD else None
+                        endSeqId = pAuthAsymD[(authAsymId, str(authSeqEnd), None)]["seq_id"] if (authAsymId, str(authSeqEnd), None) in pAuthAsymD else None
                         if not (begSeqId and endSeqId):
                             # take the full chain
                             begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
@@ -340,6 +341,7 @@ class DictMethodEntityInstanceHelper(object):
             oldCode = False
             scopU = rP.getResource("ScopProvider instance") if rP else None
             if scopU:
+                # print("\t\t in scopU")
                 for asymId, authAsymId in asymAuthIdD.items():
                     if instTypeD[asymId] not in ["polymer", "branched"]:
                         continue
@@ -348,8 +350,8 @@ class DictMethodEntityInstanceHelper(object):
                     version = scopU.getScopVersion()
                     for (sunId, domId, sccs, tId, authSeqBeg, authSeqEnd) in dL:
                         addPropTupL = []
-                        begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
-                        endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
+                        begSeqId = pAuthAsymD[(authAsymId, str(authSeqBeg), None)]["seq_id"] if (authAsymId, str(authSeqBeg), None) in pAuthAsymD else None
+                        endSeqId = pAuthAsymD[(authAsymId, str(authSeqEnd), None)]["seq_id"] if (authAsymId, str(authSeqEnd), None) in pAuthAsymD else None
                         # logger.info("%s (first) begSeqId %r endSeqId %r", entryId, begSeqId, endSeqId)
                         if not (begSeqId and endSeqId):
                             # try another full range
@@ -420,6 +422,7 @@ class DictMethodEntityInstanceHelper(object):
             # JDW - Add SCOP2 family assignments
             scopU = rP.getResource("Scop2Provider instance") if rP else None
             if scopU:
+                # print("\t\t in scopU again")
                 version = scopU.getVersion()
                 for asymId, authAsymId in asymAuthIdD.items():
                     if instTypeD[asymId] not in ["polymer", "branched"]:
@@ -430,8 +433,8 @@ class DictMethodEntityInstanceHelper(object):
                     for (domId, familyId, _, authSeqBeg, authSeqEnd) in dL:
                         addPropTupL = []
                         # map to entity polymer coordinates
-                        begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
-                        endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
+                        begSeqId = pAuthAsymD[(authAsymId, str(authSeqBeg), None)]["seq_id"] if (authAsymId, str(authSeqBeg), None) in pAuthAsymD else None
+                        endSeqId = pAuthAsymD[(authAsymId, str(authSeqEnd), None)]["seq_id"] if (authAsymId, str(authSeqEnd), None) in pAuthAsymD else None
                         # logger.info("%s (first) begSeqId %r endSeqId %r", entryId, begSeqId, endSeqId)
                         if not (begSeqId and endSeqId):
                             # Use full range
@@ -480,8 +483,8 @@ class DictMethodEntityInstanceHelper(object):
                     for (domId, superfamilyId, _, authSeqBeg, authSeqEnd) in dL:
                         addPropTupL = []
                         # map to entity polymer coordinates
-                        begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
-                        endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
+                        begSeqId = pAuthAsymD[(authAsymId, str(authSeqBeg), None)]["seq_id"] if (authAsymId, str(authSeqBeg), None) in pAuthAsymD else None
+                        endSeqId = pAuthAsymD[(authAsymId, str(authSeqEnd), None)]["seq_id"] if (authAsymId, str(authSeqEnd), None) in pAuthAsymD else None
                         if not (begSeqId and endSeqId):
                             # Use full range
                             begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
@@ -529,8 +532,8 @@ class DictMethodEntityInstanceHelper(object):
                     for (domId, superfamilyId, _, authSeqBeg, authSeqEnd) in dL:
                         addPropTupL = []
                         # map to entity polymer coordinates
-                        begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
-                        endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
+                        begSeqId = pAuthAsymD[(authAsymId, str(authSeqBeg), None)]["seq_id"] if (authAsymId, str(authSeqBeg), None) in pAuthAsymD else None
+                        endSeqId = pAuthAsymD[(authAsymId, str(authSeqEnd), None)]["seq_id"] if (authAsymId, str(authSeqEnd), None) in pAuthAsymD else None
                         if not (begSeqId and endSeqId):
                             # Use full range
                             begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
@@ -571,6 +574,7 @@ class DictMethodEntityInstanceHelper(object):
             # ECOD assignments -
             ecodU = rP.getResource("EcodProvider instance") if rP else None
             if ecodU:
+                # print("\t\t in ecodU")
                 version = ecodU.getVersion()
                 for asymId, authAsymId in asymAuthIdD.items():
                     if instTypeD[asymId] not in ["polymer", "branched"]:
@@ -578,11 +582,13 @@ class DictMethodEntityInstanceHelper(object):
                     entityId = asymIdD[asymId]
                     # Family mappings
                     dL = ecodU.getFamilyResidueRanges(entryId.lower(), authAsymId)
+                    # print("\t\t\tECOD ranges:", dL)
                     for (domId, familyId, _, authSeqBeg, authSeqEnd) in dL:
+                    # for (domId, familyId, _, str(authSeqBeg), str(authSeqEnd)) in dL:
                         addPropTupL = []
                         # map to entity polymer coordinates
-                        begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
-                        endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
+                        begSeqId = pAuthAsymD[(authAsymId, str(authSeqBeg), None)]["seq_id"] if (authAsymId, str(authSeqBeg), None) in pAuthAsymD else None
+                        endSeqId = pAuthAsymD[(authAsymId, str(authSeqEnd), None)]["seq_id"] if (authAsymId, str(authSeqEnd), None) in pAuthAsymD else None
                         if not (begSeqId and endSeqId):
                             # Use full range
                             begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
@@ -661,6 +667,7 @@ class DictMethodEntityInstanceHelper(object):
             instSheetRangeD = self.__ssU.getProtSecStructFeatures(dataContainer, "sheet")
             sheetSenseD = self.__ssU.getProtSheetSense(dataContainer)
             for sId, sD in instSheetRangeD.items():
+                # print("\t\t in sheets")
                 for asymId, rTupL in sD.items():
                     addPropTupL = []
                     entityId = asymIdD[asymId]
