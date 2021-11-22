@@ -4,6 +4,10 @@
 # Date:    16-Jul-2019
 # Version: 0.001 Initial version
 #
+#
+# Updates:
+#  22-Nov-2021 dwp authSeqBeg and authSeqEnd are returned as integers but must be compared as strings in pAuthAsymD
+#
 ##
 """
 This helper class implements methods supporting entity-instance-level functions in the RCSB dictionary extension.
@@ -245,7 +249,6 @@ class DictMethodEntityInstanceHelper(object):
             _rcsb_entity_instance_feature.feature_positions_value
 
         """
-        # print("\n\n Starting - buildEntityInstanceFeatures \n\n")
         doLineage = False
         logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
         try:
@@ -275,7 +278,6 @@ class DictMethodEntityInstanceHelper(object):
             # Add CATH assignments
             cathU = rP.getResource("CathProvider instance") if rP else None
             if cathU:
-                # print("\t\t in cathU")
                 for asymId, authAsymId in asymAuthIdD.items():
                     if instTypeD[asymId] not in ["polymer", "branched"]:
                         continue
@@ -341,7 +343,6 @@ class DictMethodEntityInstanceHelper(object):
             oldCode = False
             scopU = rP.getResource("ScopProvider instance") if rP else None
             if scopU:
-                # print("\t\t in scopU")
                 for asymId, authAsymId in asymAuthIdD.items():
                     if instTypeD[asymId] not in ["polymer", "branched"]:
                         continue
@@ -422,7 +423,6 @@ class DictMethodEntityInstanceHelper(object):
             # JDW - Add SCOP2 family assignments
             scopU = rP.getResource("Scop2Provider instance") if rP else None
             if scopU:
-                # print("\t\t in scopU again")
                 version = scopU.getVersion()
                 for asymId, authAsymId in asymAuthIdD.items():
                     if instTypeD[asymId] not in ["polymer", "branched"]:
@@ -574,7 +574,6 @@ class DictMethodEntityInstanceHelper(object):
             # ECOD assignments -
             ecodU = rP.getResource("EcodProvider instance") if rP else None
             if ecodU:
-                # print("\t\t in ecodU")
                 version = ecodU.getVersion()
                 for asymId, authAsymId in asymAuthIdD.items():
                     if instTypeD[asymId] not in ["polymer", "branched"]:
@@ -582,9 +581,7 @@ class DictMethodEntityInstanceHelper(object):
                     entityId = asymIdD[asymId]
                     # Family mappings
                     dL = ecodU.getFamilyResidueRanges(entryId.lower(), authAsymId)
-                    # print("\t\t\tECOD ranges:", dL)
                     for (domId, familyId, _, authSeqBeg, authSeqEnd) in dL:
-                    # for (domId, familyId, _, str(authSeqBeg), str(authSeqEnd)) in dL:
                         addPropTupL = []
                         # map to entity polymer coordinates
                         begSeqId = pAuthAsymD[(authAsymId, str(authSeqBeg), None)]["seq_id"] if (authAsymId, str(authSeqBeg), None) in pAuthAsymD else None
@@ -667,7 +664,6 @@ class DictMethodEntityInstanceHelper(object):
             instSheetRangeD = self.__ssU.getProtSecStructFeatures(dataContainer, "sheet")
             sheetSenseD = self.__ssU.getProtSheetSense(dataContainer)
             for sId, sD in instSheetRangeD.items():
-                # print("\t\t in sheets")
                 for asymId, rTupL in sD.items():
                     addPropTupL = []
                     entityId = asymIdD[asymId]

@@ -44,6 +44,10 @@ class DictionaryApiProviderWrapper(SingletonClass):
         self.__configName = configName
         self.__contentInfoConfigName = "content_info_helper_configuration"
         self.__dictLocatorMap = self.__cfgOb.get("DICT_LOCATOR_CONFIG_MAP", sectionName=self.__contentInfoConfigName)
+        # self.__dictLocatorMap: dictionary of configured dictionary name mappings, e.g.:
+        #   ordereddict([('pdbx_comp_model_core', ['PDBX_DICT_LOCATOR', 'RCSB_COMP_MODEL_DICT_LOCATOR', 'MA_DICT_LOCATOR']),
+        #                ('pdbx', ['PDBX_DICT_LOCATOR', 'RCSB_DICT_LOCATOR']),
+        #                ('pdbx_core', ['PDBX_DICT_LOCATOR', 'RCSB_DICT_LOCATOR', 'VRPT_DICT_LOCATOR']), ...
         dirPath = os.path.join(cachePath, self.__cfgOb.get("DICTIONARY_CACHE_DIR", sectionName=self.__configName))
         self.__dP = DictionaryApiProvider(dirPath, useCache=useCache, **kwargs)
         logger.debug("Leaving constructor")
@@ -76,6 +80,10 @@ class DictionaryApiProviderWrapper(SingletonClass):
             dictLocators = []
         else:
             dictLocators = [self.__cfgOb.getPath(configLocator, sectionName=self.__configName) for configLocator in self.__dictLocatorMap[databaseName]]
+            # Example dictLocators for databaseName 'pdbx_comp_model_core':
+            #  ['https://raw.githubusercontent.com/rcsb/py-rcsb_exdb_assets/development/dictionary_files/reference/mmcif_pdbx_v5_next.dic',
+            #   'https://raw.githubusercontent.com/rcsb/py-rcsb_exdb_assets/development/dictionary_files/dist/rcsb_mmcif_comp_model_ext.dic',
+            #   'https://raw.githubusercontent.com/rcsb/py-rcsb_exdb_assets/development/dictionary_files/reference/mmcif_ma.dic']
         #
         logger.debug("Fetching dictionary API for %s using %r", databaseName, dictLocators)
         return self.__dP.getApi(dictLocators, **kwargs)
