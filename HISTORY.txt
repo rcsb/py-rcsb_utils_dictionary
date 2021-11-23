@@ -65,3 +65,5 @@
 12-Oct-2021 - V0.73 Added module DictMethodSecStructUtils() and support for DSSP annotations.
 14-Oct-2021 - V0.74 Added preliminary support for computed model extensions in assembly, entry, and entity_info categories.
 16-Oct-2021 - V0.75 Add test fixture to speed up computed model tests, suppress verbose dictionary api logging
+17-Oct-2021 - V0.76 Update model path in test fixture for computed models.
+22-Nov-2021 - V0.77 Update DictMethodEntityInstanceHelper to properly parse beginning and ending residue IDs for CATH, SCOP, SCOP2, and ECOD annotations
