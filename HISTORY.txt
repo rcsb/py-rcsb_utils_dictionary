@@ -67,3 +67,4 @@
 16-Oct-2021 - V0.75 Add test fixture to speed up computed model tests, suppress verbose dictionary api logging
 17-Oct-2021 - V0.76 Update model path in test fixture for computed models.
 22-Nov-2021 - V0.77 Update DictMethodEntityInstanceHelper to properly parse beginning and ending residue IDs for CATH, SCOP, SCOP2, and ECOD annotations
+08-Dec-2021 - V0.78 Update DictMethodCompModelHelper to not add polymer entity-level taxonomy if required fields aren't present
