@@ -199,7 +199,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of polymer types for each polymer instance.
 
         Args:
-            dataContainer (object):  mmcif.api.mmcif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {'asymId': <dictionary polymer type>, ...}
@@ -227,7 +227,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of the counts entity types for each entity type.
 
         Args:
-            dataContainer (object):  mmcif.api.mmcif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {'entity type': <# of instances>, ...}
@@ -255,7 +255,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of polymer types for each polymer entity.
 
         Args:
-            dataContainer (object):  mmcif.api.mmcif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {'entityId': <dictionary polymer types>, ...}
