@@ -68,3 +68,4 @@
 17-Oct-2021 - V0.76 Update model path in test fixture for computed models.
 22-Nov-2021 - V0.77 Update DictMethodEntityInstanceHelper to properly parse beginning and ending residue IDs for CATH, SCOP, SCOP2, and ECOD annotations
 08-Dec-2021 - V0.78 Update DictMethodCompModelHelper to not add polymer entity-level taxonomy if required fields aren't present
+19-Jan-2022 - V0.79 Update DictMethodEntryHelper to add rcsb_entry_info.structure_determination_methodology
