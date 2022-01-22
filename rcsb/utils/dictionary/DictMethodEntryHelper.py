@@ -701,16 +701,15 @@ class DictMethodEntryHelper(object):
     def addEntryInfo(self, dataContainer, catName, **kwargs):
         """
         Add  _rcsb_entry_info, for example:
-             _rcsb_entry_info.entry_id                              1ABC
-             _rcsb_entry_info.polymer_composition                   'heteromeric protein'
-             _rcsb_entry_info.structure_determination_methodology   'experimental'
-             _rcsb_entry_info.experimental_method                   'multiple methods'
-             _rcsb_entry_info.experimental_method_count             2
-             _rcsb_entry_info.polymer_entity_count                  2
-             _rcsb_entry_info.entity_count                          2
-             _rcsb_entry_info.nonpolymer_entity_count               2
-             _rcsb_entry_info.branched_entity_count                 0
-             _rcsb_entry_info.software_programs_combined            'Phenix;RefMac'
+             _rcsb_entry_info.entry_id                      1ABC
+             _rcsb_entry_info.polymer_composition           'heteromeric protein'
+             _rcsb_entry_info.experimental_method           'multiple methods'
+             _rcsb_entry_info.experimental_method_count     2
+             _rcsb_entry_info.polymer_entity_count          2
+             _rcsb_entry_info.entity_count                  2
+             _rcsb_entry_info.nonpolymer_entity_count       2
+             _rcsb_entry_info.branched_entity_count         0
+             _rcsb_entry_info.software_programs_combined    'Phenix;RefMac'
              ....
 
         Also add the related field:
@@ -751,33 +750,21 @@ class DictMethodEntryHelper(object):
             #
             methodCount = 0
             expMethod = None
-            methodType = None
-            #
-            if dataContainer.exists("struct"):
-                xObj = dataContainer.getObj("struct")
-                if xObj.hasAttribute("pdbx_structure_determination_methodology"):
-                    methodType = xObj.getValue("pdbx_structure_determination_methodology", 0)
-            #
             if dataContainer.exists("exptl"):
                 xObj = dataContainer.getObj("exptl")
                 entryId = xObj.getValue("entry_id", 0)
                 methodL = xObj.getAttributeValueList("method")
                 methodCount, expMethod = self.__commonU.filterExperimentalMethod(methodL)
-                if not methodType:
-                    methodType = self.__commonU.filterStructureDeterminationMethodType(methodL)
-                cObj.setValue(expMethod, "experimental_method", 0)
             elif dataContainer.exists("ma_model_list"):
                 tObj = dataContainer.getObj("entry")
                 entryId = tObj.getValue("id", 0)
                 mObj = dataContainer.getObj("ma_model_list")
                 methodL = mObj.getAttributeUniqueValueList("model_type")
                 methodCount, expMethod = self.__commonU.filterExperimentalMethod(methodL)
-                if not methodType:
-                    methodType = self.__commonU.filterStructureDeterminationMethodType(methodL)
             #
             cObj.setValue(entryId, "entry_id", 0)
+            cObj.setValue(expMethod, "experimental_method", 0)
             cObj.setValue(methodCount, "experimental_method_count", 0)
-            cObj.setValue(methodType, "structure_determination_methodology", 0)
             #
             # --------------------------------------------------------------------------------------------------------
             #  Experimental resolution -
