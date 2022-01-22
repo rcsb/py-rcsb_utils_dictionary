@@ -10,6 +10,10 @@
 # 19-Sep-2019 jdw Add method getEntityReferenceAlignments()
 # 13-Oct-2019 jdw add isoform support
 # 17-Feb-2021 jdw add non-polymer neighbor calculation
+# 19-Jan-2022 dwp add method 'filterStructureDeterminationMethodType'to return type of method used
+#                 (experimental, computational, or integrative);
+#                 remove 'THEORETICAL MODEL' from list of 'Other' experimental_method types, and
+#                 add it to computational method list
 ##
 """
 Helper class implements common utility external method references supporting the RCSB dictionary extension.
@@ -2576,7 +2580,7 @@ class DictMethodCommonUtils(object):
         'EM'               'ELECTRON MICROSCOPY or ELECTRON CRYSTALLOGRAPHY or ELECTRON TOMOGRAPHY'
         'Neutron'          'NEUTRON DIFFRACTION'
         'Multiple methods' 'Multiple experimental methods'
-        'Other'            'SOLUTION SCATTERING, EPR, THEORETICAL MODEL, INFRARED SPECTROSCOPY or FLUORESCENCE TRANSFER'
+        'Other'            'SOLUTION SCATTERING, EPR, INFRARED SPECTROSCOPY or FLUORESCENCE TRANSFER'
         """
         methodCount = len(methodL)
         if methodCount > 1:
@@ -2593,20 +2597,63 @@ class DictMethodCommonUtils(object):
                 expMethod = "EM"
             elif mS in ["NEUTRON DIFFRACTION"]:
                 expMethod = "Neutron"
-            elif mS in [
-                "SOLUTION SCATTERING",
-                "EPR",
-                "THEORETICAL MODEL",
-                "INFRARED SPECTROSCOPY",
-                "FLUORESCENCE TRANSFER",
-            ]:
+            elif mS in ["SOLUTION SCATTERING", "EPR", "INFRARED SPECTROSCOPY", "FLUORESCENCE TRANSFER"]:
                 expMethod = "Other"
-            elif mS in ["AB INITIO MODEL"]:
-                expMethod = "Computational modeling"
+            elif mS in ["THEORETICAL MODEL", "AB INITIO MODEL", "HOMOLOGY MODEL"]:
+                expMethod = None
             else:
                 logger.error("Unexpected method ")
 
         return methodCount, expMethod
+
+    def filterStructureDeterminationMethodType(self, methodL):
+        """Apply a standard filter to the input experimental or computational method list to return the type
+            of structure determination method used--experimental, computational, or integrative.
+
+        Args:
+            methodL (list): List of dictionary compliant experimental or computational method names
+
+        Returns:
+            str: methodType
+
+        For example:
+            experimental   "Experimentally based structure determination"
+            integrative    "Integrative/Hybrid methods"
+            computational  "Computational modeling"
+        """
+        #
+        experimentalMethodList = [
+            "X-RAY DIFFRACTION", "FIBER DIFFRACTION", "POWDER DIFFRACTION",
+            "SOLUTION NMR", "SOLID-STATE NMR",
+            "ELECTRON MICROSCOPY", "ELECTRON CRYSTALLOGRAPHY", "ELECTRON DIFFRACTION", "CRYO-ELECTRON MICROSCOPY", "ELECTRON TOMOGRAPHY",
+            "NEUTRON DIFFRACTION",
+            "SOLUTION SCATTERING", "EPR", "INFRARED SPECTROSCOPY", "FLUORESCENCE TRANSFER",
+        ]
+        #
+        computationalMethodList = [
+            "THEORETICAL MODEL", "AB INITIO MODEL", "HOMOLOGY MODEL",
+        ]
+        #
+        methodType = None
+        methodCount = len(methodL)
+        if methodCount > 1:
+            if any([mS.upper() in experimentalMethodList for mS in methodL]):
+                methodType = "experimental"
+            if all([mS.upper() in computationalMethodList for mS in methodL]):
+                methodType = "computational"
+            # if any([mS.upper() in experimentalMethodList for mS in methodL]) and any([mS.upper() in computationalMethodList for mS in methodL]):
+            #     methodType = "integrative"
+        else:
+            #
+            mS = methodL[0].upper()
+            if mS in experimentalMethodList:
+                methodType = "experimental"
+            elif mS in computationalMethodList:
+                methodType = "computational"
+            else:
+                logger.error("Unexpected method type")
+
+        return methodType
 
     def hasMethodNMR(self, methodL):
         """Return if the input dictionary experimental method list contains an NMR experimental method.
