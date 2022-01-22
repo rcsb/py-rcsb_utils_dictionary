@@ -777,7 +777,7 @@ class DictMethodEntryHelper(object):
             #
             cObj.setValue(entryId, "entry_id", 0)
             cObj.setValue(methodCount, "experimental_method_count", 0)
-            cObj.setValue(methodType, "structure_determination_methodology", 0)
+            # cObj.setValue(methodType, "structure_determination_methodology", 0)  # Exclude until present in production schema
             #
             # --------------------------------------------------------------------------------------------------------
             #  Experimental resolution -
