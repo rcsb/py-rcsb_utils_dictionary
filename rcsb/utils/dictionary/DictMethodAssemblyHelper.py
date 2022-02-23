@@ -238,8 +238,9 @@ class DictMethodAssemblyHelper(object):
         try:
             if not dataContainer.exists("struct_asym"):
                 return False
-            if catName == "ma_data":
+            if dataContainer.exists("ma_data"):
                 isCompModel = True
+                logger.debug("isCompModel %s", isCompModel)
             if not dataContainer.exists("pdbx_struct_assembly"):
                 dataContainer.append(
                     DataCategory(
