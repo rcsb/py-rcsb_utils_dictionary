@@ -70,4 +70,4 @@
 08-Dec-2021 - V0.78 Update DictMethodCompModelHelper to not add polymer entity-level taxonomy if required fields aren't present
 19-Jan-2022 - V0.79 Update DictMethodEntryHelper to add rcsb_entry_info.structure_determination_methodology
 22-Jan-2022 - V0.80 Exclude newly introduced categories until present in production schema
- 2-Mar-2022 - V0.81 Only run 'addDepositedAssembly' on computational models, not experimental
+ 2-Mar-2022 - V0.81 Ensure that 'addDepositedAssembly' only runs on computational models, not experimental models

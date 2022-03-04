@@ -223,7 +223,7 @@ class DictMethodAssemblyHelper(object):
 
     def addDepositedAssembly(self, dataContainer, catName, **kwargs):
         """Add the deposited coordinates as an additional separate assembly labeled as 'deposited'
-        to categories, pdbx_struct_assembly and pdb_struct_assembly_gen. Do this for computed-models ONLY.
+        to categories, pdbx_struct_assembly and pdb_struct_assembly_gen.
 
         Args:
             dataContainer (object): mmcif.api.DataContainer object instance
@@ -233,12 +233,19 @@ class DictMethodAssemblyHelper(object):
             bool: True for success or False otherwise
 
         """
-        # isCompModel = False
+        isCompModel = False
         logger.debug("Starting catName %s kwargs %r", catName, kwargs)
         try:
-            # ONLY run this method for computational models, NOT experimental models
-            if not (dataContainer.exists("struct_asym") and dataContainer.exists("ma_data")):
+            if not dataContainer.exists("struct_asym"):
                 return False
+            #
+            if dataContainer.exists("ma_data"):
+                isCompModel = True
+            #
+            # Only run this method for computational models. (This stopped being run for experimental models around May 2020)
+            if not isCompModel:
+                return False
+            #
             if not dataContainer.exists("pdbx_struct_assembly"):
                 dataContainer.append(
                     DataCategory(
@@ -297,28 +304,28 @@ class DictMethodAssemblyHelper(object):
             # Ordinal is added by subsequent attribure-level method.
             tObj = dataContainer.getObj("pdbx_struct_assembly_gen")
             rowIdx = tObj.getRowCount()
-            # if isCompModel:
-            tObj.setValue("computed_model", "assembly_id", rowIdx)
-            # else:
-                # tObj.setValue("deposited", "assembly_id", rowIdx)
+            if isCompModel:
+                tObj.setValue("computed_model", "assembly_id", rowIdx)
+            else:
+                tObj.setValue("deposited", "assembly_id", rowIdx)
             tObj.setValue("1", "oper_expression", rowIdx)
             tObj.setValue(",".join(asymIdL), "asym_id_list", rowIdx)
             #
             tObj = dataContainer.getObj("pdbx_struct_assembly")
             rowIdx = tObj.getRowCount()
-            # if isCompModel:
-            tObj.setValue("computed_model", "id", rowIdx)
-            tObj.setValue("software_defined_assembly", "details", rowIdx)
-            # else:
-            #     tObj.setValue("deposited", "id", rowIdx)
-            #     tObj.setValue("deposited_coordinates", "details", rowIdx)
+            if isCompModel:
+                tObj.setValue("computed_model", "id", rowIdx)
+                tObj.setValue("software_defined_assembly", "details", rowIdx)
+            else:
+                tObj.setValue("deposited", "id", rowIdx)
+                tObj.setValue("deposited_coordinates", "details", rowIdx)
             #
             for atName in ["oligomeric_details", "method_details", "oligomeric_count"]:
                 if tObj.hasAttribute(atName):
                     tObj.setValue("?", atName, rowIdx)
             #
-            # if isCompModel:
-            tObj.setValue(str(len(asymIdL)), "oligomeric_count", rowIdx)
+            if isCompModel:
+                tObj.setValue(str(len(asymIdL)), "oligomeric_count", rowIdx)
             #
             #
             logger.debug("Full row is %r", tObj.getRow(rowIdx))
