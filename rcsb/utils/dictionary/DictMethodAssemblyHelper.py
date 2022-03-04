@@ -238,8 +238,14 @@ class DictMethodAssemblyHelper(object):
         try:
             if not dataContainer.exists("struct_asym"):
                 return False
-            if catName == "ma_data":
+            #
+            if dataContainer.exists("ma_data"):
                 isCompModel = True
+            #
+            # Only run this method for computational models. (This stopped being run for experimental models around May 2020)
+            if not isCompModel:
+                return False
+            #
             if not dataContainer.exists("pdbx_struct_assembly"):
                 dataContainer.append(
                     DataCategory(
