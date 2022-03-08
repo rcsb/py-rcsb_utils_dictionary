@@ -2196,8 +2196,8 @@ class DictMethodEntityInstanceHelper(object):
                 scoreD[(modelId, asymId, altId, compId)] = (fitScore, fitRanking, geoScore, geoRanking, numReportedAtoms, completeness, avgHeavyOccupancy)
             #
             targetHasAuthorProv = any(
-                # [compId in ccTargets for (modelId, asymId, altId, compId), vTup in instanceModelValidationD.items() if (modelId, asymId, altId, compId) not in scoreD]
-                [compId in ccTargets for (modelId, asymId, altId, compId) in instanceModelValidationD if (modelId, asymId, altId, compId) not in scoreD]
+                # [compId in ccTargets for (modelId, asymId, altId, compId), vTup in instanceModelValidationD.items() if (modelId, asymId, altId, compId) in scoreD]
+                [compId in ccTargets for (modelId, asymId, altId, compId) in instanceModelValidationD if (modelId, asymId, altId, compId) in scoreD]
             )
             #
             for (modelId, asymId, altId, compId), vTup in instanceModelValidationD.items():
