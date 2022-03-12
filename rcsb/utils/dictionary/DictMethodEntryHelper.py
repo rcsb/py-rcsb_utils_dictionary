@@ -51,7 +51,7 @@
 # 19-May-2019 jdw add method __getStructConfInfo()
 # 21-May-2019 jdw handle odd ordering of records in struct_ref_seq_dif.
 # 25-Nov-2019 jdw add method normalizeCitationJournalAbbrev() and dependencies
-# 10-Mar-2022 bv Fix _rcsb_entry_info.deposited_model_count not being populated for certain NMR entries
+# 11-Mar-2022 bv Fix _rcsb_entry_info.deposited_model_count not being populated for certain NMR entries
 #
 ##
 """
@@ -877,11 +877,15 @@ class DictMethodEntryHelper(object):
             #
             ##
             #repModelL = ["1"]
+            repModelL = []
             mIdL = self.__commonU.getModelIdList(dataContainer)
-            repModelL = [mIdL[0]]
-            if self.__commonU.hasMethodNMR(methodL):
-                repModelL = self.__getRepresentativeModels(dataContainer)
-            logger.debug("Representative model list %r", repModelL)
+            if mIdL:
+                repModelL = ["1"] if "1" in mIdL else [mIdL[0]]
+                if self.__commonU.hasMethodNMR(methodL):
+                    repModelL = self.__getRepresentativeModels(dataContainer)
+                logger.debug("Representative model list %r %r", repModelL, entryId)
+            else:
+                logger.debug("No models available for %s", dataContainer.getName())
             #
             instanceTypeCountD = self.__commonU.getInstanceTypeCounts(dataContainer)
             cObj.setValue(instanceTypeCountD["polymer"], "deposited_polymer_entity_instance_count", 0)
@@ -1124,9 +1128,9 @@ class DictMethodEntryHelper(object):
         #
         repModelL = list(set(repModelL))
         if not repModelL:
-            logger.debug("Missing representative model data for %s using the first one", dataContainer.getName())
+            logger.debug("Missing representative model data for %s using the first", dataContainer.getName())
             #repModelL = ["1"]
-            repModelL = [mIdL[0]]
+            repModelL = ["1"] if "1" in mIdL else [mIdL[0]]
 
         return repModelL
 
