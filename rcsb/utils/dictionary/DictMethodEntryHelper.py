@@ -876,7 +876,6 @@ class DictMethodEntryHelper(object):
             # INSTANCE FEATURES
             #
             ##
-            #repModelL = ["1"]
             repModelL = []
             mIdL = self.__commonU.getModelIdList(dataContainer)
             if mIdL:
@@ -1128,8 +1127,7 @@ class DictMethodEntryHelper(object):
         #
         repModelL = list(set(repModelL))
         if not repModelL:
-            logger.debug("Missing representative model data for %s using the first", dataContainer.getName())
-            #repModelL = ["1"]
+            logger.debug("Missing representative model data for %s using the first model", dataContainer.getName())
             repModelL = ["1"] if "1" in mIdL else [mIdL[0]]
 
         return repModelL
