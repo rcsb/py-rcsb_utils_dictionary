@@ -51,6 +51,7 @@
 # 19-May-2019 jdw add method __getStructConfInfo()
 # 21-May-2019 jdw handle odd ordering of records in struct_ref_seq_dif.
 # 25-Nov-2019 jdw add method normalizeCitationJournalAbbrev() and dependencies
+# 11-Mar-2022 bv Fix _rcsb_entry_info.deposited_model_count not being populated for certain NMR entries
 #
 ##
 """
@@ -875,10 +876,15 @@ class DictMethodEntryHelper(object):
             # INSTANCE FEATURES
             #
             ##
-            repModelL = ["1"]
-            if self.__commonU.hasMethodNMR(methodL):
-                repModelL = self.__getRepresentativeModels(dataContainer)
-            logger.debug("Representative model list %r", repModelL)
+            repModelL = []
+            mIdL = self.__commonU.getModelIdList(dataContainer)
+            if mIdL:
+                repModelL = ["1"] if "1" in mIdL else [mIdL[0]]
+                if self.__commonU.hasMethodNMR(methodL):
+                    repModelL = self.__getRepresentativeModels(dataContainer)
+                logger.debug("Representative model list %r %r", repModelL, entryId)
+            else:
+                logger.debug("No models available for %s", dataContainer.getName())
             #
             instanceTypeCountD = self.__commonU.getInstanceTypeCounts(dataContainer)
             cObj.setValue(instanceTypeCountD["polymer"], "deposited_polymer_entity_instance_count", 0)
@@ -1103,25 +1109,26 @@ class DictMethodEntryHelper(object):
             _pdbx_nmr_representative.selection_criteria   'fewest violations'
         """
         repModelL = []
+        mIdL = self.__commonU.getModelIdList(dataContainer)
         if dataContainer.exists("pdbx_nmr_representative"):
             tObj = dataContainer.getObj("pdbx_nmr_representative")
             if tObj.hasAttribute("conformer_id"):
                 for ii in range(tObj.getRowCount()):
                     nn = tObj.getValue("conformer_id", ii)
-                    if nn is not None and nn.isdigit():
+                    if nn is not None and nn.isdigit() and nn in mIdL:
                         repModelL.append(nn)
 
         if dataContainer.exists("pdbx_nmr_ensemble"):
             tObj = dataContainer.getObj("pdbx_nmr_ensemble")
             if tObj.hasAttribute("representative_conformer"):
                 nn = tObj.getValue("representative_conformer", 0)
-                if nn is not None and nn and nn.isdigit():
+                if nn is not None and nn.isdigit() and nn in mIdL:
                     repModelL.append(nn)
         #
         repModelL = list(set(repModelL))
         if not repModelL:
-            logger.debug("Missing representative model data for %s using 1", dataContainer.getName())
-            repModelL = ["1"]
+            logger.debug("Missing representative model data for %s using the first model", dataContainer.getName())
+            repModelL = ["1"] if "1" in mIdL else [mIdL[0]]
 
         return repModelL
 
