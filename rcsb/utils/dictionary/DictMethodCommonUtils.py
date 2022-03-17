@@ -4038,3 +4038,112 @@ class DictMethodCommonUtils(object):
         #
         logger.info("Completed %s at %s (%.4f seconds)", dataContainer.getName(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), time.time() - startTime)
         return rD
+
+    def getCompModelLocalQAScores(self, dataContainer):
+        """Get Local QA scores from ModelCIF data file
+
+        Args:
+            dataContainer (object): mmif.api.DataContainer object instance
+
+        Returns:
+            {"compModelLocalQAScoresD": {(modelId, asymId, metricT, metricN): [(compId, seqId, metricV), ...}}
+
+        """
+        logger.debug("Starting with CompModelLocalQAScores for %r", dataContainer.getName())
+
+        try:
+            # Check for all categories/data items required for the ETL
+            if not (dataContainer.exists("ma_qa_metric") and dataContainer.exists("ma_qa_metric_local")):
+                logger.debug("Missing categories ma_qa_metric_local and ma_qa_metric for %r", dataContainer.getName())
+            if not all([ai in dataContainer.getObj('ma_qa_metric_local').getAttributeList() for ai in ["model_id", "metric_id", "metric_value", "label_seq_id", "label_comp_id", "label_asym_id"]]):
+                logger.debug("Missing attributes in ma_qa_metric_local for %r", dataContainer.getName())
+            if not all([ai in dataContainer.getObj('ma_qa_metric').getAttributeList() for ai in ["id", "name", "type", "mode"]]):
+                logger.debug("Missing attributes for ma_qa_metric for %r", dataContainer.getName())
+
+            # Get the relevant category objects from the ModelCIF instance
+            if dataContainer.exists("ma_qa_metric"):
+                aObj = dataContainer.getObj("ma_qa_metric")
+            if dataContainer.exists("ma_qa_metric_local"):
+                bObj = dataContainer.getObj("ma_qa_metric_local")
+
+            # Add temporary data items to ma_qa_metric_local to populate values from ma_qa_metric
+            if not bObj.hasAttribute("metric_id_type"):
+                bObj.appendAttribute("metric_id_type")
+            if not bObj.hasAttribute("metric_id_name"):
+                bObj.appendAttribute("metric_id_name")
+
+            # Merge ma_qa_metric data with ma_qa_metric_local (denormalization)
+            for ii in range(bObj.getRowCount()):
+                m1Id = bObj.getValue("metric_id", ii)
+                for jj in range(aObj.getRowCount()):
+                    m2Id = aObj.getValue("id", jj)
+                    m2Mode = aObj.getValue("mode", jj)
+                    if m1Id == m2Id and m2Mode == "local":
+                        m2type = aObj.getValue("type", jj)
+                        m2name = aObj.getValue("name", jj)
+                        bObj.setValue(m2type,"metric_id_type",ii)
+                        bObj.setValue(m2name,"metric_id_name",ii)
+
+            # Create dictionary for populating local QA scores
+            compModelLocalQAScoresD = OrderedDict()
+            compModelScoreTypeEnumD = {"zscore": "MA_QA_METRIC_LOCAL_TYPE_ZSCORE",
+                                       "energy": "MA_QA_METRIC_LOCAL_TYPE_ENERGY",
+                                       "distance": "MA_QA_METRIC_LOCAL_TYPE_DISTANCE",
+                                       "normalized score": "MA_QA_METRIC_LOCAL_TYPE_NORMALIZED_SCORE",
+                                       "pLDDT": "MA_QA_METRIC_LOCAL_TYPE_pLDDT",
+                                       "pLDDT in [0,1]": "MA_QA_METRIC_LOCAL_TYPE_pLDDT_[0,1]",
+                                       "pLDDT all-atom": "MA_QA_METRIC_LOCAL_TYPE_pLDDT_ALL-ATOM",
+                                       "pLDDT all-atom in [0,1]": "MA_QA_METRIC_LOCAL_TYPE_pLDDT_ALL-ATOM_[0,1]",
+                                       "PAE": "MA_QA_METRIC_LOCAL_TYPE_PAE",
+                                       "pTM": "MA_QA_METRIC_LOCAL_TYPE_pTM",
+                                       "ipTM": "MA_QA_METRIC_LOCAL_TYPE_ipTM",
+                                       "contact probability": "MA_QA_METRIC_LOCAL_TYPE_CONTACT_PROBABILITY",
+                                       "other": "MA_QA_METRIC_LOCAL_TYPE_OTHER"
+            }
+
+            # Merge local residue-wise QA metrics per model per asymId per Score Type/Name
+            for ii in range(bObj.getRowCount()):
+                modelId = bObj.getValueOrDefault("model_id", ii, defaultValue=None)
+                asymId = bObj.getValueOrDefault("label_asym_id", ii, defaultValue=None)
+                seqId = bObj.getValueOrDefault("label_seq_id", ii, defaultValue=None)
+                compId = bObj.getValueOrDefault("label_comp_id", ii, defaultValue=None)
+                metricV = bObj.getValueOrDefault("metric_value", ii, defaultValue=None)
+                metricT = bObj.getValueOrDefault("metric_id_type", ii, defaultValue=None)
+                metricN = bObj.getValueOrDefault("metric_id_name", ii, defaultValue=None)
+                compModelLocalQAScoresD.setdefault((modelId, asymId, compModelScoreTypeEnumD[metricT], metricN), []).append((compId, seqId, metricV))
+
+        except Exception as e:
+            logger.exception("Failing computed model local QA scores for %r with %s", dataContainer.getName(), str(e))
+
+        logger.debug("Completed computed model local QA scores for %r", dataContainer.getName())
+        return compModelLocalQAScoresD
+
+    def getCompModelDb2L(self, dataContainer):
+        """Get list of comp model database_ids from database_2
+
+        Args:
+            dataContainer (object): mmif.api.DataContainer object instance
+
+        Returns:
+            compModelDb2L = ["AlphaFoldDB", ...]
+
+        """
+        logger.debug("Starting computed model database_2 list for %r", dataContainer.getName())
+
+        try:
+            compModelDb2L = []
+            db2EnumL = ["AlphaFoldDB", "MODBASE", "ModelArchive", "SWISS-MODEL_REPOSITORY", "AF", "MA", "SMR"]
+            eObj = dataContainer.getObj("database_2")
+            if eObj.hasAttribute("database_id"):
+                for ii in range(eObj.getRowCount()):
+                    dbN = eObj.getValue("database_id", ii)
+                    if dbN in db2EnumL:
+                        compModelDb2L.append(dbN)
+
+        except Exception as e:
+            logger.exception("Missing database_2 information. %r failing with %s", dataContainer.getName(), str(e))
+
+        logger.debug("Completed computed model database_2 list for %r", dataContainer.getName())
+
+        return compModelDb2L
+

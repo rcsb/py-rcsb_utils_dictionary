@@ -876,6 +876,37 @@ class DictMethodEntityInstanceHelper(object):
                 #
                 ii += 1
 
+            # Populate local QA scores for computed models
+            if dataContainer.exists("ma_data"):
+                compModelLocalQAScoresD = self.__commonU.getCompModelLocalQAScores(dataContainer)
+                compModelDb2L = self.__commonU.getCompModelDb2L(dataContainer)
+                dbId = compModelDb2L[0]
+
+                for (modelId, asymId, metricT, metricN), aL in compModelLocalQAScoresD.items():
+                    if instTypeD[asymId] not in ["polymer"]:
+                        continue
+                    addPropTupL = []
+                    entityId = asymIdD[asymId]
+                    cObj.setValue(ii + 1, "ordinal", ii)
+                    cObj.setValue(entryId, "entry_id", ii)
+                    cObj.setValue(entityId, "entity_id", ii)
+                    cObj.setValue(asymId, "asym_id", ii)
+                    cObj.setValue(dbId, "provenance_source", ii)
+                    cObj.setValue(metricT, "type", ii)
+                    cObj.setValue(metricN, "name", ii)
+                    cObj.setValue(metricN, "feature_id", ii)
+                    addPropTupL.append(("ModelCIF_MODEL_ID", modelId))
+                    cObj.setValue(";".join([str(tup1[0]) for tup1 in addPropTupL]), "additional_properties_name", ii)
+                    cObj.setValue(";".join([str(tup1[1]) for tup1 in addPropTupL]), "additional_properties_values", ii)
+                    aCompId = ";".join([str(tup[0]) for tup in aL])
+                    cObj.setValue(aCompId, "feature_positions_beg_comp_id", ii)
+                    aSeqId = ";".join([str(tup[1]) for tup in aL])
+                    cObj.setValue(aSeqId, "feature_positions_beg_seq_id", ii)
+                    aVal = ";".join([str(tup[2]) for tup in aL])
+                    cObj.setValue(aVal, "feature_positions_values", ii)
+                    ii += 1
+                logger.info("Completed populating local QA scores for computed models %r", dataContainer.getName())
+
             npbD = self.__commonU.getBoundNonpolymersByInstance(dataContainer)
             jj = 1
             for asymId, rTupL in npbD.items():
