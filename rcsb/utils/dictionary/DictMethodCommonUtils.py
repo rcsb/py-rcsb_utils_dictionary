@@ -15,6 +15,7 @@
 #                 remove 'THEORETICAL MODEL' from list of 'Other' experimental_method types, and
 #                 add it to computational method list
 # 28-Mar-2022 bv add method 'getRepresentativeModels' to get representative models for NMR ensembles
+#                Fix pylint issues
 ##
 """
 Helper class implements common utility external method references supporting the RCSB dictionary extension.
@@ -33,6 +34,7 @@ import logging
 import re
 import sys
 import time
+import copy
 from collections import OrderedDict, namedtuple, defaultdict
 from operator import itemgetter
 
@@ -1598,10 +1600,12 @@ class DictMethodCommonUtils(object):
                     )
                     boundNonpolymerEntityD.setdefault(tEntityId, []).append(NonpolymerBoundEntity(tCompId, cD["connect_type"], pCompId, pEntityId, eType))
             #
-            for asymId in boundNonpolymerInstanceD:
-                boundNonpolymerInstanceD[asymId] = sorted(set(boundNonpolymerInstanceD[asymId]))
-            for entityId in boundNonpolymerEntityD:
-                boundNonpolymerEntityD[entityId] = sorted(set(boundNonpolymerEntityD[entityId]))
+            cloneD = copy.deepcopy(boundNonpolymerInstanceD)
+            for asymId in cloneD:
+                boundNonpolymerInstanceD[asymId] = sorted(set(cloneD[asymId]))
+            cloneD = copy.deepcopy(boundNonpolymerEntityD)
+            for entityId in cloneD:
+                boundNonpolymerEntityD[entityId] = sorted(set(cloneD[entityId]))
             boundNonpolymerComponentIdL = sorted(ts)
         except Exception as e:
             logger.exception("%s failing with %s", dataContainer.getName(), str(e))
@@ -3292,8 +3296,9 @@ class DictMethodCommonUtils(object):
                         if seqId:
                             polyResRngD.setdefault((modelId, asymId, zeroOccFlag), []).append(int(seqId))
                 #
-                for tup in polyResRngD:
-                    polyResRngD[tup] = list(self.__toRangeList(polyResRngD[tup]))
+                cloneD = copy.deepcopy(polyResRngD)
+                for tup in cloneD:
+                    polyResRngD[tup] = list(self.__toRangeList(cloneD[tup]))
                 logger.debug("polyResRngD %r", polyResRngD)
             #
             polyAtomRngD = {}
@@ -3319,8 +3324,9 @@ class DictMethodCommonUtils(object):
                         nonPolyMissingAtomD.setdefault((modelId, compId, asymId, zeroOccFlag), []).append(atomId)
                         nonPolyMissingAtomAuthD.setdefault((modelId, compId, authAsymId, authSeqId, zeroOccFlag), []).append(atomId)
                 #
-                for tup in polyAtomRngD:
-                    polyAtomRngD[tup] = list(self.__toRangeList(polyAtomRngD[tup]))
+                cloneD = copy.deepcopy(polyAtomRngD)
+                for tup in cloneD:
+                    polyAtomRngD[tup] = list(self.__toRangeList(cloneD[tup]))
                 logger.debug("polyAtomRngD %r", polyAtomRngD)
             #
             rD = {"polyResRng": polyResRngD, "polyAtomRng": polyAtomRngD, "nonPolyMissingAtomD": nonPolyMissingAtomD, "nonPolyMissingAtomAuthD": nonPolyMissingAtomAuthD}
@@ -4011,8 +4017,9 @@ class DictMethodCommonUtils(object):
                         continue
             #
             # re-sort by distance -
-            for asymId in ligandTargetInstanceD:
-                ligandTargetInstanceD[asymId] = sorted(ligandTargetInstanceD[asymId], key=itemgetter(-1))
+            cloneD = copy.deepcopy(ligandTargetInstanceD)
+            for asymId in cloneD:
+                ligandTargetInstanceD[asymId] = sorted(cloneD[asymId], key=itemgetter(-1))
                 #
             # --- ----
             tnD = {}
@@ -4088,4 +4095,3 @@ class DictMethodCommonUtils(object):
             repModelL = ["1"] if "1" in mIdL else [mIdL[0]]
 
         return repModelL
-

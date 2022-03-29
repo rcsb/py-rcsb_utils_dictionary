@@ -4,7 +4,7 @@
 # Date:    16-Jul-2019
 # Version: 0.001 Initial version
 #
-# Updates: 
+# Updates:
 # 28-Mar-2022 bv Fix _rcsb_assembly_info.atom_count not being populated for certain NMR entries
 #
 ##
