@@ -14,6 +14,7 @@
 #                 (experimental, computational, or integrative);
 #                 remove 'THEORETICAL MODEL' from list of 'Other' experimental_method types, and
 #                 add it to computational method list
+# 28-Mar-2022 bv add method 'getRepresentativeModels' to get representative models for NMR ensembles
 ##
 """
 Helper class implements common utility external method references supporting the RCSB dictionary extension.
