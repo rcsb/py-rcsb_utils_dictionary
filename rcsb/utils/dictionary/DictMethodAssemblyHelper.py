@@ -4,6 +4,9 @@
 # Date:    16-Jul-2019
 # Version: 0.001 Initial version
 #
+# Updates:
+# 28-Mar-2022 bv Fix _rcsb_assembly_info.atom_count not being populated for certain NMR entries
+#
 ##
 """
 Helper class implementing external assembly-level methods  supporting the RCSB dictionary extension.
@@ -594,12 +597,29 @@ class DictMethodAssemblyHelper(object):
         epTypeD = self.__commonU.getEntityPolymerTypes(dataContainer)
         eTypeD = self.__commonU.getEntityTypes(dataContainer)
         epTypeFilteredD = self.__commonU.getPolymerEntityFilteredTypes(dataContainer)
+
+        if dataContainer.exists("exptl"):
+            xObj = dataContainer.getObj("exptl")
+            methodL = xObj.getAttributeValueList("method")
+        elif dataContainer.exists("ma_model_list"):
+            mObj = dataContainer.getObj("ma_model_list")
+            methodL = mObj.getAttributeUniqueValueList("model_type")
+        repModelL = []
+        mIdL = self.__commonU.getModelIdList(dataContainer)
+        if mIdL:
+            repModelL = ["1"] if "1" in mIdL else [mIdL[0]]
+            if self.__commonU.hasMethodNMR(methodL):
+                repModelL = self.__commonU.getRepresentativeModels(dataContainer)
+            logger.debug("Representative model list %r %r", repModelL, dataContainer.getName())
+        else:
+            logger.debug("No models available for %s", dataContainer.getName())
+        repModelId = repModelL[0]
         # JDW
-        instHeavyAtomCount = self.__commonU.getInstanceHeavyAtomCounts(dataContainer, modelId="1")
-        instHydrogenAtomCount = self.__commonU.getInstanceHydrogenAtomCounts(dataContainer, modelId="1")
+        instHeavyAtomCount = self.__commonU.getInstanceHeavyAtomCounts(dataContainer, modelId=repModelId)
+        instHydrogenAtomCount = self.__commonU.getInstanceHydrogenAtomCounts(dataContainer, modelId=repModelId)
         #
-        instModeledMonomerCount = self.__commonU.getInstanceModeledMonomerCounts(dataContainer, modelId="1")
-        instUnmodeledMonomerCount = self.__commonU.getInstanceUnModeledMonomerCounts(dataContainer, modelId="1")
+        instModeledMonomerCount = self.__commonU.getInstanceModeledMonomerCounts(dataContainer, modelId=repModelId)
+        instUnmodeledMonomerCount = self.__commonU.getInstanceUnModeledMonomerCounts(dataContainer, modelId=repModelId)
         # -------------------------
         assemblyInstanceCountByTypeD = {}
         assemblyHeavyAtomCountByTypeD = {}
