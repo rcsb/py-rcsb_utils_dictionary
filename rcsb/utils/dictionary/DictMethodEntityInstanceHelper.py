@@ -4,6 +4,12 @@
 # Date:    16-Jul-2019
 # Version: 0.001 Initial version
 #
+#
+# Updates:
+#  22-Nov-2021 dwp authSeqBeg and authSeqEnd are returned as integers but must be compared as strings in pAuthAsymD
+#   7-Mar-2022 dwp Excldue "RCSB"-designated LOI flag from ligands if "Author"-designations exist
+#                  (rcsb_nonpolymer_instance_validation_score.is_subject_of_investigation_provenance)
+#
 ##
 """
 This helper class implements methods supporting entity-instance-level functions in the RCSB dictionary extension.
@@ -274,7 +280,6 @@ class DictMethodEntityInstanceHelper(object):
             # Add CATH assignments
             cathU = rP.getResource("CathProvider instance") if rP else None
             if cathU:
-
                 for asymId, authAsymId in asymAuthIdD.items():
                     if instTypeD[asymId] not in ["polymer", "branched"]:
                         continue
@@ -284,8 +289,8 @@ class DictMethodEntityInstanceHelper(object):
                     vL = cathU.getCathVersions(entryId.lower(), authAsymId)
                     for (cathId, domId, tId, authSeqBeg, authSeqEnd) in dL:
                         addPropTupL = []
-                        begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
-                        endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
+                        begSeqId = pAuthAsymD[(authAsymId, str(authSeqBeg), None)]["seq_id"] if (authAsymId, str(authSeqBeg), None) in pAuthAsymD else None
+                        endSeqId = pAuthAsymD[(authAsymId, str(authSeqEnd), None)]["seq_id"] if (authAsymId, str(authSeqEnd), None) in pAuthAsymD else None
                         if not (begSeqId and endSeqId):
                             # take the full chain
                             begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
@@ -348,8 +353,8 @@ class DictMethodEntityInstanceHelper(object):
                     version = scopU.getScopVersion()
                     for (sunId, domId, sccs, tId, authSeqBeg, authSeqEnd) in dL:
                         addPropTupL = []
-                        begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
-                        endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
+                        begSeqId = pAuthAsymD[(authAsymId, str(authSeqBeg), None)]["seq_id"] if (authAsymId, str(authSeqBeg), None) in pAuthAsymD else None
+                        endSeqId = pAuthAsymD[(authAsymId, str(authSeqEnd), None)]["seq_id"] if (authAsymId, str(authSeqEnd), None) in pAuthAsymD else None
                         # logger.info("%s (first) begSeqId %r endSeqId %r", entryId, begSeqId, endSeqId)
                         if not (begSeqId and endSeqId):
                             # try another full range
@@ -430,8 +435,8 @@ class DictMethodEntityInstanceHelper(object):
                     for (domId, familyId, _, authSeqBeg, authSeqEnd) in dL:
                         addPropTupL = []
                         # map to entity polymer coordinates
-                        begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
-                        endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
+                        begSeqId = pAuthAsymD[(authAsymId, str(authSeqBeg), None)]["seq_id"] if (authAsymId, str(authSeqBeg), None) in pAuthAsymD else None
+                        endSeqId = pAuthAsymD[(authAsymId, str(authSeqEnd), None)]["seq_id"] if (authAsymId, str(authSeqEnd), None) in pAuthAsymD else None
                         # logger.info("%s (first) begSeqId %r endSeqId %r", entryId, begSeqId, endSeqId)
                         if not (begSeqId and endSeqId):
                             # Use full range
@@ -480,8 +485,8 @@ class DictMethodEntityInstanceHelper(object):
                     for (domId, superfamilyId, _, authSeqBeg, authSeqEnd) in dL:
                         addPropTupL = []
                         # map to entity polymer coordinates
-                        begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
-                        endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
+                        begSeqId = pAuthAsymD[(authAsymId, str(authSeqBeg), None)]["seq_id"] if (authAsymId, str(authSeqBeg), None) in pAuthAsymD else None
+                        endSeqId = pAuthAsymD[(authAsymId, str(authSeqEnd), None)]["seq_id"] if (authAsymId, str(authSeqEnd), None) in pAuthAsymD else None
                         if not (begSeqId and endSeqId):
                             # Use full range
                             begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
@@ -529,8 +534,8 @@ class DictMethodEntityInstanceHelper(object):
                     for (domId, superfamilyId, _, authSeqBeg, authSeqEnd) in dL:
                         addPropTupL = []
                         # map to entity polymer coordinates
-                        begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
-                        endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
+                        begSeqId = pAuthAsymD[(authAsymId, str(authSeqBeg), None)]["seq_id"] if (authAsymId, str(authSeqBeg), None) in pAuthAsymD else None
+                        endSeqId = pAuthAsymD[(authAsymId, str(authSeqEnd), None)]["seq_id"] if (authAsymId, str(authSeqEnd), None) in pAuthAsymD else None
                         if not (begSeqId and endSeqId):
                             # Use full range
                             begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
@@ -581,8 +586,8 @@ class DictMethodEntityInstanceHelper(object):
                     for (domId, familyId, _, authSeqBeg, authSeqEnd) in dL:
                         addPropTupL = []
                         # map to entity polymer coordinates
-                        begSeqId = pAuthAsymD[(authAsymId, authSeqBeg, None)]["seq_id"] if (authAsymId, authSeqBeg, None) in pAuthAsymD else None
-                        endSeqId = pAuthAsymD[(authAsymId, authSeqEnd, None)]["seq_id"] if (authAsymId, authSeqEnd, None) in pAuthAsymD else None
+                        begSeqId = pAuthAsymD[(authAsymId, str(authSeqBeg), None)]["seq_id"] if (authAsymId, str(authSeqBeg), None) in pAuthAsymD else None
+                        endSeqId = pAuthAsymD[(authAsymId, str(authSeqEnd), None)]["seq_id"] if (authAsymId, str(authSeqEnd), None) in pAuthAsymD else None
                         if not (begSeqId and endSeqId):
                             # Use full range
                             begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
@@ -2190,6 +2195,10 @@ class DictMethodEntityInstanceHelper(object):
 
                 scoreD[(modelId, asymId, altId, compId)] = (fitScore, fitRanking, geoScore, geoRanking, numReportedAtoms, completeness, avgHeavyOccupancy)
             #
+            targetHasAuthorProv = any(
+                [compId in ccTargets for (modelId, asymId, altId, compId) in instanceModelValidationD if (modelId, asymId, altId, compId) in scoreD]
+            )
+            #
             for (modelId, asymId, altId, compId), vTup in instanceModelValidationD.items():
                 if (modelId, asymId, altId, compId) not in scoreD:
                     continue
@@ -2238,8 +2247,11 @@ class DictMethodEntityInstanceHelper(object):
                 elif compId in excludeList:
                     isTarget = "N"
                 elif self.__ccP.getFormulaWeight(compId) and self.__ccP.getFormulaWeight(compId) > 150.0:
-                    isTarget = "Y"
-                    isTargetProv = "RCSB"
+                    if targetHasAuthorProv:
+                        isTarget = "N"
+                    else:
+                        isTarget = "Y"
+                        isTargetProv = "RCSB"
                 cObj.setValue(isTarget, "is_subject_of_investigation", ii)
                 if isTarget == "Y":
                     cObj.setValue(isTargetProv, "is_subject_of_investigation_provenance", ii)

@@ -51,6 +51,8 @@
 # 19-May-2019 jdw add method __getStructConfInfo()
 # 21-May-2019 jdw handle odd ordering of records in struct_ref_seq_dif.
 # 25-Nov-2019 jdw add method normalizeCitationJournalAbbrev() and dependencies
+# 11-Mar-2022 bv Fix _rcsb_entry_info.deposited_model_count not being populated for certain NMR entries
+# 28-Mar-2022 bv Move 'getRepresentativeModels' method to DictMethodCommonUtils
 #
 ##
 """
@@ -701,15 +703,16 @@ class DictMethodEntryHelper(object):
     def addEntryInfo(self, dataContainer, catName, **kwargs):
         """
         Add  _rcsb_entry_info, for example:
-             _rcsb_entry_info.entry_id                      1ABC
-             _rcsb_entry_info.polymer_composition           'heteromeric protein'
-             _rcsb_entry_info.experimental_method           'multiple methods'
-             _rcsb_entry_info.experimental_method_count     2
-             _rcsb_entry_info.polymer_entity_count          2
-             _rcsb_entry_info.entity_count                  2
-             _rcsb_entry_info.nonpolymer_entity_count       2
-             _rcsb_entry_info.branched_entity_count         0
-             _rcsb_entry_info.software_programs_combined    'Phenix;RefMac'
+             _rcsb_entry_info.entry_id                              1ABC
+             _rcsb_entry_info.polymer_composition                   'heteromeric protein'
+             _rcsb_entry_info.structure_determination_methodology   'experimental'
+             _rcsb_entry_info.experimental_method                   'multiple methods'
+             _rcsb_entry_info.experimental_method_count             2
+             _rcsb_entry_info.polymer_entity_count                  2
+             _rcsb_entry_info.entity_count                          2
+             _rcsb_entry_info.nonpolymer_entity_count               2
+             _rcsb_entry_info.branched_entity_count                 0
+             _rcsb_entry_info.software_programs_combined            'Phenix;RefMac'
              ....
 
         Also add the related field:
@@ -750,21 +753,33 @@ class DictMethodEntryHelper(object):
             #
             methodCount = 0
             expMethod = None
+            methodType = None
+            #
+            if dataContainer.exists("struct"):
+                xObj = dataContainer.getObj("struct")
+                if xObj.hasAttribute("pdbx_structure_determination_methodology"):
+                    methodType = xObj.getValue("pdbx_structure_determination_methodology", 0)
+            #
             if dataContainer.exists("exptl"):
                 xObj = dataContainer.getObj("exptl")
                 entryId = xObj.getValue("entry_id", 0)
                 methodL = xObj.getAttributeValueList("method")
                 methodCount, expMethod = self.__commonU.filterExperimentalMethod(methodL)
+                if not methodType:
+                    methodType = self.__commonU.filterStructureDeterminationMethodType(methodL)
+                cObj.setValue(expMethod, "experimental_method", 0)
             elif dataContainer.exists("ma_model_list"):
                 tObj = dataContainer.getObj("entry")
                 entryId = tObj.getValue("id", 0)
                 mObj = dataContainer.getObj("ma_model_list")
                 methodL = mObj.getAttributeUniqueValueList("model_type")
                 methodCount, expMethod = self.__commonU.filterExperimentalMethod(methodL)
+                if not methodType:
+                    methodType = self.__commonU.filterStructureDeterminationMethodType(methodL)
             #
             cObj.setValue(entryId, "entry_id", 0)
-            cObj.setValue(expMethod, "experimental_method", 0)
             cObj.setValue(methodCount, "experimental_method_count", 0)
+            # cObj.setValue(methodType, "structure_determination_methodology", 0)  # Exclude until present in production schema
             #
             # --------------------------------------------------------------------------------------------------------
             #  Experimental resolution -
@@ -862,10 +877,15 @@ class DictMethodEntryHelper(object):
             # INSTANCE FEATURES
             #
             ##
-            repModelL = ["1"]
-            if self.__commonU.hasMethodNMR(methodL):
-                repModelL = self.__getRepresentativeModels(dataContainer)
-            logger.debug("Representative model list %r", repModelL)
+            repModelL = []
+            mIdL = self.__commonU.getModelIdList(dataContainer)
+            if mIdL:
+                repModelL = ["1"] if "1" in mIdL else [mIdL[0]]
+                if self.__commonU.hasMethodNMR(methodL):
+                    repModelL = self.__commonU.getRepresentativeModels(dataContainer)
+                logger.debug("Representative model list %r %r", repModelL, entryId)
+            else:
+                logger.debug("No models available for %s", dataContainer.getName())
             #
             instanceTypeCountD = self.__commonU.getInstanceTypeCounts(dataContainer)
             cObj.setValue(instanceTypeCountD["polymer"], "deposited_polymer_entity_instance_count", 0)
@@ -1063,54 +1083,6 @@ class DictMethodEntryHelper(object):
         except Exception as e:
             logger.exception("%s %s %s failing with %s", dataContainer.getName(), catName, atName, str(e))
         return False
-
-    def __getRepresentativeModels(self, dataContainer):
-        """Return the list of representative models
-
-        Example:
-            #
-            _pdbx_nmr_ensemble.entry_id                                      5TM0
-            _pdbx_nmr_ensemble.conformers_calculated_total_number            15
-            _pdbx_nmr_ensemble.conformers_submitted_total_number             15
-            _pdbx_nmr_ensemble.conformer_selection_criteria                  'all calculated structures submitted'
-            _pdbx_nmr_ensemble.representative_conformer                      ?
-            _pdbx_nmr_ensemble.average_constraints_per_residue               ?
-            _pdbx_nmr_ensemble.average_constraint_violations_per_residue     ?
-            _pdbx_nmr_ensemble.maximum_distance_constraint_violation         ?
-            _pdbx_nmr_ensemble.average_distance_constraint_violation         ?
-            _pdbx_nmr_ensemble.maximum_upper_distance_constraint_violation   ?
-            _pdbx_nmr_ensemble.maximum_lower_distance_constraint_violation   ?
-            _pdbx_nmr_ensemble.distance_constraint_violation_method          ?
-            _pdbx_nmr_ensemble.maximum_torsion_angle_constraint_violation    ?
-            _pdbx_nmr_ensemble.average_torsion_angle_constraint_violation    ?
-            _pdbx_nmr_ensemble.torsion_angle_constraint_violation_method     ?
-            #
-            _pdbx_nmr_representative.entry_id             5TM0
-            _pdbx_nmr_representative.conformer_id         1
-            _pdbx_nmr_representative.selection_criteria   'fewest violations'
-        """
-        repModelL = []
-        if dataContainer.exists("pdbx_nmr_representative"):
-            tObj = dataContainer.getObj("pdbx_nmr_representative")
-            if tObj.hasAttribute("conformer_id"):
-                for ii in range(tObj.getRowCount()):
-                    nn = tObj.getValue("conformer_id", ii)
-                    if nn is not None and nn.isdigit():
-                        repModelL.append(nn)
-
-        if dataContainer.exists("pdbx_nmr_ensemble"):
-            tObj = dataContainer.getObj("pdbx_nmr_ensemble")
-            if tObj.hasAttribute("representative_conformer"):
-                nn = tObj.getValue("representative_conformer", 0)
-                if nn is not None and nn and nn.isdigit():
-                    repModelL.append(nn)
-        #
-        repModelL = list(set(repModelL))
-        if not repModelL:
-            logger.debug("Missing representative model data for %s using 1", dataContainer.getName())
-            repModelL = ["1"]
-
-        return repModelL
 
     def __filterExperimentalResolution(self, dataContainer):
         """Collect resolution estimates from method specific sources."""

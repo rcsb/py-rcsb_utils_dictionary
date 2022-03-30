@@ -6,6 +6,8 @@
 #
 #
 # Updates:
+#   07-Dec-2021  dwp Only add unassigned polymer entity-level taxonomy if _ma_target_ref_db_details.ncbi_taxonomy_id and .organism_scientific
+#                    are both present, since these are not mandatory fields and thus may not be present in some cases
 ##
 """
 Helper class implements computed model method references in the RCSB dictionary extension.
@@ -121,7 +123,7 @@ class DictMethodCompModelHelper(object):
         return False
 
     def addPolymerEntityTaxonomy(self, dataContainer, catName, **kwargs):
-        """Add unassigned polymer entity-level taxonomy.
+        """Add unassigned polymer entity-level taxonomy (if both _ma_target_ref_db_details.ncbi_taxonomy_id and .organism_scientific are present).
 
         Args:
             dataContainer (object): mmif.api.DataContainer object instance
@@ -155,6 +157,8 @@ class DictMethodCompModelHelper(object):
         logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
         try:
             if not (dataContainer.exists("ma_data") and dataContainer.exists("ma_target_ref_db_details")):
+                return False
+            if not all([ai in dataContainer.getObj('ma_target_ref_db_details').getAttributeList() for ai in ["ncbi_taxonomy_id", "organism_scientific"]]):
                 return False
             geneName = None
             if dataContainer.exists("af_target_ref_db_details"):

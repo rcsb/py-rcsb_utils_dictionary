@@ -10,6 +10,12 @@
 # 19-Sep-2019 jdw Add method getEntityReferenceAlignments()
 # 13-Oct-2019 jdw add isoform support
 # 17-Feb-2021 jdw add non-polymer neighbor calculation
+# 19-Jan-2022 dwp add method 'filterStructureDeterminationMethodType'to return type of method used
+#                 (experimental, computational, or integrative);
+#                 remove 'THEORETICAL MODEL' from list of 'Other' experimental_method types, and
+#                 add it to computational method list
+# 28-Mar-2022 bv add method 'getRepresentativeModels' to get representative models for NMR ensembles
+#                Fix pylint issues
 ##
 """
 Helper class implements common utility external method references supporting the RCSB dictionary extension.
@@ -28,6 +34,7 @@ import logging
 import re
 import sys
 import time
+import copy
 from collections import OrderedDict, namedtuple, defaultdict
 from operator import itemgetter
 
@@ -199,7 +206,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of polymer types for each polymer instance.
 
         Args:
-            dataContainer (object):  mmcif.api.mmcif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {'asymId': <dictionary polymer type>, ...}
@@ -227,7 +234,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of the counts entity types for each entity type.
 
         Args:
-            dataContainer (object):  mmcif.api.mmcif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {'entity type': <# of instances>, ...}
@@ -255,7 +262,7 @@ class DictMethodCommonUtils(object):
         """Return a dictionary of polymer types for each polymer entity.
 
         Args:
-            dataContainer (object):  mmcif.api.mmcif.api.DataContainer object instance
+            dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
             dict: {'entityId': <dictionary polymer types>, ...}
@@ -1593,10 +1600,12 @@ class DictMethodCommonUtils(object):
                     )
                     boundNonpolymerEntityD.setdefault(tEntityId, []).append(NonpolymerBoundEntity(tCompId, cD["connect_type"], pCompId, pEntityId, eType))
             #
-            for asymId in boundNonpolymerInstanceD:
-                boundNonpolymerInstanceD[asymId] = sorted(set(boundNonpolymerInstanceD[asymId]))
-            for entityId in boundNonpolymerEntityD:
-                boundNonpolymerEntityD[entityId] = sorted(set(boundNonpolymerEntityD[entityId]))
+            cloneD = copy.deepcopy(boundNonpolymerInstanceD)
+            for asymId in cloneD:
+                boundNonpolymerInstanceD[asymId] = sorted(set(cloneD[asymId]))
+            cloneD = copy.deepcopy(boundNonpolymerEntityD)
+            for entityId in cloneD:
+                boundNonpolymerEntityD[entityId] = sorted(set(cloneD[entityId]))
             boundNonpolymerComponentIdL = sorted(ts)
         except Exception as e:
             logger.exception("%s failing with %s", dataContainer.getName(), str(e))
@@ -2576,7 +2585,7 @@ class DictMethodCommonUtils(object):
         'EM'               'ELECTRON MICROSCOPY or ELECTRON CRYSTALLOGRAPHY or ELECTRON TOMOGRAPHY'
         'Neutron'          'NEUTRON DIFFRACTION'
         'Multiple methods' 'Multiple experimental methods'
-        'Other'            'SOLUTION SCATTERING, EPR, THEORETICAL MODEL, INFRARED SPECTROSCOPY or FLUORESCENCE TRANSFER'
+        'Other'            'SOLUTION SCATTERING, EPR, INFRARED SPECTROSCOPY or FLUORESCENCE TRANSFER'
         """
         methodCount = len(methodL)
         if methodCount > 1:
@@ -2593,20 +2602,63 @@ class DictMethodCommonUtils(object):
                 expMethod = "EM"
             elif mS in ["NEUTRON DIFFRACTION"]:
                 expMethod = "Neutron"
-            elif mS in [
-                "SOLUTION SCATTERING",
-                "EPR",
-                "THEORETICAL MODEL",
-                "INFRARED SPECTROSCOPY",
-                "FLUORESCENCE TRANSFER",
-            ]:
+            elif mS in ["SOLUTION SCATTERING", "EPR", "INFRARED SPECTROSCOPY", "FLUORESCENCE TRANSFER"]:
                 expMethod = "Other"
-            elif mS in ["AB INITIO MODEL"]:
-                expMethod = "Computational modeling"
+            elif mS in ["THEORETICAL MODEL", "AB INITIO MODEL", "HOMOLOGY MODEL"]:
+                expMethod = None
             else:
                 logger.error("Unexpected method ")
 
         return methodCount, expMethod
+
+    def filterStructureDeterminationMethodType(self, methodL):
+        """Apply a standard filter to the input experimental or computational method list to return the type
+            of structure determination method used--experimental, computational, or integrative.
+
+        Args:
+            methodL (list): List of dictionary compliant experimental or computational method names
+
+        Returns:
+            str: methodType
+
+        For example:
+            experimental   "Experimentally based structure determination"
+            integrative    "Integrative/Hybrid methods"
+            computational  "Computational modeling"
+        """
+        #
+        experimentalMethodList = [
+            "X-RAY DIFFRACTION", "FIBER DIFFRACTION", "POWDER DIFFRACTION",
+            "SOLUTION NMR", "SOLID-STATE NMR",
+            "ELECTRON MICROSCOPY", "ELECTRON CRYSTALLOGRAPHY", "ELECTRON DIFFRACTION", "CRYO-ELECTRON MICROSCOPY", "ELECTRON TOMOGRAPHY",
+            "NEUTRON DIFFRACTION",
+            "SOLUTION SCATTERING", "EPR", "INFRARED SPECTROSCOPY", "FLUORESCENCE TRANSFER",
+        ]
+        #
+        computationalMethodList = [
+            "THEORETICAL MODEL", "AB INITIO MODEL", "HOMOLOGY MODEL",
+        ]
+        #
+        methodType = None
+        methodCount = len(methodL)
+        if methodCount > 1:
+            if any([mS.upper() in experimentalMethodList for mS in methodL]):
+                methodType = "experimental"
+            if all([mS.upper() in computationalMethodList for mS in methodL]):
+                methodType = "computational"
+            # if any([mS.upper() in experimentalMethodList for mS in methodL]) and any([mS.upper() in computationalMethodList for mS in methodL]):
+            #     methodType = "integrative"
+        else:
+            #
+            mS = methodL[0].upper()
+            if mS in experimentalMethodList:
+                methodType = "experimental"
+            elif mS in computationalMethodList:
+                methodType = "computational"
+            else:
+                logger.error("Unexpected method type")
+
+        return methodType
 
     def hasMethodNMR(self, methodL):
         """Return if the input dictionary experimental method list contains an NMR experimental method.
@@ -3244,8 +3296,9 @@ class DictMethodCommonUtils(object):
                         if seqId:
                             polyResRngD.setdefault((modelId, asymId, zeroOccFlag), []).append(int(seqId))
                 #
-                for tup in polyResRngD:
-                    polyResRngD[tup] = list(self.__toRangeList(polyResRngD[tup]))
+                cloneD = copy.deepcopy(polyResRngD)
+                for tup in cloneD:
+                    polyResRngD[tup] = list(self.__toRangeList(cloneD[tup]))
                 logger.debug("polyResRngD %r", polyResRngD)
             #
             polyAtomRngD = {}
@@ -3271,8 +3324,9 @@ class DictMethodCommonUtils(object):
                         nonPolyMissingAtomD.setdefault((modelId, compId, asymId, zeroOccFlag), []).append(atomId)
                         nonPolyMissingAtomAuthD.setdefault((modelId, compId, authAsymId, authSeqId, zeroOccFlag), []).append(atomId)
                 #
-                for tup in polyAtomRngD:
-                    polyAtomRngD[tup] = list(self.__toRangeList(polyAtomRngD[tup]))
+                cloneD = copy.deepcopy(polyAtomRngD)
+                for tup in cloneD:
+                    polyAtomRngD[tup] = list(self.__toRangeList(cloneD[tup]))
                 logger.debug("polyAtomRngD %r", polyAtomRngD)
             #
             rD = {"polyResRng": polyResRngD, "polyAtomRng": polyAtomRngD, "nonPolyMissingAtomD": nonPolyMissingAtomD, "nonPolyMissingAtomAuthD": nonPolyMissingAtomAuthD}
@@ -3963,8 +4017,9 @@ class DictMethodCommonUtils(object):
                         continue
             #
             # re-sort by distance -
-            for asymId in ligandTargetInstanceD:
-                ligandTargetInstanceD[asymId] = sorted(ligandTargetInstanceD[asymId], key=itemgetter(-1))
+            cloneD = copy.deepcopy(ligandTargetInstanceD)
+            for asymId in cloneD:
+                ligandTargetInstanceD[asymId] = sorted(cloneD[asymId], key=itemgetter(-1))
                 #
             # --- ----
             tnD = {}
@@ -3991,3 +4046,52 @@ class DictMethodCommonUtils(object):
         #
         logger.info("Completed %s at %s (%.4f seconds)", dataContainer.getName(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), time.time() - startTime)
         return rD
+
+    def getRepresentativeModels(self, dataContainer):
+        """Return the list of representative models
+
+        Example:
+            #
+            _pdbx_nmr_ensemble.entry_id                                      5TM0
+            _pdbx_nmr_ensemble.conformers_calculated_total_number            15
+            _pdbx_nmr_ensemble.conformers_submitted_total_number             15
+            _pdbx_nmr_ensemble.conformer_selection_criteria                  'all calculated structures submitted'
+            _pdbx_nmr_ensemble.representative_conformer                      ?
+            _pdbx_nmr_ensemble.average_constraints_per_residue               ?
+            _pdbx_nmr_ensemble.average_constraint_violations_per_residue     ?
+            _pdbx_nmr_ensemble.maximum_distance_constraint_violation         ?
+            _pdbx_nmr_ensemble.average_distance_constraint_violation         ?
+            _pdbx_nmr_ensemble.maximum_upper_distance_constraint_violation   ?
+            _pdbx_nmr_ensemble.maximum_lower_distance_constraint_violation   ?
+            _pdbx_nmr_ensemble.distance_constraint_violation_method          ?
+            _pdbx_nmr_ensemble.maximum_torsion_angle_constraint_violation    ?
+            _pdbx_nmr_ensemble.average_torsion_angle_constraint_violation    ?
+            _pdbx_nmr_ensemble.torsion_angle_constraint_violation_method     ?
+            #
+            _pdbx_nmr_representative.entry_id             5TM0
+            _pdbx_nmr_representative.conformer_id         1
+            _pdbx_nmr_representative.selection_criteria   'fewest violations'
+        """
+        repModelL = []
+        mIdL = self.getModelIdList(dataContainer)
+        if dataContainer.exists("pdbx_nmr_representative"):
+            tObj = dataContainer.getObj("pdbx_nmr_representative")
+            if tObj.hasAttribute("conformer_id"):
+                for ii in range(tObj.getRowCount()):
+                    nn = tObj.getValue("conformer_id", ii)
+                    if nn is not None and nn.isdigit() and nn in mIdL:
+                        repModelL.append(nn)
+
+        if dataContainer.exists("pdbx_nmr_ensemble"):
+            tObj = dataContainer.getObj("pdbx_nmr_ensemble")
+            if tObj.hasAttribute("representative_conformer"):
+                nn = tObj.getValue("representative_conformer", 0)
+                if nn is not None and nn and nn.isdigit() and nn in mIdL:
+                    repModelL.append(nn)
+        #
+        repModelL = list(set(repModelL))
+        if not repModelL:
+            logger.debug("Missing representative model data for %s using the first model", dataContainer.getName())
+            repModelL = ["1"] if "1" in mIdL else [mIdL[0]]
+
+        return repModelL
