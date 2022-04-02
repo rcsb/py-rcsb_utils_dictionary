@@ -877,16 +877,20 @@ class DictMethodEntityInstanceHelper(object):
                 ii += 1
 
             # Populate local QA scores for computed models
-            if dataContainer.exists("ma_data"):
-                compModelLocalQAScoresD = self.__commonU.getCompModelLocalQAScores(dataContainer)
+            if dataContainer.exists("ma_qa_metric_local"):
+                compModelLocalScoresD = self.__commonU.getCompModelLocalScores(dataContainer)
                 compModelDb2L = self.__commonU.getCompModelDb2L(dataContainer)
                 dbId = compModelDb2L[0]
+                maQaMetricTypeD = self.__commonU.getMaQaMetricType(dataContainer)
+                maQaMetricLocalTypeD = maQaMetricTypeD["maQaMetricLocalTypeD"]
 
-                for (modelId, asymId, metricT, metricN), aL in compModelLocalQAScoresD.items():
+                for (modelId, asymId, metricId), aD in compModelLocalScoresD.items():
                     if instTypeD[asymId] not in ["polymer"]:
                         continue
                     addPropTupL = []
                     entityId = asymIdD[asymId]
+                    metricT = maQaMetricLocalTypeD[metricId]["type"]
+                    metricN = maQaMetricLocalTypeD[metricId]["name"]
                     cObj.setValue(ii + 1, "ordinal", ii)
                     cObj.setValue(entryId, "entry_id", ii)
                     cObj.setValue(entityId, "entity_id", ii)
@@ -898,14 +902,16 @@ class DictMethodEntityInstanceHelper(object):
                     addPropTupL.append(("ModelCIF_MODEL_ID", modelId))
                     cObj.setValue(";".join([str(tup1[0]) for tup1 in addPropTupL]), "additional_properties_name", ii)
                     cObj.setValue(";".join([str(tup1[1]) for tup1 in addPropTupL]), "additional_properties_values", ii)
-                    aCompId = ";".join([str(tup[0]) for tup in aL])
-                    cObj.setValue(aCompId, "feature_positions_beg_comp_id", ii)
-                    aSeqId = ";".join([str(tup[1]) for tup in aL])
-                    cObj.setValue(aSeqId, "feature_positions_beg_seq_id", ii)
-                    aVal = ";".join([str(tup[2]) for tup in aL])
-                    cObj.setValue(aVal, "feature_positions_values", ii)
+                    fValL = []
+                    for k, vD in enumerate(aD):
+                        for k1, vL in vD.items():
+                            fVal = ",".join([str(v) for v in vL])
+                            fValL.append(fVal)
+                        sId = ";".join([str(k1) for k1, vL in vD.items()])
+                    cObj.setValue(";".join([str(tup) for tup in fValL]), "feature_positions_values", ii)
+                    cObj.setValue(sId, "feature_positions_beg_seq_id", ii)
                     ii += 1
-                logger.info("Completed populating local QA scores for computed models %r", dataContainer.getName())
+                logger.info("Completed populating local QA scores for computed model %r", dataContainer.getName())
 
             npbD = self.__commonU.getBoundNonpolymersByInstance(dataContainer)
             jj = 1

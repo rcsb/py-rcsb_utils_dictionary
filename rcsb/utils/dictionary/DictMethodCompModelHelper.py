@@ -233,91 +233,52 @@ class DictMethodCompModelHelper(object):
         logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
         try:
             # Check for all categories/data items required for the ETL (will return False for experimental models)
-            if not (dataContainer.exists("ma_qa_metric") and dataContainer.exists("ma_qa_metric_global")):
+            if not dataContainer.exists("ma_qa_metric_global"):
                 return False
             if not all([ai in dataContainer.getObj('ma_qa_metric_global').getAttributeList() for ai in ["model_id", "metric_id", "metric_value"]]):
-                return False
-            if not all([ai in dataContainer.getObj('ma_qa_metric').getAttributeList() for ai in ["id", "name", "type", "mode"]]):
                 return False
 
             catName = "rcsb_ma_qa_metric_global"
 
-            # Create the RCSB category object (not expected to be present in the input ModelCIF instance)
             if not dataContainer.exists(catName):
                 dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
 
             cObj = dataContainer.getObj(catName)
 
-            # Get the relevant category objects from the ModelCIF instance
-            if dataContainer.exists("ma_qa_metric"):
-                aObj = dataContainer.getObj("ma_qa_metric")
             if dataContainer.exists("ma_qa_metric_global"):
                 bObj = dataContainer.getObj("ma_qa_metric_global")
 
-            # Add temporary data items to ma_qa_metric_global to populate values from ma_qa_metric
-            if not bObj.hasAttribute("metric_id_type"):
-                bObj.appendAttribute("metric_id_type")
-            if not bObj.hasAttribute("metric_id_name"):
-                bObj.appendAttribute("metric_id_name")
-            if not bObj.hasAttribute("metric_id_description"):
-                bObj.appendAttribute("metric_id_description")
-            if not bObj.hasAttribute("metric_id_type_other_details"):
-                bObj.appendAttribute("metric_id_type_other_details")
+            maQaMetricTypeD = self.__commonU.getMaQaMetricType(dataContainer)
+            maQaMetricGlobalTypeD = maQaMetricTypeD["maQaMetricGlobalTypeD"]
+            if not maQaMetricGlobalTypeD:
+                return False
 
-            # Merge ma_qa_metric data with ma_qa_metric_global (denormalization)
-            for ii in range(bObj.getRowCount()):
-                m1Id = bObj.getValue("metric_id", ii)
-                for jj in range(aObj.getRowCount()):
-                    m2Id = aObj.getValue("id", jj)  
-                    m2Mode = aObj.getValue("mode", jj)
-                    if m1Id == m2Id and m2Mode == "global":
-                        m2type = aObj.getValue("type", jj)
-                        m2name = aObj.getValue("name", jj)
-                        m2des = aObj.getValueOrDefault("description", jj)
-                        m2tod = aObj.getValueOrDefault("type_other_details", jj)
-                        bObj.setValue(m2type,"metric_id_type",ii)
-                        bObj.setValue(m2name,"metric_id_name",ii)
-                        bObj.setValue(m2des,"metric_id_description",ii)
-                        bObj.setValue(m2tod,"metric_id_type_other_details",ii)
-
-            # Get the unique set of models with QA scores in ma_qa_metric_global
             modelIdList = bObj.getAttributeValueList("model_id")
             modelIdL = list(set(modelIdList))
             if not modelIdL:
                 return False
 
-            # Get the entry identifier
             dObj = dataContainer.getObj("entry")
             entryId = dObj.getValue("id", 0)
             if not entryId:
                 return False
 
-            # Initialize temporary dicts
             vD = {}
-            tD = {}
-            nD = {}
-            dD = {}
-            oD = {}
+            mD = {}
 
-            # Aggregate model-wise sub-categories and populate rcsb_ma_qa_metric_global
             for ii, modelId in enumerate(modelIdL):
                 cObj.setValue(entryId, "entry_id", ii)
                 cObj.setValue(modelId, "model_id", ii)
                 vD[modelId] = bObj.selectValuesWhere("metric_value", modelId, "model_id")
-                tD[modelId] = bObj.selectValuesWhere("metric_id_type", modelId, "model_id")
-                nD[modelId] = bObj.selectValuesWhere("metric_id_name", modelId, "model_id")
-                dD[modelId] = bObj.selectValuesWhere("metric_id_description", modelId, "model_id")
-                oD[modelId] = bObj.selectValuesWhere("metric_id_type_other_details", modelId, "model_id")
+                mD[modelId] = bObj.selectValuesWhere("metric_id", modelId, "model_id")
             for ii in range(cObj.getRowCount()):
                 modelId = cObj.getValue("model_id", ii)
                 cObj.setValue(",".join(vD[modelId]), "ma_qa_metric_global_value", ii)
-                cObj.setValue(",".join(tD[modelId]), "ma_qa_metric_global_type", ii)
-                cObj.setValue(",".join(nD[modelId]), "ma_qa_metric_global_name", ii)
-                #cObj.setValue(",".join(dD[modelId]), "ma_qa_metric_global_description", ii)
-                #cObj.setValue(",".join(oD[modelId]), "ma_qa_metric_global_type_other_details", ii)
+                cObj.setValue(",".join([str(maQaMetricGlobalTypeD[mId]["type"]) for mId in mD[modelId]]), "ma_qa_metric_global_type", ii)
+                cObj.setValue(",".join([str(maQaMetricGlobalTypeD[mId]["name"]) for mId in mD[modelId]]), "ma_qa_metric_global_name", ii)
                 
             return True
         except Exception as e:
-            logger.exception("For %s failing with %s", catName, str(e))
+            logger.exception("For %s populating rcsb_ma_qa_metric_global failing with %s", dataContainer.getName(), str(e))
         return False
 

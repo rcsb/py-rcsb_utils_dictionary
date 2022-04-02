@@ -32,6 +32,7 @@ import logging
 import re
 import sys
 import time
+import copy
 from collections import OrderedDict, namedtuple, defaultdict
 from operator import itemgetter
 
@@ -1124,6 +1125,7 @@ class DictMethodCommonUtils(object):
                     if insCode and tC != "?":
                         tC += insCode
                     seqIdMapAsymD.setdefault(asymId, []).append(tC)
+                        
                     # ---
                     #
                     pAuthAsymIdMapD[(authAsymId, authSeqId, insCode)] = {
@@ -1151,7 +1153,6 @@ class DictMethodCommonUtils(object):
                         "auth_seq_id": "?",
                     }
                     #
-
                 #
                 #  Get the modeled and unmodeled monomer counts by asymId
                 #  JDW not use aOrgSeqD.items()
@@ -1597,10 +1598,12 @@ class DictMethodCommonUtils(object):
                     )
                     boundNonpolymerEntityD.setdefault(tEntityId, []).append(NonpolymerBoundEntity(tCompId, cD["connect_type"], pCompId, pEntityId, eType))
             #
-            for asymId in boundNonpolymerInstanceD:
-                boundNonpolymerInstanceD[asymId] = sorted(set(boundNonpolymerInstanceD[asymId]))
-            for entityId in boundNonpolymerEntityD:
-                boundNonpolymerEntityD[entityId] = sorted(set(boundNonpolymerEntityD[entityId]))
+            cloneD = copy.deepcopy(boundNonpolymerInstanceD)
+            for asymId in cloneD:
+                boundNonpolymerInstanceD[asymId] = sorted(set(cloneD[asymId]))
+            cloneD = copy.deepcopy(boundNonpolymerEntityD)
+            for entityId in cloneD:
+                boundNonpolymerEntityD[entityId] = sorted(set(cloneD[entityId]))
             boundNonpolymerComponentIdL = sorted(ts)
         except Exception as e:
             logger.exception("%s failing with %s", dataContainer.getName(), str(e))
@@ -3291,8 +3294,9 @@ class DictMethodCommonUtils(object):
                         if seqId:
                             polyResRngD.setdefault((modelId, asymId, zeroOccFlag), []).append(int(seqId))
                 #
-                for tup in polyResRngD:
-                    polyResRngD[tup] = list(self.__toRangeList(polyResRngD[tup]))
+                cloneD = copy.deepcopy(polyResRngD)
+                for tup in cloneD:
+                    polyResRngD[tup] = list(self.__toRangeList(cloneD[tup]))
                 logger.debug("polyResRngD %r", polyResRngD)
             #
             polyAtomRngD = {}
@@ -3318,8 +3322,9 @@ class DictMethodCommonUtils(object):
                         nonPolyMissingAtomD.setdefault((modelId, compId, asymId, zeroOccFlag), []).append(atomId)
                         nonPolyMissingAtomAuthD.setdefault((modelId, compId, authAsymId, authSeqId, zeroOccFlag), []).append(atomId)
                 #
-                for tup in polyAtomRngD:
-                    polyAtomRngD[tup] = list(self.__toRangeList(polyAtomRngD[tup]))
+                cloneD = copy.deepcopy(polyAtomRngD)
+                for tup in cloneD:
+                    polyAtomRngD[tup] = list(self.__toRangeList(cloneD[tup]))
                 logger.debug("polyAtomRngD %r", polyAtomRngD)
             #
             rD = {"polyResRng": polyResRngD, "polyAtomRng": polyAtomRngD, "nonPolyMissingAtomD": nonPolyMissingAtomD, "nonPolyMissingAtomAuthD": nonPolyMissingAtomAuthD}
@@ -4010,8 +4015,9 @@ class DictMethodCommonUtils(object):
                         continue
             #
             # re-sort by distance -
-            for asymId in ligandTargetInstanceD:
-                ligandTargetInstanceD[asymId] = sorted(ligandTargetInstanceD[asymId], key=itemgetter(-1))
+            cloneD = copy.deepcopy(ligandTargetInstanceD)
+            for asymId in cloneD:
+                ligandTargetInstanceD[asymId] = sorted(cloneD[asymId], key=itemgetter(-1))
                 #
             # --- ----
             tnD = {}
@@ -4039,85 +4045,6 @@ class DictMethodCommonUtils(object):
         logger.info("Completed %s at %s (%.4f seconds)", dataContainer.getName(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), time.time() - startTime)
         return rD
 
-    def getCompModelLocalQAScores(self, dataContainer):
-        """Get Local QA scores from ModelCIF data file
-
-        Args:
-            dataContainer (object): mmif.api.DataContainer object instance
-
-        Returns:
-            {"compModelLocalQAScoresD": {(modelId, asymId, metricT, metricN): [(compId, seqId, metricV), ...}}
-
-        """
-        logger.debug("Starting with CompModelLocalQAScores for %r", dataContainer.getName())
-
-        try:
-            # Check for all categories/data items required for the ETL
-            if not (dataContainer.exists("ma_qa_metric") and dataContainer.exists("ma_qa_metric_local")):
-                logger.debug("Missing categories ma_qa_metric_local and ma_qa_metric for %r", dataContainer.getName())
-            if not all([ai in dataContainer.getObj('ma_qa_metric_local').getAttributeList() for ai in ["model_id", "metric_id", "metric_value", "label_seq_id", "label_comp_id", "label_asym_id"]]):
-                logger.debug("Missing attributes in ma_qa_metric_local for %r", dataContainer.getName())
-            if not all([ai in dataContainer.getObj('ma_qa_metric').getAttributeList() for ai in ["id", "name", "type", "mode"]]):
-                logger.debug("Missing attributes for ma_qa_metric for %r", dataContainer.getName())
-
-            # Get the relevant category objects from the ModelCIF instance
-            if dataContainer.exists("ma_qa_metric"):
-                aObj = dataContainer.getObj("ma_qa_metric")
-            if dataContainer.exists("ma_qa_metric_local"):
-                bObj = dataContainer.getObj("ma_qa_metric_local")
-
-            # Add temporary data items to ma_qa_metric_local to populate values from ma_qa_metric
-            if not bObj.hasAttribute("metric_id_type"):
-                bObj.appendAttribute("metric_id_type")
-            if not bObj.hasAttribute("metric_id_name"):
-                bObj.appendAttribute("metric_id_name")
-
-            # Merge ma_qa_metric data with ma_qa_metric_local (denormalization)
-            for ii in range(bObj.getRowCount()):
-                m1Id = bObj.getValue("metric_id", ii)
-                for jj in range(aObj.getRowCount()):
-                    m2Id = aObj.getValue("id", jj)
-                    m2Mode = aObj.getValue("mode", jj)
-                    if m1Id == m2Id and m2Mode == "local":
-                        m2type = aObj.getValue("type", jj)
-                        m2name = aObj.getValue("name", jj)
-                        bObj.setValue(m2type,"metric_id_type",ii)
-                        bObj.setValue(m2name,"metric_id_name",ii)
-
-            # Create dictionary for populating local QA scores
-            compModelLocalQAScoresD = OrderedDict()
-            compModelScoreTypeEnumD = {"zscore": "MA_QA_METRIC_LOCAL_TYPE_ZSCORE",
-                                       "energy": "MA_QA_METRIC_LOCAL_TYPE_ENERGY",
-                                       "distance": "MA_QA_METRIC_LOCAL_TYPE_DISTANCE",
-                                       "normalized score": "MA_QA_METRIC_LOCAL_TYPE_NORMALIZED_SCORE",
-                                       "pLDDT": "MA_QA_METRIC_LOCAL_TYPE_pLDDT",
-                                       "pLDDT in [0,1]": "MA_QA_METRIC_LOCAL_TYPE_pLDDT_[0,1]",
-                                       "pLDDT all-atom": "MA_QA_METRIC_LOCAL_TYPE_pLDDT_ALL-ATOM",
-                                       "pLDDT all-atom in [0,1]": "MA_QA_METRIC_LOCAL_TYPE_pLDDT_ALL-ATOM_[0,1]",
-                                       "PAE": "MA_QA_METRIC_LOCAL_TYPE_PAE",
-                                       "pTM": "MA_QA_METRIC_LOCAL_TYPE_pTM",
-                                       "ipTM": "MA_QA_METRIC_LOCAL_TYPE_ipTM",
-                                       "contact probability": "MA_QA_METRIC_LOCAL_TYPE_CONTACT_PROBABILITY",
-                                       "other": "MA_QA_METRIC_LOCAL_TYPE_OTHER"
-            }
-
-            # Merge local residue-wise QA metrics per model per asymId per Score Type/Name
-            for ii in range(bObj.getRowCount()):
-                modelId = bObj.getValueOrDefault("model_id", ii, defaultValue=None)
-                asymId = bObj.getValueOrDefault("label_asym_id", ii, defaultValue=None)
-                seqId = bObj.getValueOrDefault("label_seq_id", ii, defaultValue=None)
-                compId = bObj.getValueOrDefault("label_comp_id", ii, defaultValue=None)
-                metricV = bObj.getValueOrDefault("metric_value", ii, defaultValue=None)
-                metricT = bObj.getValueOrDefault("metric_id_type", ii, defaultValue=None)
-                metricN = bObj.getValueOrDefault("metric_id_name", ii, defaultValue=None)
-                compModelLocalQAScoresD.setdefault((modelId, asymId, compModelScoreTypeEnumD[metricT], metricN), []).append((compId, seqId, metricV))
-
-        except Exception as e:
-            logger.exception("Failing computed model local QA scores for %r with %s", dataContainer.getName(), str(e))
-
-        logger.debug("Completed computed model local QA scores for %r", dataContainer.getName())
-        return compModelLocalQAScoresD
-
     def getCompModelDb2L(self, dataContainer):
         """Get list of comp model database_ids from database_2
 
@@ -4128,22 +4055,160 @@ class DictMethodCommonUtils(object):
             compModelDb2L = ["AlphaFoldDB", ...]
 
         """
-        logger.debug("Starting computed model database_2 list for %r", dataContainer.getName())
-
         try:
-            compModelDb2L = []
             db2EnumL = ["AlphaFoldDB", "MODBASE", "ModelArchive", "SWISS-MODEL_REPOSITORY", "AF", "MA", "SMR"]
-            eObj = dataContainer.getObj("database_2")
-            if eObj.hasAttribute("database_id"):
-                for ii in range(eObj.getRowCount()):
-                    dbN = eObj.getValue("database_id", ii)
-                    if dbN in db2EnumL:
-                        compModelDb2L.append(dbN)
+            if dataContainer.exists("database_2"):
+                eObj = dataContainer.getObj("database_2")
+                dbL = eObj.getAttributeValueList("database_2")
+                compModelDb2L = [db for db in dbL if db in db2EnumL]
 
         except Exception as e:
             logger.exception("Missing database_2 information. %r failing with %s", dataContainer.getName(), str(e))
 
-        logger.debug("Completed computed model database_2 list for %r", dataContainer.getName())
-
         return compModelDb2L
+
+    def getMaQaMetricType(self, dataContainer):
+        """ Get mapping of metric ids to metric names and types for computed models
+            from ma_qa_metric
+
+            Args:
+                dataContainer (object): mmif.api.DataContainer object instance
+
+        """
+
+        maQaMetricTypeD = {}
+        maQaMetricLocalTypeD = {}
+        maQaMetricGlobalTypeD = {}
+
+        compModelScoreTypeEnumD = {"zscore": "MA_QA_METRIC_LOCAL_TYPE_ZSCORE",
+                                   "energy": "MA_QA_METRIC_LOCAL_TYPE_ENERGY",
+                                   "distance": "MA_QA_METRIC_LOCAL_TYPE_DISTANCE",
+                                   "normalized score": "MA_QA_METRIC_LOCAL_TYPE_NORMALIZED_SCORE",
+                                   "pLDDT": "MA_QA_METRIC_LOCAL_TYPE_pLDDT",
+                                   "pLDDT in [0,1]": "MA_QA_METRIC_LOCAL_TYPE_pLDDT_[0,1]",
+                                   "pLDDT all-atom": "MA_QA_METRIC_LOCAL_TYPE_pLDDT_ALL-ATOM",
+                                   "pLDDT all-atom in [0,1]": "MA_QA_METRIC_LOCAL_TYPE_pLDDT_ALL-ATOM_[0,1]",
+                                   "PAE": "MA_QA_METRIC_LOCAL_TYPE_PAE",
+                                   "pTM": "MA_QA_METRIC_LOCAL_TYPE_pTM",
+                                   "ipTM": "MA_QA_METRIC_LOCAL_TYPE_ipTM",
+                                   "contact probability": "MA_QA_METRIC_LOCAL_TYPE_CONTACT_PROBABILITY",
+                                   "other": "MA_QA_METRIC_LOCAL_TYPE_OTHER"
+            }
+
+        try:
+            if dataContainer.exists("ma_qa_metric"):
+                aObj = dataContainer.getObj("ma_qa_metric")
+                for ii in range(aObj.getRowCount()):
+                    mId = aObj.getValue("id", ii)
+                    mMode = aObj.getValue("mode", ii)
+                    mType = aObj.getValue("type", ii)
+                    mName = aObj.getValue("name", ii)
+                    if mMode == "local":
+                        maQaMetricLocalTypeD[mId] = {"type": compModelScoreTypeEnumD[mType], "name": mName}
+                    if mMode == "global":
+                        maQaMetricGlobalTypeD[mId] = {"type": mType, "name": mName}
+
+                maQaMetricTypeD["maQaMetricLocalTypeD"] = maQaMetricLocalTypeD
+                maQaMetricTypeD["maQaMetricGlobalTypeD"] = maQaMetricGlobalTypeD
+
+        except Exception as e:
+            logger.exception("Failing for %s with %s", dataContainer.getName(), str(e))
+
+        return maQaMetricTypeD
+
+    def getCompModelLocalScores(self, dataContainer):
+        """ Get Local QA Scores for computed models from the ModelCIF file 
+            (ma_qa_metric_local) and convert to objects corresponding to 
+            rcsb_entity_instance_feature in the RCSB extension dictionary
+
+            Args:
+                dataContainer (object): mmif.api.DataContainer object instance
+            
+        """
+        metricValD = OrderedDict()
+        compModelLocalScoresD = OrderedDict()
+
+        try: 
+            if dataContainer.exists("ma_qa_metric_local"):
+                tObj = dataContainer.getObj("ma_qa_metric_local")
+                dL = []
+                for ii in range(tObj.getRowCount()):
+                    modelId = tObj.getValue("model_id", ii)
+                    seqId = tObj.getValue("label_seq_id", ii)
+                    asymId = tObj.getValue("label_asym_id", ii)
+                    metricId = tObj.getValue("metric_id", ii)
+                    metricV = tObj.getValue("metric_value", ii)
+                    tId = modelId + "_" + asymId + "_" + metricId + "_" + seqId
+                    if seqId and seqId not in [".", "?"]:   # Eliminates non-polymers and branched
+                        if tId not in dL:
+                            metricValD.setdefault((modelId, asymId, metricId), []).append((seqId, metricV))
+                            dL.append(tId)
+
+                for (modelId, asymId, metricId), aL in metricValD.items():
+                    tD = {}
+                    sL = sorted(aL, key=lambda i: int(i[0]))
+                    mL = [int(s[0]) for s in sL]
+                    for ii in range(len(sL)):
+                        seqId = sL[ii][0]
+                        metricV = sL[ii][1]
+                        for tup in list(self.__toRangeList(mL)):
+                            beg = tup[0] 
+                            end = tup[1] 
+                            if int(beg) <= int(seqId) <= int(end):
+                                tD.setdefault(int(beg),[]).append(float(metricV))
+                    compModelLocalScoresD.setdefault((modelId, asymId, metricId), []).append(tD)
+
+        except Exception as e:
+            logger.exception("Failing for %s with %s", dataContainer.getName(), str(e))
+
+        return compModelLocalScoresD
+
+    def getRepresentativeModels(self, dataContainer):
+        """Return the list of representative models
+
+        Example:
+            #
+            _pdbx_nmr_ensemble.entry_id                                      5TM0
+            _pdbx_nmr_ensemble.conformers_calculated_total_number            15
+            _pdbx_nmr_ensemble.conformers_submitted_total_number             15
+            _pdbx_nmr_ensemble.conformer_selection_criteria                  'all calculated structures submitted'
+            _pdbx_nmr_ensemble.representative_conformer                      ?
+            _pdbx_nmr_ensemble.average_constraints_per_residue               ?
+            _pdbx_nmr_ensemble.average_constraint_violations_per_residue     ?
+            _pdbx_nmr_ensemble.maximum_distance_constraint_violation         ?
+            _pdbx_nmr_ensemble.average_distance_constraint_violation         ?
+            _pdbx_nmr_ensemble.maximum_upper_distance_constraint_violation   ?
+            _pdbx_nmr_ensemble.maximum_lower_distance_constraint_violation   ?
+            _pdbx_nmr_ensemble.distance_constraint_violation_method          ?
+            _pdbx_nmr_ensemble.maximum_torsion_angle_constraint_violation    ?
+            _pdbx_nmr_ensemble.average_torsion_angle_constraint_violation    ?
+            _pdbx_nmr_ensemble.torsion_angle_constraint_violation_method     ?
+            #
+            _pdbx_nmr_representative.entry_id             5TM0
+            _pdbx_nmr_representative.conformer_id         1
+            _pdbx_nmr_representative.selection_criteria   'fewest violations'
+        """
+        repModelL = []
+        mIdL = self.getModelIdList(dataContainer)
+        if dataContainer.exists("pdbx_nmr_representative"):
+            tObj = dataContainer.getObj("pdbx_nmr_representative")
+            if tObj.hasAttribute("conformer_id"):
+                for ii in range(tObj.getRowCount()):
+                    nn = tObj.getValue("conformer_id", ii)
+                    if nn is not None and nn.isdigit() and nn in mIdL:
+                        repModelL.append(nn)
+
+        if dataContainer.exists("pdbx_nmr_ensemble"):
+            tObj = dataContainer.getObj("pdbx_nmr_ensemble")
+            if tObj.hasAttribute("representative_conformer"):
+                nn = tObj.getValue("representative_conformer", 0)
+                if nn is not None and nn and nn.isdigit() and nn in mIdL:
+                    repModelL.append(nn)
+        #
+        repModelL = list(set(repModelL))
+        if not repModelL:
+            logger.debug("Missing representative model data for %s using the first model", dataContainer.getName())
+            repModelL = ["1"] if "1" in mIdL else [mIdL[0]]
+
+        return repModelL
 
