@@ -7,6 +7,9 @@
 #
 # Updates:
 #  22-Nov-2021 dwp authSeqBeg and authSeqEnd are returned as integers but must be compared as strings in pAuthAsymD
+#   7-Mar-2022 dwp Excldue "RCSB"-designated LOI flag from ligands if "Author"-designations exist
+#                  (rcsb_nonpolymer_instance_validation_score.is_subject_of_investigation_provenance)
+#   2-Apr-2022  bv Update buildEntityInstanceFeatures to populate ma_qa_metric_local scores for computed models
 #
 ##
 """
@@ -2230,6 +2233,10 @@ class DictMethodEntityInstanceHelper(object):
 
                 scoreD[(modelId, asymId, altId, compId)] = (fitScore, fitRanking, geoScore, geoRanking, numReportedAtoms, completeness, avgHeavyOccupancy)
             #
+            targetHasAuthorProv = any(
+                [compId in ccTargets for (modelId, asymId, altId, compId) in instanceModelValidationD if (modelId, asymId, altId, compId) in scoreD]
+            )
+            #
             for (modelId, asymId, altId, compId), vTup in instanceModelValidationD.items():
                 if (modelId, asymId, altId, compId) not in scoreD:
                     continue
@@ -2278,8 +2285,11 @@ class DictMethodEntityInstanceHelper(object):
                 elif compId in excludeList:
                     isTarget = "N"
                 elif self.__ccP.getFormulaWeight(compId) and self.__ccP.getFormulaWeight(compId) > 150.0:
-                    isTarget = "Y"
-                    isTargetProv = "RCSB"
+                    if targetHasAuthorProv:
+                        isTarget = "N"
+                    else:
+                        isTarget = "Y"
+                        isTargetProv = "RCSB"
                 cObj.setValue(isTarget, "is_subject_of_investigation", ii)
                 if isTarget == "Y":
                     cObj.setValue(isTargetProv, "is_subject_of_investigation_provenance", ii)

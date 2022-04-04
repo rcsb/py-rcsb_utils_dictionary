@@ -14,6 +14,10 @@
 #                 (experimental, computational, or integrative);
 #                 remove 'THEORETICAL MODEL' from list of 'Other' experimental_method types, and
 #                 add it to computational method list
+# 28-Mar-2022 bv add method 'getRepresentativeModels' to get representative models for NMR ensembles
+#                Fix pylint issues
+#  2-Apr-2022 bv Add methods 'getCompModelDb2L', 'getMaQaMetricType', and 'getCompModelLocalScores'
+#
 ##
 """
 Helper class implements common utility external method references supporting the RCSB dictionary extension.
@@ -1125,7 +1129,6 @@ class DictMethodCommonUtils(object):
                     if insCode and tC != "?":
                         tC += insCode
                     seqIdMapAsymD.setdefault(asymId, []).append(tC)
-                        
                     # ---
                     #
                     pAuthAsymIdMapD[(authAsymId, authSeqId, insCode)] = {
@@ -1153,6 +1156,7 @@ class DictMethodCommonUtils(object):
                         "auth_seq_id": "?",
                     }
                     #
+
                 #
                 #  Get the modeled and unmodeled monomer counts by asymId
                 #  JDW not use aOrgSeqD.items()
@@ -4211,4 +4215,3 @@ class DictMethodCommonUtils(object):
             repModelL = ["1"] if "1" in mIdL else [mIdL[0]]
 
         return repModelL
-

@@ -8,7 +8,7 @@
 # Updates:
 #   07-Dec-2021  dwp Only add unassigned polymer entity-level taxonomy if _ma_target_ref_db_details.ncbi_taxonomy_id and .organism_scientific
 #                    are both present, since these are not mandatory fields and thus may not be present in some cases
-#   07-Mar-2022 bv Add method consolidateGlobalQAScores
+#   02-Apr-2022   bv Add method 'consolidateGlobalQAScores'
 ##
 """
 Helper class implements computed model method references in the RCSB dictionary extension.

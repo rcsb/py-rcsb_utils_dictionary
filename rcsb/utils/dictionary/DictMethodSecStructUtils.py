@@ -197,6 +197,8 @@ class DictMethodSecStructUtils(object):
                 if confType not in self.__promotifTypes:
                     return "DSSP"
             return "PROMOTIF"
+        if dataContainer.exists("struct_sheet_range"):
+             return "PROMOTIF"
         return None
 
     def __initSecStructFeatures(self):
