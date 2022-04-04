@@ -70,9 +70,9 @@
 08-Dec-2021 - V0.78 Update DictMethodCompModelHelper to not add polymer entity-level taxonomy if required fields aren't present
 19-Jan-2022 - V0.79 Update DictMethodEntryHelper to add rcsb_entry_info.structure_determination_methodology
 22-Jan-2022 - V0.80 Exclude newly introduced categories until present in production schema
-2-Mar-2022 - V0.81 Ensure that 'addDepositedAssembly' only runs on computational models, not experimental models
+ 2-Mar-2022 - V0.81 Ensure that 'addDepositedAssembly' only runs on computational models, not experimental models
  7-Mar-2022 - V0.82 Excldue "RCSB"-designated LOI flag from ligands if "Author"-designations exist
 11-Mar-2022 - V0.83 Fix _rcsb_entry_info.deposited_model_count not being populated for certain NMR entries
 28-Mar-2022 - V0.84 Fix _rcsb_assembly_info.atom_count not being populated for certain NMR entries
-30-Mar 2022 - V0.85 Fix the bug related to HELP-18533 ticket
+30-Mar-2022 - V0.85 Fix the bug related to HELP-18533 ticket
 02-Apr-2022 - V0.86 ETL comp model local and global QA scores
