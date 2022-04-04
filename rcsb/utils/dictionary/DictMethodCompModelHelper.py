@@ -8,6 +8,7 @@
 # Updates:
 #   07-Dec-2021  dwp Only add unassigned polymer entity-level taxonomy if _ma_target_ref_db_details.ncbi_taxonomy_id and .organism_scientific
 #                    are both present, since these are not mandatory fields and thus may not be present in some cases
+#   02-Apr-2022   bv Add method 'consolidateGlobalQAScores'
 ##
 """
 Helper class implements computed model method references in the RCSB dictionary extension.
@@ -188,3 +189,96 @@ class DictMethodCompModelHelper(object):
         except Exception as e:
             logger.exception("Failing with %s", str(e))
         return False
+
+    def consolidateGlobalQAScores(self, dataContainer, catName, **kwargs):
+        """Transform Global QA scores from ModelCIF to RCSB extension
+
+        Args:
+            dataContainer (object): mmif.api.DataContainer object instance
+            catName (str): Category name
+
+        Returns:
+            bool: True for success or False otherwise
+
+        Example:
+            
+            Data in ModelCIF:
+
+            _entry.id       ma-bak-cepc-0001
+
+            loop_
+            _ma_qa_metric.id   
+            _ma_qa_metric.mode     
+            _ma_qa_metric.name    
+            _ma_qa_metric.type                
+            1   global  pLDDT   pLDDT
+            2   global  ZDOPE   zscore
+
+            loop_
+            _ma_qa_metric_global.metric_id
+            _ma_qa_metric_global.metric_value
+            _ma_qa_metric_global.model_id
+            _ma_qa_metric_global.ordinal_id
+            1 81.23 1 1
+            2 -2.0  1 2
+
+            Transformed to:
+            _rcsb_ma_qa_metric_global.entry_id                      ma-bak-cepc-0001
+            _rcsb_ma_qa_metric_global.model_id                      1
+            _rcsb_ma_qa_metric_global.ma_qa_global_metric_type      pLDDT,zscore
+            _rcsb_ma_qa_metric_global.ma_qa_global_metric_name      pLDDT,ZDOPE
+            _rcsb_ma_qa_metric_global.ma_qa_global_metric_value     81.23,-2.0
+
+        """
+        logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
+        try:
+            # Check for all categories/data items required for the ETL (will return False for experimental models)
+            if not dataContainer.exists("ma_qa_metric_global"):
+                return False
+            if not all([ai in dataContainer.getObj('ma_qa_metric_global').getAttributeList() for ai in ["model_id", "metric_id", "metric_value"]]):
+                return False
+
+            catName = "rcsb_ma_qa_metric_global"
+
+            if not dataContainer.exists(catName):
+                dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
+
+            cObj = dataContainer.getObj(catName)
+
+            if dataContainer.exists("ma_qa_metric_global"):
+                bObj = dataContainer.getObj("ma_qa_metric_global")
+
+            maQaMetricTypeD = self.__commonU.getMaQaMetricType(dataContainer)
+            maQaMetricGlobalTypeD = maQaMetricTypeD["maQaMetricGlobalTypeD"]
+            if not maQaMetricGlobalTypeD:
+                return False
+
+            modelIdList = bObj.getAttributeValueList("model_id")
+            modelIdL = list(set(modelIdList))
+            if not modelIdL:
+                return False
+
+            dObj = dataContainer.getObj("entry")
+            entryId = dObj.getValue("id", 0)
+            if not entryId:
+                return False
+
+            vD = {}
+            mD = {}
+
+            for ii, modelId in enumerate(modelIdL):
+                cObj.setValue(entryId, "entry_id", ii)
+                cObj.setValue(modelId, "model_id", ii)
+                vD[modelId] = bObj.selectValuesWhere("metric_value", modelId, "model_id")
+                mD[modelId] = bObj.selectValuesWhere("metric_id", modelId, "model_id")
+            for ii in range(cObj.getRowCount()):
+                modelId = cObj.getValue("model_id", ii)
+                cObj.setValue(",".join(vD[modelId]), "ma_qa_metric_global_value", ii)
+                cObj.setValue(",".join([str(maQaMetricGlobalTypeD[mId]["type"]) for mId in mD[modelId]]), "ma_qa_metric_global_type", ii)
+                cObj.setValue(",".join([str(maQaMetricGlobalTypeD[mId]["name"]) for mId in mD[modelId]]), "ma_qa_metric_global_name", ii)
+                
+            return True
+        except Exception as e:
+            logger.exception("For %s populating rcsb_ma_qa_metric_global failing with %s", dataContainer.getName(), str(e))
+        return False
+

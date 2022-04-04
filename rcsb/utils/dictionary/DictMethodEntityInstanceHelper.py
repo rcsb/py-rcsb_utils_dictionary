@@ -9,6 +9,7 @@
 #  22-Nov-2021 dwp authSeqBeg and authSeqEnd are returned as integers but must be compared as strings in pAuthAsymD
 #   7-Mar-2022 dwp Excldue "RCSB"-designated LOI flag from ligands if "Author"-designations exist
 #                  (rcsb_nonpolymer_instance_validation_score.is_subject_of_investigation_provenance)
+#   2-Apr-2022  bv Update buildEntityInstanceFeatures to populate ma_qa_metric_local scores for computed models
 #
 ##
 """
@@ -877,6 +878,43 @@ class DictMethodEntityInstanceHelper(object):
                 cObj.setValue("V1.0", "assignment_version", ii)
                 #
                 ii += 1
+
+            # Populate local QA scores for computed models
+            if dataContainer.exists("ma_qa_metric_local"):
+                compModelLocalScoresD = self.__commonU.getCompModelLocalScores(dataContainer)
+                compModelDb2L = self.__commonU.getCompModelDb2L(dataContainer)
+                dbId = compModelDb2L[0]
+                maQaMetricTypeD = self.__commonU.getMaQaMetricType(dataContainer)
+                maQaMetricLocalTypeD = maQaMetricTypeD["maQaMetricLocalTypeD"]
+
+                for (modelId, asymId, metricId), aD in compModelLocalScoresD.items():
+                    if instTypeD[asymId] not in ["polymer"]:
+                        continue
+                    addPropTupL = []
+                    entityId = asymIdD[asymId]
+                    metricT = maQaMetricLocalTypeD[metricId]["type"]
+                    metricN = maQaMetricLocalTypeD[metricId]["name"]
+                    cObj.setValue(ii + 1, "ordinal", ii)
+                    cObj.setValue(entryId, "entry_id", ii)
+                    cObj.setValue(entityId, "entity_id", ii)
+                    cObj.setValue(asymId, "asym_id", ii)
+                    cObj.setValue(dbId, "provenance_source", ii)
+                    cObj.setValue(metricT, "type", ii)
+                    cObj.setValue(metricN, "name", ii)
+                    cObj.setValue(metricN, "feature_id", ii)
+                    addPropTupL.append(("ModelCIF_MODEL_ID", modelId))
+                    cObj.setValue(";".join([str(tup1[0]) for tup1 in addPropTupL]), "additional_properties_name", ii)
+                    cObj.setValue(";".join([str(tup1[1]) for tup1 in addPropTupL]), "additional_properties_values", ii)
+                    fValL = []
+                    for k, vD in enumerate(aD):
+                        for k1, vL in vD.items():
+                            fVal = ",".join([str(v) for v in vL])
+                            fValL.append(fVal)
+                        sId = ";".join([str(k1) for k1, vL in vD.items()])
+                    cObj.setValue(";".join([str(tup) for tup in fValL]), "feature_positions_values", ii)
+                    cObj.setValue(sId, "feature_positions_beg_seq_id", ii)
+                    ii += 1
+                logger.info("Completed populating local QA scores for computed model %r", dataContainer.getName())
 
             npbD = self.__commonU.getBoundNonpolymersByInstance(dataContainer)
             jj = 1
