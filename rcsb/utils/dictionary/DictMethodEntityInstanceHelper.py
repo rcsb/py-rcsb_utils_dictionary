@@ -906,7 +906,7 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue(";".join([str(tup1[0]) for tup1 in addPropTupL]), "additional_properties_name", ii)
                     cObj.setValue(";".join([str(tup1[1]) for tup1 in addPropTupL]), "additional_properties_values", ii)
                     fValL = []
-                    for k, vD in enumerate(aD):
+                    for _, vD in enumerate(aD):
                         for k1, vL in vD.items():
                             fVal = ",".join([str(v) for v in vL])
                             fValL.append(fVal)
