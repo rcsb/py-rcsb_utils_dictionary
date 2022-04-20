@@ -4059,6 +4059,9 @@ class DictMethodCommonUtils(object):
             compModelDb2L = ["AlphaFoldDB", ...]
 
         """
+
+        compModelDb2L = []
+
         try:
             db2EnumL = ["AlphaFoldDB", "MODBASE", "ModelArchive", "SWISS-MODEL_REPOSITORY", "AF", "MA", "SMR"]
             if dataContainer.exists("database_2"):
@@ -4068,6 +4071,9 @@ class DictMethodCommonUtils(object):
 
         except Exception as e:
             logger.exception("Missing database_2 information. %r failing with %s", dataContainer.getName(), str(e))
+
+        if not compModelDb2L:
+            logger.debug("Missing database_2 information for %r", dataContainer.getName())
 
         return compModelDb2L
 
@@ -4097,7 +4103,8 @@ class DictMethodCommonUtils(object):
                                    "ipTM": "MA_QA_METRIC_LOCAL_TYPE_ipTM",
                                    "contact probability": "MA_QA_METRIC_LOCAL_TYPE_CONTACT_PROBABILITY",
                                    "other": "MA_QA_METRIC_LOCAL_TYPE_OTHER"
-            }
+
+        }
 
         try:
             if dataContainer.exists("ma_qa_metric"):
@@ -4121,18 +4128,18 @@ class DictMethodCommonUtils(object):
         return maQaMetricTypeD
 
     def getCompModelLocalScores(self, dataContainer):
-        """ Get Local QA Scores for computed models from the ModelCIF file 
-            (ma_qa_metric_local) and convert to objects corresponding to 
+        """ Get Local QA Scores for computed models from the ModelCIF file
+            (ma_qa_metric_local) and convert to objects corresponding to
             rcsb_entity_instance_feature in the RCSB extension dictionary
 
             Args:
                 dataContainer (object): mmif.api.DataContainer object instance
-            
+
         """
         metricValD = OrderedDict()
         compModelLocalScoresD = OrderedDict()
 
-        try: 
+        try:
             if dataContainer.exists("ma_qa_metric_local"):
                 tObj = dataContainer.getObj("ma_qa_metric_local")
                 dL = []
@@ -4156,10 +4163,10 @@ class DictMethodCommonUtils(object):
                         seqId = sL[ii][0]
                         metricV = sL[ii][1]
                         for tup in list(self.__toRangeList(mL)):
-                            beg = tup[0] 
-                            end = tup[1] 
+                            beg = tup[0]
+                            end = tup[1]
                             if int(beg) <= int(seqId) <= int(end):
-                                tD.setdefault(int(beg),[]).append(float(metricV))
+                                tD.setdefault(int(beg), []).append(float(metricV))
                     compModelLocalScoresD.setdefault((modelId, asymId, metricId), []).append(tD)
 
         except Exception as e:

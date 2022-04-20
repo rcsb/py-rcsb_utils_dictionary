@@ -201,16 +201,16 @@ class DictMethodCompModelHelper(object):
             bool: True for success or False otherwise
 
         Example:
-            
+
             Data in ModelCIF:
 
             _entry.id       ma-bak-cepc-0001
 
             loop_
-            _ma_qa_metric.id   
-            _ma_qa_metric.mode     
-            _ma_qa_metric.name    
-            _ma_qa_metric.type                
+            _ma_qa_metric.id
+            _ma_qa_metric.mode
+            _ma_qa_metric.name
+            _ma_qa_metric.type
             1   global  pLDDT   pLDDT
             2   global  ZDOPE   zscore
 
@@ -276,9 +276,8 @@ class DictMethodCompModelHelper(object):
                 cObj.setValue(",".join(vD[modelId]), "ma_qa_metric_global_value", ii)
                 cObj.setValue(",".join([str(maQaMetricGlobalTypeD[mId]["type"]) for mId in mD[modelId]]), "ma_qa_metric_global_type", ii)
                 cObj.setValue(",".join([str(maQaMetricGlobalTypeD[mId]["name"]) for mId in mD[modelId]]), "ma_qa_metric_global_name", ii)
-                
+
             return True
         except Exception as e:
             logger.exception("For %s populating rcsb_ma_qa_metric_global failing with %s", dataContainer.getName(), str(e))
         return False
-
