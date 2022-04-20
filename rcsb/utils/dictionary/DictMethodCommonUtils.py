@@ -4059,7 +4059,9 @@ class DictMethodCommonUtils(object):
             compModelDb2L = ["AlphaFoldDB", ...]
 
         """
+
         compModelDb2L = []
+
         try:
             db2EnumL = ["AlphaFoldDB", "MODBASE", "ModelArchive", "SWISS-MODEL_REPOSITORY", "AF", "MA", "SMR"]
             if dataContainer.exists("database_2"):
@@ -4101,6 +4103,7 @@ class DictMethodCommonUtils(object):
                                    "ipTM": "MA_QA_METRIC_LOCAL_TYPE_ipTM",
                                    "contact probability": "MA_QA_METRIC_LOCAL_TYPE_CONTACT_PROBABILITY",
                                    "other": "MA_QA_METRIC_LOCAL_TYPE_OTHER"
+
         }
 
         try:
