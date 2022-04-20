@@ -274,6 +274,10 @@ class DictMethodEntityHelper(object):
             entryId = tObj.getValue("id", 0)
             cObj.setValue(entryId, "entry_id", 0)
             #
+            compModelId = None
+            if tObj.hasAttribute("rcsb_comp_model_id"):
+                compModelId = tObj.getValue("rcsb_comp_model_id", 0)
+            #
             tObj = dataContainer.getObj("entity")
             entityIdL = tObj.getAttributeValueList("id")
             seqEntityRefDbD = self.__commonU.getEntitySequenceReferenceCodes(dataContainer)
@@ -293,7 +297,10 @@ class DictMethodEntityHelper(object):
             # ---------
             ii = 0
             for entityId in entityIdL:
-                rcsbId = entryId + "_" + entityId
+                if compModelId:
+                    rcsbId = compModelId + "_" + entityId
+                else:
+                    rcsbId = entryId + "_" + entityId
                 cObj.setValue(entryId, "entry_id", ii)
                 cObj.setValue(entityId, "entity_id", ii)
                 cObj.setValue(rcsbId, "rcsb_id", ii)

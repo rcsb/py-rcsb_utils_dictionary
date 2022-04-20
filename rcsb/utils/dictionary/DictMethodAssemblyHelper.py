@@ -213,10 +213,18 @@ class DictMethodAssemblyHelper(object):
             #
             tObj = dataContainer.getObj("pdbx_struct_assembly")
             assemblyIdL = tObj.getAttributeValueList("id")
+            #
+            compModelId = None
+            if tObj.hasAttribute("rcsb_comp_model_id"):
+                compModelId = tObj.getValue("rcsb_comp_model_id", 0)
+            #
             for ii, assemblyId in enumerate(assemblyIdL):
                 cObj.setValue(entryId, "entry_id", ii)
                 cObj.setValue(assemblyId, "assembly_id", ii)
-                cObj.setValue(entryId + "-" + assemblyId, "rcsb_id", ii)
+                if compModelId:
+                    cObj.setValue(compModelId + "-" + assemblyId, "rcsb_id", ii)
+                else:
+                    cObj.setValue(entryId + "-" + assemblyId, "rcsb_id", ii)
 
             #
             return True
