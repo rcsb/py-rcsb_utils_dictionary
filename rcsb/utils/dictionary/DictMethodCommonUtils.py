@@ -1092,7 +1092,7 @@ class DictMethodCommonUtils(object):
             #
             compModelId = None
             if eObj.hasAttribute("rcsb_comp_model_id"):
-                compModelId = tObj.getValue("rcsb_comp_model_id", 0)
+                compModelId = eObj.getValue("rcsb_comp_model_id", 0)
             #
             psObj = dataContainer.getObj("pdbx_poly_seq_scheme")
             if psObj is not None:
@@ -4115,20 +4115,20 @@ class DictMethodCommonUtils(object):
         maQaMetricLocalTypeD = {}
         maQaMetricGlobalTypeD = {}
 
-        compModelScoreTypeEnumD = {"zscore": "MA_QA_METRIC_LOCAL_TYPE_ZSCORE",
-                                   "energy": "MA_QA_METRIC_LOCAL_TYPE_ENERGY",
-                                   "distance": "MA_QA_METRIC_LOCAL_TYPE_DISTANCE",
-                                   "normalized score": "MA_QA_METRIC_LOCAL_TYPE_NORMALIZED_SCORE",
-                                   "pLDDT": "MA_QA_METRIC_LOCAL_TYPE_pLDDT",
-                                   "pLDDT in [0,1]": "MA_QA_METRIC_LOCAL_TYPE_pLDDT_[0,1]",
-                                   "pLDDT all-atom": "MA_QA_METRIC_LOCAL_TYPE_pLDDT_ALL-ATOM",
-                                   "pLDDT all-atom in [0,1]": "MA_QA_METRIC_LOCAL_TYPE_pLDDT_ALL-ATOM_[0,1]",
-                                   "PAE": "MA_QA_METRIC_LOCAL_TYPE_PAE",
-                                   "pTM": "MA_QA_METRIC_LOCAL_TYPE_pTM",
-                                   "ipTM": "MA_QA_METRIC_LOCAL_TYPE_ipTM",
-                                   "contact probability": "MA_QA_METRIC_LOCAL_TYPE_CONTACT_PROBABILITY",
-                                   "other": "MA_QA_METRIC_LOCAL_TYPE_OTHER"
-
+        compModelScoreTypeEnumD = {
+            "zscore": "MA_QA_METRIC_LOCAL_TYPE_ZSCORE",
+            "energy": "MA_QA_METRIC_LOCAL_TYPE_ENERGY",
+            "distance": "MA_QA_METRIC_LOCAL_TYPE_DISTANCE",
+            "normalized score": "MA_QA_METRIC_LOCAL_TYPE_NORMALIZED_SCORE",
+            "pLDDT": "MA_QA_METRIC_LOCAL_TYPE_pLDDT",
+            "pLDDT in [0,1]": "MA_QA_METRIC_LOCAL_TYPE_pLDDT_[0,1]",
+            "pLDDT all-atom": "MA_QA_METRIC_LOCAL_TYPE_pLDDT_ALL-ATOM",
+            "pLDDT all-atom in [0,1]": "MA_QA_METRIC_LOCAL_TYPE_pLDDT_ALL-ATOM_[0,1]",
+            "PAE": "MA_QA_METRIC_LOCAL_TYPE_PAE",
+            "pTM": "MA_QA_METRIC_LOCAL_TYPE_pTM",
+            "ipTM": "MA_QA_METRIC_LOCAL_TYPE_ipTM",
+            "contact probability": "MA_QA_METRIC_LOCAL_TYPE_CONTACT_PROBABILITY",
+            "other": "MA_QA_METRIC_LOCAL_TYPE_OTHER"
         }
 
         try:
