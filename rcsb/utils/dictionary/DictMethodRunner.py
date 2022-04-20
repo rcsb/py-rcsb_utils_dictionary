@@ -23,6 +23,8 @@ import logging
 import sys
 from operator import itemgetter
 
+# from mmcif.api.DictionaryApi import DictionaryApi
+
 logger = logging.getLogger(__name__)
 
 
@@ -57,6 +59,7 @@ class DictMethodRunner(object):
 
     def __getMethodInfo(self, implementationSource="reference", methodCodes=None):
         """Get method implementation with the input implementation source."""
+        catName = atName = mId = mType = methDef = None
         methodCodes = methodCodes if methodCodes else ["calculation"]
         methodD = {}
         try:
@@ -81,7 +84,8 @@ class DictMethodRunner(object):
                         methodD[(catName, atName)].append(dD)
                 #
         except Exception as e:
-            logger.exception("Failing with %s", str(e))
+            logger.exception("Failing for category %r attribute %r mId %r type %r methDef %r with %s", catName, atName, mId, mType, methDef, str(e))
+
         ##
         logger.debug("Method dictionary %r", methodD)
         return methodD
@@ -93,6 +97,7 @@ class DictMethodRunner(object):
             modulePath, methodName = self.__methodPathSplit(methodPath)
             mObj = self.__getModuleInstance(modulePath, **kwargs)
             theMeth = getattr(mObj, methodName, None)
+            logger.info("theMeth: %r", theMeth)
             ok = theMeth(dataContainer, catName, atName, **kwargs)
         except Exception as e:
             logger.exception("Failed invoking attribute %s %s method %r with %s", catName, atName, methodPath, str(e))
@@ -105,6 +110,7 @@ class DictMethodRunner(object):
             modulePath, methodName = self.__methodPathSplit(methodPath)
             mObj = self.__getModuleInstance(modulePath, **kwargs)
             theMeth = getattr(mObj, methodName, None)
+            logger.info("theMeth: %r", theMeth)
             ok = theMeth(dataContainer, catName, **kwargs)
         except Exception as e:
             logger.exception("Failed invoking category %s method %r with %s", catName, methodPath, str(e))
@@ -117,6 +123,7 @@ class DictMethodRunner(object):
             modulePath, methodName = self.__methodPathSplit(methodPath)
             mObj = self.__getModuleInstance(modulePath, **kwargs)
             theMeth = getattr(mObj, methodName, None)
+            logger.info("theMeth: %r", theMeth)
             ok = theMeth(dataContainer, blockName, **kwargs)
         except Exception as e:
             logger.exception("Failed invoking block %s method %r with %s", blockName, methodPath, str(e))
@@ -137,8 +144,8 @@ class DictMethodRunner(object):
 
         mTupL = self.__getDatablockMethods()
         logger.debug("Datablock methods %r", mTupL)
-        for blockName, _, methodPath, _ in mTupL:
-            self.__invokeDatablockMethod(methodPath, dataContainer, blockName, **kwargs)
+        for _, _, methodPath, _ in mTupL:
+            self.__invokeDatablockMethod(methodPath, dataContainer, dataContainer.getName(), **kwargs)
 
         return True
 
@@ -219,6 +226,9 @@ class DictMethodRunner(object):
             mpL = str(modulePath).split(".")
             moduleName = mpL[-1]
             #
+            # Add the internal dictionaryApi object instance as a kw option
+            #
+            kwargs["dictionaryApi"] = self.__dApi
             mObj = getattr(aMod, moduleName)(**kwargs)
             self.__moduleCache[modulePath] = mObj
 

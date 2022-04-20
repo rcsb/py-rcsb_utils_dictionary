@@ -510,7 +510,10 @@ class DictMethodEntryHelper(object):
             tObj = dataContainer.getObj("entry")
             entryId = tObj.getValue("id", 0)
             cObj.setValue(entryId, "entry_id", 0)
-            cObj.setValue(entryId, "rcsb_id", 0)
+            if tObj.hasAttribute("rcsb_comp_model_id"):
+                cObj.setValue(tObj.getValue("rcsb_comp_model_id", 0), "rcsb_id", 0)
+            else:
+                cObj.setValue(entryId, "rcsb_id", 0)
 
             #
             tObj = dataContainer.getObj("entity")

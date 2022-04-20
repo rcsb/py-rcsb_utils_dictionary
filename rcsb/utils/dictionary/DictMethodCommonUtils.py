@@ -1089,6 +1089,10 @@ class DictMethodCommonUtils(object):
             eObj = dataContainer.getObj("entry")
             entryId = eObj.getValue("id", 0)
             #
+            compModelId = None
+            if eObj.hasAttribute("rcsb_comp_model_id"):
+                compModelId = tObj.getValue("rcsb_comp_model_id", 0)
+            #
             psObj = dataContainer.getObj("pdbx_poly_seq_scheme")
             if psObj is not None:
                 # --
@@ -1145,13 +1149,18 @@ class DictMethodCommonUtils(object):
                     tAsymIdD[asymId] = entityId
                     asymAuthIdD[asymId] = authAsymId
                     #
+                    if compModelId:
+                        rcsbId = compModelId + "." + asymId
+                    else:
+                        rcsbId = entryId + "." + asymId
+                    #
                     instanceIdMapD[asymId] = {
                         "entry_id": entryId,
                         "entity_id": entityId,
                         "entity_type": entityTypeD[entityId],
                         "asym_id": asymId,
                         "auth_asym_id": authAsymId,
-                        "rcsb_id": entryId + "." + asymId,
+                        "rcsb_id": rcsbId,
                         "comp_id": "?",
                         "auth_seq_id": "?",
                     }
@@ -1215,6 +1224,10 @@ class DictMethodCommonUtils(object):
                     resNum = npsObj.getValue("pdb_seq_num", ii)
                     monId = npsObj.getValue("mon_id", ii)
                     asymAuthIdD[asymId] = authAsymId
+                    if compModelId:
+                        rcsbId = compModelId + "." + asymId
+                    else:
+                        rcsbId = entryId + "." + asymId
                     if asymId not in instanceIdMapD:
                         instanceIdMapD[asymId] = {
                             "entry_id": entryId,
@@ -1222,7 +1235,7 @@ class DictMethodCommonUtils(object):
                             "entity_type": entityTypeD[entityId],
                             "asym_id": asymId,
                             "auth_asym_id": authAsymId,
-                            "rcsb_id": entryId + "." + asymId,
+                            "rcsb_id": rcsbId,
                             "comp_id": monId,
                             "auth_seq_id": resNum,
                         }
@@ -1257,6 +1270,10 @@ class DictMethodCommonUtils(object):
                     monId = brsObj.getValue("mon_id", ii)
                     seqNum = brsObj.getValue("num", ii)
                     asymAuthIdD[asymId] = authAsymId
+                    if compModelId:
+                        rcsbId = compModelId + "." + asymId
+                    else:
+                        rcsbId = entryId + "." + asymId
                     if asymId not in instanceIdMapD:
                         instanceIdMapD[asymId] = {
                             "entry_id": entryId,
@@ -1264,7 +1281,7 @@ class DictMethodCommonUtils(object):
                             "entity_type": entityTypeD[entityId],
                             "asym_id": asymId,
                             "auth_asym_id": authAsymId,
-                            "rcsb_id": entryId + "." + asymId,
+                            "rcsb_id": rcsbId,
                             "comp_id": monId,
                             "auth_seq_id": "?",
                         }
