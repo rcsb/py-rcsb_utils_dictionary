@@ -57,7 +57,6 @@ class DictMethodRunner(object):
 
     def __getMethodInfo(self, implementationSource="reference", methodCodes=None):
         """Get method implementation with the input implementation source."""
-        catName = atName = mId = mType = methDef = None
         methodCodes = methodCodes if methodCodes else ["calculation"]
         methodD = {}
         try:
