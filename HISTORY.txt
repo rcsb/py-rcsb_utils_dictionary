@@ -76,3 +76,4 @@
 28-Mar-2022 - V0.84 Fix _rcsb_assembly_info.atom_count not being populated for certain NMR entries
 30-Mar 2022 - V0.85 Fix the bug related to HELP-18533 ticket
 02-Apr-2022 - V0.86 ETL comp model local and global QA scores
+20-Apr-2022 - V0.87 Update method getCompModelDb2L in DictMethodCommonUtils
