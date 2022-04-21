@@ -17,6 +17,7 @@
 # 28-Mar-2022 bv add method 'getRepresentativeModels' to get representative models for NMR ensembles
 #                Fix pylint issues
 #  2-Apr-2022 bv Add methods 'getCompModelDb2L', 'getMaQaMetricType', and 'getCompModelLocalScores'
+# 20-Apr-2022 bv Update method 'getCompModelDb2L'
 #
 ##
 """
@@ -4068,6 +4069,13 @@ class DictMethodCommonUtils(object):
                 eObj = dataContainer.getObj("database_2")
                 dbL = eObj.getAttributeValueList("database_2")
                 compModelDb2L = [db for db in dbL if db in db2EnumL]
+            else:
+                dObj = dataContainer.getObj("entry")
+                entryId = dObj.getValue("id", 0)
+                if entryId.startswith("ma"):
+                    compModelDb2L = ["MA"]
+                elif entryId.startswith("AF"):
+                    compModelDb2L = ["AF"]
 
         except Exception as e:
             logger.exception("Missing database_2 information. %r failing with %s", dataContainer.getName(), str(e))
