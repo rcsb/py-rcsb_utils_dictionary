@@ -10,6 +10,7 @@
 #   7-Mar-2022 dwp Excldue "RCSB"-designated LOI flag from ligands if "Author"-designations exist
 #                  (rcsb_nonpolymer_instance_validation_score.is_subject_of_investigation_provenance)
 #   2-Apr-2022  bv Update buildEntityInstanceFeatures to populate ma_qa_metric_local scores for computed models
+#  21-Apr-2022  bv Update buildEntityInstanceFeatureSummary for handling ma_qa_metric_local scores
 #
 ##
 """
@@ -1552,6 +1553,15 @@ class DictMethodEntityInstanceHelper(object):
                             fValuesD.setdefault(asymId, {}).setdefault(fType, []).extend(tvL)
                         except Exception:
                             pass
+                if fObj.hasAttribute("feature_positions_values"):
+                    tValue = fObj.getValueOrDefault("feature_positions_values", ii, defaultValue=None)
+                    if tValue:
+                        try:
+                            for a in tValue.split(";"):
+                                tvL = [float(t) for t in a.split(",")]
+                                fValuesD.setdefault(asymId, {}).setdefault(fType, []).extend(tvL)
+                        except Exception:
+                            pass
 
             #
             logger.debug("%s fCountD %r", entryId, fCountD)
@@ -1579,11 +1589,16 @@ class DictMethodEntityInstanceHelper(object):
                     if asymId in fMonomerCountD and fType in fMonomerCountD[asymId]:
                         if fType.startswith("UNOBSERVED"):
                             fCount = sum(fMonomerCountD[asymId][fType])
+                        elif fType.startswith("MA_"):
+                            fCount = len(fValuesD[asymId][fType])
                         else:
                             fCount = len(fCountD[asymId][fType])
 
-                        if entityId in entityPolymerLengthD:
+                        if entityId in entityPolymerLengthD and not fType.startswith("MA_"):
                             fracC = float(sum(fMonomerCountD[asymId][fType])) / float(entityPolymerLengthD[entityId])
+
+                        if entityId in entityPolymerLengthD and fType.startswith("MA_"):
+                            fracC = float(len(fValuesD[asymId][fType])) / float(entityPolymerLengthD[entityId])
 
                         if (
                             fType
@@ -1607,7 +1622,7 @@ class DictMethodEntityInstanceHelper(object):
                             "O-GLYCOSYLATION_SITE",
                             "S-GLYCOSYLATION_SITE",
                             "C-MANNOSYLATION_SITE",
-                        ]:
+                        ] or fType.startswith("MA_"):
                             try:
                                 minV = min(fValuesD[asymId][fType])
                                 maxV = max(fValuesD[asymId][fType])
