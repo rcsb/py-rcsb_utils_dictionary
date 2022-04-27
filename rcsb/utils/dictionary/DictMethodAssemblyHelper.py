@@ -6,6 +6,7 @@
 #
 # Updates:
 # 28-Mar-2022 bv Fix _rcsb_assembly_info.atom_count not being populated for certain NMR entries
+# 26-Apr-2022 bv Update pdbx_struct_assembly for computed models
 #
 ##
 """
@@ -398,6 +399,8 @@ class DictMethodAssemblyHelper(object):
                     tObj.setValue(mD[details], "rcsb_details", iRow)
                 else:
                     tObj.setValue("software_defined_assembly", "rcsb_details", iRow)
+                if dataContainer.exists("ma_data"):
+                    tObj.setValue("?", "rcsb_details", iRow)
                 # logger.debug("Full row is %r", tObj.getRow(iRow))
             return True
         except Exception as e:
@@ -469,6 +472,8 @@ class DictMethodAssemblyHelper(object):
             for iRow in range(tObj.getRowCount()):
                 details = tObj.getValue("details", iRow)
                 if details in mD and details not in eD:
+                    tObj.setValue("Y", "rcsb_candidate_assembly", iRow)
+                elif dataContainer.exists("ma_data"):
                     tObj.setValue("Y", "rcsb_candidate_assembly", iRow)
                 else:
                     tObj.setValue("N", "rcsb_candidate_assembly", iRow)
