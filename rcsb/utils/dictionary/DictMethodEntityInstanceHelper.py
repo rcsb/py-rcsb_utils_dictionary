@@ -915,7 +915,7 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue(";".join([str(tup) for tup in fValL]), "feature_positions_values", ii)
                     cObj.setValue(sId, "feature_positions_beg_seq_id", ii)
                     ii += 1
-                logger.info("Completed populating local QA scores for computed model %r", dataContainer.getName())
+                logger.debug("Completed populating local QA scores for computed model %r", dataContainer.getName())
 
             npbD = self.__commonU.getBoundNonpolymersByInstance(dataContainer)
             jj = 1
