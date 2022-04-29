@@ -74,8 +74,9 @@
  7-Mar-2022 - V0.82 Excldue "RCSB"-designated LOI flag from ligands if "Author"-designations exist
 11-Mar-2022 - V0.83 Fix _rcsb_entry_info.deposited_model_count not being populated for certain NMR entries
 28-Mar-2022 - V0.84 Fix _rcsb_assembly_info.atom_count not being populated for certain NMR entries
-30-Mar 2022 - V0.85 Fix the bug related to HELP-18533 ticket
+30-Mar-2022 - V0.85 Fix the bug related to HELP-18533 ticket
 02-Apr-2022 - V0.86 ETL comp model local and global QA scores
 20-Apr-2022 - V0.87 Update method getCompModelDb2L in DictMethodCommonUtils
 21-Apr-2022 - V0.88 Update buildEntityInstanceFeatureSummary for handling ma_qa_metric_local scores
 26-Apr-2022 - V0.89 Add missing pdbx_database_status for MA models and _rcsb_entry_info.structure_determination_methodology; update pdbx_struct_assembly for computed models
+29-Apr-2022 - V0.90 Update dict helper methods to retrieve and incorporate computed-model metadata 

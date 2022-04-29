@@ -18,6 +18,7 @@
 #                Fix pylint issues
 #  2-Apr-2022 bv Add methods 'getCompModelDb2L', 'getMaQaMetricType', and 'getCompModelLocalScores'
 # 20-Apr-2022 bv Update method 'getCompModelDb2L'
+# 29-Apr-2022 dwp Use internal computed-model identifiers for 'rcsb_id'
 #
 ##
 """
