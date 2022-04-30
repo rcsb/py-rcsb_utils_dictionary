@@ -4,6 +4,8 @@
 # Date:    16-Jul-2019
 # Version: 0.001 Initial version
 #
+# Updates:
+# 29-Apr-2022 dwp Use internal computed-model identifiers for 'rcsb_id'
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
