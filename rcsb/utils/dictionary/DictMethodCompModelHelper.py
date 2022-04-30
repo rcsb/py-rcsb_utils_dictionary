@@ -299,7 +299,7 @@ class DictMethodCompModelHelper(object):
         _rcsb_comp_model_provenance.source_filename
         _rcsb_comp_model_provenance.source_url
         _rcsb_comp_model_provenance.source_db
-        _rcsb_comp_model_provenance.source_id
+        _rcsb_comp_model_provenance.entry_id
         ...
 
         """
