@@ -328,7 +328,7 @@ class DictMethodCompModelHelper(object):
 
             compModelD = self.__mcP.getCompModelData(compModelId)
 
-            cObj.setValue(compModelD["sourceId"], "entry_id", 0)
+            cObj.setValue(entryId, "entry_id", 0)
             cObj.setValue(compModelD["sourceDb"], "source_db", 0)
             cObj.setValue(compModelD["sourceModelUrl"], "source_url", 0)
             cObj.setValue(compModelD["sourceModelFileName"], "source_filename", 0)
