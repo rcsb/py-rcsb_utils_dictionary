@@ -638,7 +638,7 @@ class DictMethodEntryHelper(object):
                     eObj.setValue("REL", "status_code", 0)
                     eObj.setValue("?", "recvd_initial_deposition_date", 0)
             # if there is incomplete accessioninformation then exit
-            if not (dataContainer.exists("pdbx_database_status") or dataContainer.exists("pdbx_audit_revision_history")):
+            if not (dataContainer.exists("pdbx_database_status") and dataContainer.exists("pdbx_audit_revision_history")):
                 return False
             # Create the new target category
             if not dataContainer.exists(catName):
