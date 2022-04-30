@@ -18,6 +18,7 @@
 #                Fix pylint issues
 #  2-Apr-2022 bv Add methods 'getCompModelDb2L', 'getMaQaMetricType', and 'getCompModelLocalScores'
 # 20-Apr-2022 bv Update method 'getCompModelDb2L'
+# 29-Apr-2022 dwp Use internal computed-model identifiers for 'rcsb_id'
 #
 ##
 """
@@ -4120,13 +4121,13 @@ class DictMethodCommonUtils(object):
             "energy": "MA_QA_METRIC_LOCAL_TYPE_ENERGY",
             "distance": "MA_QA_METRIC_LOCAL_TYPE_DISTANCE",
             "normalized score": "MA_QA_METRIC_LOCAL_TYPE_NORMALIZED_SCORE",
-            "pLDDT": "MA_QA_METRIC_LOCAL_TYPE_pLDDT",
-            "pLDDT in [0,1]": "MA_QA_METRIC_LOCAL_TYPE_pLDDT_[0,1]",
-            "pLDDT all-atom": "MA_QA_METRIC_LOCAL_TYPE_pLDDT_ALL-ATOM",
-            "pLDDT all-atom in [0,1]": "MA_QA_METRIC_LOCAL_TYPE_pLDDT_ALL-ATOM_[0,1]",
+            "pLDDT": "MA_QA_METRIC_LOCAL_TYPE_PLDDT",
+            "pLDDT in [0,1]": "MA_QA_METRIC_LOCAL_TYPE_PLDDT_[0,1]",
+            "pLDDT all-atom": "MA_QA_METRIC_LOCAL_TYPE_PLDDT_ALL-ATOM",
+            "pLDDT all-atom in [0,1]": "MA_QA_METRIC_LOCAL_TYPE_PLDDT_ALL-ATOM_[0,1]",
             "PAE": "MA_QA_METRIC_LOCAL_TYPE_PAE",
-            "pTM": "MA_QA_METRIC_LOCAL_TYPE_pTM",
-            "ipTM": "MA_QA_METRIC_LOCAL_TYPE_ipTM",
+            "pTM": "MA_QA_METRIC_LOCAL_TYPE_PTM",
+            "ipTM": "MA_QA_METRIC_LOCAL_TYPE_IPTM",
             "contact probability": "MA_QA_METRIC_LOCAL_TYPE_CONTACT_PROBABILITY",
             "other": "MA_QA_METRIC_LOCAL_TYPE_OTHER"
         }

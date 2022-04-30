@@ -9,6 +9,7 @@
 #   07-Dec-2021  dwp Only add unassigned polymer entity-level taxonomy if _ma_target_ref_db_details.ncbi_taxonomy_id and .organism_scientific
 #                    are both present, since these are not mandatory fields and thus may not be present in some cases
 #   02-Apr-2022   bv Add method 'consolidateGlobalQAScores'
+#   29-Apr-2022 dwp Use internal computed-model identifiers for 'rcsb_id'
 ##
 """
 Helper class implements computed model method references in the RCSB dictionary extension.
@@ -80,7 +81,8 @@ class DictMethodCompModelHelper(object):
             logger.debug("Loaded API for: %r", self.__dApi.getDictionaryTitle())
         else:
             logger.error("Missing dictionary API %r", kwargs)
-
+        #
+        self.__mcP = rP.getResource("ModelCacheProvider instance") if rP else None
         #
         # logger.debug("Dictionary entry method helper init")
 
@@ -280,4 +282,61 @@ class DictMethodCompModelHelper(object):
             return True
         except Exception as e:
             logger.exception("For %s populating rcsb_ma_qa_metric_global failing with %s", dataContainer.getName(), str(e))
+        return False
+
+    def buildCompModelProvenance(self, dataContainer, catName, **kwargs):
+        """Load the input category with _rcsb_comp_model_provenance content.
+
+        Args:
+            dataContainer (object): mmif.api.DataContainer object instance
+            catName (str): Category name
+
+        Returns:
+            bool: True for success or False otherwise
+
+        For example:
+
+        loop_
+        _rcsb_comp_model_provenance.source_filename
+        _rcsb_comp_model_provenance.source_url
+        _rcsb_comp_model_provenance.source_db
+        _rcsb_comp_model_provenance.entry_id
+        ...
+
+        """
+        try:
+            logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
+            if not (dataContainer.exists("entry") and dataContainer.exists("ma_data")):
+                return False
+
+            if catName != "rcsb_comp_model_provenance":
+                logger.warning("input catName (%s) not 'rcsb_comp_model_provenance'")
+
+            catName = "rcsb_comp_model_provenance"
+
+            if not dataContainer.exists(catName):
+                dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
+
+            cObj = dataContainer.getObj(catName)
+
+            tObj = dataContainer.getObj("entry")
+            entryId = tObj.getValue("id", 0)
+
+            compModelId = self.__mcP.getInternalCompModelId(entryId)
+            if not compModelId:
+                logger.error("Unable to map computed-model entryId/sourceId (%s) to internal identifier - sourceId key not found.", entryId)
+                return False
+
+            compModelD = self.__mcP.getCompModelData(compModelId)
+
+            cObj.setValue(entryId, "entry_id", 0)
+            cObj.setValue(compModelD["sourceDb"], "source_db", 0)
+            cObj.setValue(compModelD["sourceModelUrl"], "source_url", 0)
+            cObj.setValue(compModelD["sourceModelFileName"], "source_filename", 0)
+
+            return True
+
+        except Exception as e:
+            logger.exception("For %s failing with %s", catName, str(e))
+
         return False

@@ -4,6 +4,8 @@
 # Date:    16-Jul-2019
 # Version: 0.001 Initial version
 #
+# Updates:
+# 29-Apr-2022 dwp Use internal computed-model identifiers for 'rcsb_id'
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
@@ -72,6 +74,7 @@ class DictMethodEntityHelper(object):
         self.__chemblP = rP.getResource("ChEMBLTargetCofactorProvider instance") if rP else None
         self.__dbP = rP.getResource("DrugBankTargetCofactorProvider instance") if rP else None
         self.__phP = rP.getResource("PharosTargetCofactorProvider instance") if rP else None
+        self.__mcP = rP.getResource("ModelCacheProvider instance") if rP else None
         #
         logger.debug("Dictionary entity method helper init")
 
@@ -262,21 +265,17 @@ class DictMethodEntityHelper(object):
             if not dataContainer.exists(catName):
                 dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
             #
-            # isCompModel = False
-            provSourceDefault = "PDB"
-            if dataContainer.exists("ma_data"):
-                # isCompModel = True
-                provSourceDefault = "UniProt"
-            #
             cObj = dataContainer.getObj(catName)
             #
             tObj = dataContainer.getObj("entry")
             entryId = tObj.getValue("id", 0)
             cObj.setValue(entryId, "entry_id", 0)
             #
+            provSourceDefault = "PDB"
             compModelId = None
-            if tObj.hasAttribute("rcsb_comp_model_id"):
-                compModelId = tObj.getValue("rcsb_comp_model_id", 0)
+            if dataContainer.exists("ma_data"):
+                provSourceDefault = "UniProt"  # NOTE: Remember to come back to this (setting for rcsb_entity_source_organism.provenance_source)
+                compModelId = self.__mcP.getInternalCompModelId(entryId)
             #
             tObj = dataContainer.getObj("entity")
             entityIdL = tObj.getAttributeValueList("id")

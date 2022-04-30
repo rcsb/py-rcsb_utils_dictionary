@@ -20,6 +20,7 @@
 #  25-Jul-2021 jdw refactored with common provider api
 #  27-Jul-2021 jdw add exclusion filter for testing
 #   3-Aug-2021 jdw add backup options for nonbuildable providers
+#  29-Apr-2022 dwp add ModelCacheProvider()
 ##
 ##
 """
@@ -82,6 +83,9 @@ from rcsb.utils.targets.SAbDabTargetFeatureProvider import SAbDabTargetFeaturePr
 
 # --
 from rcsb.utils.taxonomy.TaxonomyProvider import TaxonomyProvider
+
+# --
+from rcsb.utils.insilico3d.ModelCacheProvider import ModelCacheProvider
 
 logger = logging.getLogger(__name__)
 
@@ -345,6 +349,15 @@ class DictMethodResourceProvider(SingletonClass):
             "EntryInfoProvider instance": {
                 "class": EntryInfoProvider,
                 "configArgMap": {},
+                "stashable": True,
+                "buildable": False,
+                "providerType": "optional_1",
+            },
+            "ModelCacheProvider instance": {
+                "class": ModelCacheProvider,
+                "configArgMap": {
+                    "holdingsRemotePath": ("PDBX_COMP_MODEL_CACHE_LIST_PATH", "configPath"),
+                },
                 "stashable": True,
                 "buildable": False,
                 "providerType": "optional_1",

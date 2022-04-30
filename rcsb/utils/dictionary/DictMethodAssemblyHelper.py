@@ -7,6 +7,7 @@
 # Updates:
 # 28-Mar-2022 bv Fix _rcsb_assembly_info.atom_count not being populated for certain NMR entries
 # 26-Apr-2022 bv Update pdbx_struct_assembly for computed models
+# 29-Apr-2022 dwp Use internal computed-model identifiers for 'rcsb_id'
 #
 ##
 """
@@ -48,6 +49,7 @@ class DictMethodAssemblyHelper(object):
         # dapw = rP.getResource("DictionaryAPIProviderWrapper instance") if rP else None
         # self.__dApi = dapw.getApiByName("pdbx_core") if dapw else None
         self.__dApi = kwargs.get("dictionaryApi", None)
+        self.__mcP = rP.getResource("ModelCacheProvider instance") if rP else None
 
         logger.debug("Dictionary method helper init")
 
@@ -213,8 +215,8 @@ class DictMethodAssemblyHelper(object):
             cObj.setValue(entryId, "entry_id", 0)
             #
             compModelId = None
-            if tObj.hasAttribute("rcsb_comp_model_id"):
-                compModelId = tObj.getValue("rcsb_comp_model_id", 0)
+            if dataContainer.exists("ma_data"):
+                compModelId = self.__mcP.getInternalCompModelId(entryId)
             #
             tObj = dataContainer.getObj("pdbx_struct_assembly")
             assemblyIdL = tObj.getAttributeValueList("id")

@@ -54,6 +54,7 @@
 # 11-Mar-2022 bv Fix _rcsb_entry_info.deposited_model_count not being populated for certain NMR entries
 # 28-Mar-2022 bv Move 'getRepresentativeModels' method to DictMethodCommonUtils
 # 26-Apr-2022 bv Add missing pdbx_database_status for MA models and _rcsb_entry_info.structure_determination_methodology
+# 29-Apr-2022 dwp Use internal computed-model identifiers for 'rcsb_id'
 #
 ##
 """
@@ -107,6 +108,7 @@ class DictMethodEntryHelper(object):
         #
         self.__crP = rP.getResource("CitationReferenceProvider instance") if rP else None
         self.__jtaP = rP.getResource("JournalTitleAbbreviationProvider instance") if rP else None
+        self.__mcP = rP.getResource("ModelCacheProvider instance") if rP else None
         #
         self.__ssU = DictMethodSecStructUtils(rP, raiseExceptions=self._raiseExceptions)
         # logger.debug("Dictionary entry method helper init")
@@ -511,8 +513,13 @@ class DictMethodEntryHelper(object):
             tObj = dataContainer.getObj("entry")
             entryId = tObj.getValue("id", 0)
             cObj.setValue(entryId, "entry_id", 0)
-            if tObj.hasAttribute("rcsb_comp_model_id"):
-                cObj.setValue(tObj.getValue("rcsb_comp_model_id", 0), "rcsb_id", 0)
+
+            compModelId = None
+            if dataContainer.exists("ma_data"):
+                compModelId = self.__mcP.getInternalCompModelId(entryId)
+
+            if compModelId:
+                cObj.setValue(compModelId, "rcsb_id", 0)
             else:
                 cObj.setValue(entryId, "rcsb_id", 0)
 

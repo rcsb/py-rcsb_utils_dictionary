@@ -903,7 +903,7 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue(metricT, "type", ii)
                     cObj.setValue(metricN, "name", ii)
                     cObj.setValue(metricN, "feature_id", ii)
-                    addPropTupL.append(("ModelCIF_MODEL_ID", modelId))
+                    addPropTupL.append(("MODELCIF_MODEL_ID", modelId))
                     cObj.setValue(";".join([str(tup1[0]) for tup1 in addPropTupL]), "additional_properties_name", ii)
                     cObj.setValue(";".join([str(tup1[1]) for tup1 in addPropTupL]), "additional_properties_values", ii)
                     fValL = []
@@ -915,7 +915,7 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue(";".join([str(tup) for tup in fValL]), "feature_positions_values", ii)
                     cObj.setValue(sId, "feature_positions_beg_seq_id", ii)
                     ii += 1
-                logger.info("Completed populating local QA scores for computed model %r", dataContainer.getName())
+                logger.debug("Completed populating local QA scores for computed model %r", dataContainer.getName())
 
             npbD = self.__commonU.getBoundNonpolymersByInstance(dataContainer)
             jj = 1
