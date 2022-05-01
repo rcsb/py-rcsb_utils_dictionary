@@ -55,6 +55,7 @@
 # 28-Mar-2022 bv Move 'getRepresentativeModels' method to DictMethodCommonUtils
 # 26-Apr-2022 bv Add missing pdbx_database_status for MA models and _rcsb_entry_info.structure_determination_methodology
 # 29-Apr-2022 dwp Use internal computed-model identifiers for 'rcsb_id'
+# 30 Apr-2022 bv Update consolidateAccessionDetails
 #
 ##
 """
@@ -628,15 +629,16 @@ class DictMethodEntryHelper(object):
             #
             # Add missing pdbx_database_status for MA models
             cName = "pdbx_database_status"
-            dObj = dataContainer.getObj("entry")
-            entryId = dObj.getValue("id", 0)
-            if entryId.startswith("ma"):
-                if not dataContainer.exists(cName):
-                    dataContainer.append(DataCategory(cName, attributeNameList=self.__dApi.getAttributeNameList(cName)))
-                    eObj = dataContainer.getObj(cName)
-                    eObj.setValue(entryId, "entry_id", 0)
-                    eObj.setValue("REL", "status_code", 0)
-                    eObj.setValue("?", "recvd_initial_deposition_date", 0)
+            if dataContainer.exists("entry"):
+                dObj = dataContainer.getObj("entry")
+                entryId = dObj.getValue("id", 0)
+                if entryId.startswith("ma"):
+                    if not dataContainer.exists(cName):
+                        dataContainer.append(DataCategory(cName, attributeNameList=self.__dApi.getAttributeNameList(cName)))
+                        eObj = dataContainer.getObj(cName)
+                        eObj.setValue(entryId, "entry_id", 0)
+                        eObj.setValue("REL", "status_code", 0)
+                        eObj.setValue("?", "recvd_initial_deposition_date", 0)
             # if there is incomplete accessioninformation then exit
             if not (dataContainer.exists("pdbx_database_status") and dataContainer.exists("pdbx_audit_revision_history")):
                 return False
