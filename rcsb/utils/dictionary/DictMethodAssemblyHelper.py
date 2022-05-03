@@ -8,6 +8,7 @@
 # 28-Mar-2022 bv Fix _rcsb_assembly_info.atom_count not being populated for certain NMR entries
 # 26-Apr-2022 bv Update pdbx_struct_assembly for computed models
 # 29-Apr-2022 dwp Use internal computed-model identifiers for 'rcsb_id'
+#  3-May-2022 dwp Use internal computed-model identifiers for 'entry_id' in containter_identifiers
 #
 ##
 """
@@ -209,24 +210,28 @@ class DictMethodAssemblyHelper(object):
                 dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
             #
             cObj = dataContainer.getObj(catName)
-
             tObj = dataContainer.getObj("entry")
             entryId = tObj.getValue("id", 0)
-            cObj.setValue(entryId, "entry_id", 0)
             #
             compModelId = None
             if dataContainer.exists("ma_data"):
                 compModelId = self.__mcP.getInternalCompModelId(entryId)
             #
+            if compModelId:
+                cObj.setValue(compModelId, "entry_id", 0)
+            else:
+                cObj.setValue(entryId, "entry_id", 0)
+            #
             tObj = dataContainer.getObj("pdbx_struct_assembly")
             assemblyIdL = tObj.getAttributeValueList("id")
             #
             for ii, assemblyId in enumerate(assemblyIdL):
-                cObj.setValue(entryId, "entry_id", ii)
                 cObj.setValue(assemblyId, "assembly_id", ii)
                 if compModelId:
+                    cObj.setValue(compModelId, "entry_id", ii)
                     cObj.setValue(compModelId + "-" + assemblyId, "rcsb_id", ii)
                 else:
+                    cObj.setValue(entryId, "entry_id", ii)
                     cObj.setValue(entryId + "-" + assemblyId, "rcsb_id", ii)
 
             #

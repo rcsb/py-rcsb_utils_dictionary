@@ -97,6 +97,9 @@ class DictMethodEntityInstanceHelper(object):
             brAuthAsymD = self.__commonU.getBranchedIdMap(dataContainer)
             seqIdMapAsymD = self.__commonU.getAuthToSeqIdMap(dataContainer)
             #
+            # Possible to add compModel-specific code here to 'asymD', as opposed to in the commonU?
+            #   - Check by printing current implementation output and seeing which ones have comp-model ids
+            #
             for ii, asymId in enumerate(sorted(asymD)):
                 for k, v in asymD[asymId].items():
                     cObj.setValue(v, k, ii)
