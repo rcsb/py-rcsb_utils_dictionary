@@ -6,6 +6,7 @@
 #
 # Updates:
 # 29-Apr-2022 dwp Use internal computed-model identifiers for 'rcsb_id'
+#  3-May-2022 dwp Use internal computed-model identifiers for 'entry_id' in containter_identifiers
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
@@ -298,9 +299,10 @@ class DictMethodEntityHelper(object):
             for entityId in entityIdL:
                 if compModelId:
                     rcsbId = compModelId + "_" + entityId
+                    cObj.setValue(compModelId, "entry_id", ii)
                 else:
                     rcsbId = entryId + "_" + entityId
-                cObj.setValue(entryId, "entry_id", ii)
+                    cObj.setValue(entryId, "entry_id", ii)
                 cObj.setValue(entityId, "entity_id", ii)
                 cObj.setValue(rcsbId, "rcsb_id", ii)
                 eType = tObj.getValue("type", ii)
