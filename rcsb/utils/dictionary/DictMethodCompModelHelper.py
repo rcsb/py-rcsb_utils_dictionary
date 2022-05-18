@@ -377,7 +377,7 @@ class DictMethodCompModelHelper(object):
             for ii in range(qObj.getRowCount()):
                 pdbxDesc = qObj.getValue("pdbx_description", ii)
                 eType = qObj.getValue("type", ii)
-                if pdbxDesc not in [".", "?"] and eType in ["polymer", "Polymer", "POLYMER"]:
+                if pdbxDesc not in [".", "?"] and eType.lower() == "polymer":
                     tL.append(str(pdbxDesc))
 
             if tL:
