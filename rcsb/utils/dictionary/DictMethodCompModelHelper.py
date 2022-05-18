@@ -9,7 +9,8 @@
 #   07-Dec-2021  dwp Only add unassigned polymer entity-level taxonomy if _ma_target_ref_db_details.ncbi_taxonomy_id and .organism_scientific
 #                    are both present, since these are not mandatory fields and thus may not be present in some cases
 #   02-Apr-2022   bv Add method 'consolidateGlobalQAScores'
-#   29-Apr-2022 dwp Use internal computed-model identifiers for 'rcsb_id'
+#   29-Apr-2022  dwp Add method 'buildCompModelProvenance'
+#   17-May-2022   bv Add method 'addStructInfo'
 ##
 """
 Helper class implements computed model method references in the RCSB dictionary extension.
@@ -339,4 +340,56 @@ class DictMethodCompModelHelper(object):
         except Exception as e:
             logger.exception("For %s failing with %s", catName, str(e))
 
+        return False
+
+    def addStructInfo(self, dataContainer, catName, **kwargs):
+        """Add missing struct table
+
+        Args:
+            dataContainer (object): mmif.api.DataContainer object instance
+            catName (str): Category name
+
+        Returns:
+            bool: True for success or False otherwise
+
+        """
+        logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
+        try:
+            # Check if struct table is already present
+            if dataContainer.exists("struct"):
+                return False
+            # Check for all categories/data items required for the ETL (will return False for experimental models)
+            if not (dataContainer.exists("entry") and dataContainer.exists("entity") and dataContainer.exists("ma_data")):
+                return False
+
+            logger.debug("Adding struct table for %s", dataContainer.getName())
+            catName = "struct"
+            dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
+            xObj = dataContainer.getObj(catName)
+
+            tObj = dataContainer.getObj("entry")
+            entryId = tObj.getValue("id", 0)
+
+            methodType = "computational"
+            tL = []
+            qObj = dataContainer.getObj("entity")
+
+            for ii in range(qObj.getRowCount()):
+                pdbxDesc = qObj.getValue("pdbx_description", ii)
+                if pdbxDesc not in [".", "?"]:
+                    tL.append(str(pdbxDesc))
+
+            if tL:
+                strTitle = "Computed structure model of " + ", ".join([str(x) for x in tL])
+            else:
+                logger.debug("Missing entity description for %s. Using generic title", dataContainer.getName())
+                strTitle = "Computed structure model"
+
+            xObj.setValue(entryId, "entry_id", 0)
+            xObj.setValue(strTitle, "title", 0)
+            xObj.setValue(methodType, "pdbx_structure_determination_methodology", 0)
+
+            return True
+        except Exception as e:
+            logger.exception("For %s populating struct failing with %s", dataContainer.getName(), str(e))
         return False
