@@ -80,3 +80,4 @@
 21-Apr-2022 - V0.88 Update buildEntityInstanceFeatureSummary for handling ma_qa_metric_local scores
 26-Apr-2022 - V0.89 Add missing pdbx_database_status for MA models and _rcsb_entry_info.structure_determination_methodology; update pdbx_struct_assembly for computed models
 29-Apr-2022 - V0.90 Update dict helper methods to retrieve and incorporate computed-model metadata 
+17-May-2022 - V0.91 Add method 'addStructInfo' in DictMethodCompModelHelper
