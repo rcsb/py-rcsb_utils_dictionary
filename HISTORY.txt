@@ -81,3 +81,4 @@
 26-Apr-2022 - V0.89 Add missing pdbx_database_status for MA models and _rcsb_entry_info.structure_determination_methodology; update pdbx_struct_assembly for computed models
 29-Apr-2022 - V0.90 Update dict helper methods to retrieve and incorporate computed-model metadata 
 17-May-2022 - V0.91 Add method 'addStructInfo' in DictMethodCompModelHelper
+23-Jun-2022 - V0.92 Use ma_target_ref_db_details to populate rcsb_polymer_entity_container_identifiers.reference_sequence_identifiers for MA models
