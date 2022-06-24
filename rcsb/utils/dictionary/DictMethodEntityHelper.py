@@ -7,6 +7,7 @@
 # Updates:
 # 29-Apr-2022 dwp Use internal computed-model identifiers for 'rcsb_id'
 #  3-May-2022 dwp Use internal computed-model identifiers for 'entry_id' in containter_identifiers
+# 23-June-2022 bv Use ma_target_ref_db_details to populate rcsb_polymer_entity_container_identifiers.reference_sequence_identifiers for MA models
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
@@ -335,7 +336,7 @@ class DictMethodEntityHelper(object):
                                 refSeqIdD["provSource"].append("SIFTS")
                                 refSeqIdD["dbAccession"].append(dbId)
                                 refSeqIdD["dbIsoform"].append("?")
-                        # else fallback to PDB
+                        # else fallback to struct_ref and struct_ref_seq
                         elif entityId in seqEntityRefDbD:
                             for dbD in seqEntityRefDbD[entityId]:
                                 refSeqIdD["dbName"].append(dbD["dbName"])
@@ -346,7 +347,7 @@ class DictMethodEntityHelper(object):
                                     refSeqIdD["dbIsoform"].append(dbD["dbIsoform"])
                                 else:
                                     refSeqIdD["dbIsoform"].append("?")
-
+                    # else fallback to struct_ref and struct_ref_seq
                     else:
                         if entityId in seqEntityRefDbD:
                             for dbD in seqEntityRefDbD[entityId]:
@@ -358,6 +359,23 @@ class DictMethodEntityHelper(object):
                                     refSeqIdD["dbIsoform"].append(dbD["dbIsoform"])
                                 else:
                                     refSeqIdD["dbIsoform"].append("?")
+                        # else fallback to ma_target_ref_db_details
+                        else:
+                            if (dataContainer.exists("ma_target_ref_db_details")):
+                                mObj = dataContainer.getObj("ma_target_ref_db_details")
+                                for jj in range(mObj.getRowCount()):
+                                    tEntityId = mObj.getValue("target_entity_id", jj)
+                                    tDbName = mObj.getValue("db_name", jj)
+                                    tDbAccession = mObj.getValue("db_accession", jj)
+                                    tDbIsoform = mObj.getValue("seq_db_isoform", jj)
+                                    if tEntityId == entityId and tDbName in ["UNP"] and tDbAccession not in [".", "?"]:
+                                        refSeqIdD["dbName"].append("UniProt")
+                                        refSeqIdD["provSource"].append(provSourceDefault)
+                                        refSeqIdD["dbAccession"].append(tDbAccession)
+                                        if tDbIsoform:
+                                            refSeqIdD["dbIsoform"].append(tDbIsoform)
+                                        else:
+                                            refSeqIdD["dbIsoform"].append("?")
                 elif eType == "branched":
                     #
                     if rcsbId.upper() in branchedEntityIdD and "glyTouCanId" in branchedEntityIdD[rcsbId.upper()]:
