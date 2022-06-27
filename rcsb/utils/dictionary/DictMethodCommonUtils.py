@@ -20,6 +20,7 @@
 # 20-Apr-2022 bv Update method 'getCompModelDb2L'
 # 29-Apr-2022 dwp Use internal computed-model identifiers for 'rcsb_id'
 #  3-May-2022 dwp Use internal computed-model identifiers for 'entry_id' in containter_identifiers
+# 27-Jun-2022 bv  Update _rcsb_ma_qa_metric_global.ma_qa_metric_global_type to 'pLDDT' for AF models
 #
 ##
 """
@@ -4127,6 +4128,8 @@ class DictMethodCommonUtils(object):
                     mMode = aObj.getValue("mode", ii)
                     mType = aObj.getValue("type", ii)
                     mName = aObj.getValue("name", ii)
+                    if mName == "pLDDT" and mType.lower() == "other":
+                        mType = "pLDDT"
                     if mMode == "local":
                         maQaMetricLocalTypeD[mId] = {"type": compModelScoreTypeEnumD[mType], "name": mName}
                     if mMode == "global":
