@@ -57,6 +57,7 @@
 # 29-Apr-2022 dwp Use internal computed-model identifiers for 'rcsb_id'
 # 30 Apr-2022 bv Update consolidateAccessionDetails
 #  3-May-2022 dwp Use internal computed-model identifiers for 'entry_id' in containter_identifiers
+# 29-Jun-2022 dwp Use internal computed-model identifiers everywhere (in same manner as experimental models)
 #
 ##
 """
@@ -110,7 +111,6 @@ class DictMethodEntryHelper(object):
         #
         self.__crP = rP.getResource("CitationReferenceProvider instance") if rP else None
         self.__jtaP = rP.getResource("JournalTitleAbbreviationProvider instance") if rP else None
-        self.__mcP = rP.getResource("ModelCacheProvider instance") if rP else None
         #
         self.__ssU = DictMethodSecStructUtils(rP, raiseExceptions=self._raiseExceptions)
         # logger.debug("Dictionary entry method helper init")
@@ -515,16 +515,8 @@ class DictMethodEntryHelper(object):
             tObj = dataContainer.getObj("entry")
             entryId = tObj.getValue("id", 0)
 
-            compModelId = None
-            if dataContainer.exists("ma_data"):
-                compModelId = self.__mcP.getInternalCompModelId(entryId)
-
-            if compModelId:
-                cObj.setValue(compModelId, "entry_id", 0)
-                cObj.setValue(compModelId, "rcsb_id", 0)
-            else:
-                cObj.setValue(entryId, "entry_id", 0)
-                cObj.setValue(entryId, "rcsb_id", 0)
+            cObj.setValue(entryId, "entry_id", 0)
+            cObj.setValue(entryId, "rcsb_id", 0)
 
             #
             tObj = dataContainer.getObj("entity")
