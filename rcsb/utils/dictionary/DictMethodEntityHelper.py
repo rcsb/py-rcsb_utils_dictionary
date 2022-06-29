@@ -8,6 +8,7 @@
 # 29-Apr-2022 dwp Use internal computed-model identifiers for 'rcsb_id'
 #  3-May-2022 dwp Use internal computed-model identifiers for 'entry_id' in containter_identifiers
 # 23-June-2022 bv Use ma_target_ref_db_details to populate rcsb_polymer_entity_container_identifiers.reference_sequence_identifiers for MA models
+# 29-Jun-2022 dwp Use internal computed-model identifiers everywhere (in same manner as experimental models)
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
@@ -274,10 +275,8 @@ class DictMethodEntityHelper(object):
             cObj.setValue(entryId, "entry_id", 0)
             #
             provSourceDefault = "PDB"
-            compModelId = None
             if dataContainer.exists("ma_data"):
                 provSourceDefault = "UniProt"  # NOTE: Remember to come back to this (setting for rcsb_entity_source_organism.provenance_source)
-                compModelId = self.__mcP.getInternalCompModelId(entryId)
             #
             tObj = dataContainer.getObj("entity")
             entityIdL = tObj.getAttributeValueList("id")
@@ -298,12 +297,8 @@ class DictMethodEntityHelper(object):
             # ---------
             ii = 0
             for entityId in entityIdL:
-                if compModelId:
-                    rcsbId = compModelId + "_" + entityId
-                    cObj.setValue(compModelId, "entry_id", ii)
-                else:
-                    rcsbId = entryId + "_" + entityId
-                    cObj.setValue(entryId, "entry_id", ii)
+                rcsbId = entryId + "_" + entityId
+                cObj.setValue(entryId, "entry_id", ii)
                 cObj.setValue(entityId, "entity_id", ii)
                 cObj.setValue(rcsbId, "rcsb_id", ii)
                 eType = tObj.getValue("type", ii)

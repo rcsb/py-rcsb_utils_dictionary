@@ -21,6 +21,7 @@
 # 29-Apr-2022 dwp Use internal computed-model identifiers for 'rcsb_id'
 #  3-May-2022 dwp Use internal computed-model identifiers for 'entry_id' in containter_identifiers
 # 27-Jun-2022 bv  Update _rcsb_ma_qa_metric_global.ma_qa_metric_global_type to 'pLDDT' for AF models
+# 29-Jun-2022 dwp Use internal computed-model identifiers everywhere (in same manner as experimental models)
 #
 ##
 """
@@ -1093,8 +1094,8 @@ class DictMethodCommonUtils(object):
             eObj = dataContainer.getObj("entry")
             entryId = eObj.getValue("id", 0)
             #
-            if eObj.hasAttribute("rcsb_comp_model_id"):
-                entryId = eObj.getValue("rcsb_comp_model_id", 0)
+            # if eObj.hasAttribute("rcsb_comp_model_id"):
+            #     entryId = eObj.getValue("rcsb_comp_model_id", 0)
             #
             psObj = dataContainer.getObj("pdbx_poly_seq_scheme")
             if psObj is not None:

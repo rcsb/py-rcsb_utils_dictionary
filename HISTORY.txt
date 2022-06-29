@@ -83,3 +83,4 @@
 17-May-2022 - V0.91 Add method 'addStructInfo' in DictMethodCompModelHelper
 23-Jun-2022 - V0.92 Use ma_target_ref_db_details to populate rcsb_polymer_entity_container_identifiers.reference_sequence_identifiers for MA models
 27-Jun-2022 - V0.93 Update _rcsb_ma_qa_metric_global.ma_qa_metric_global_type to 'pLDDT' for AF models
+29-Jun-2022 - V0.94 Use internal computed-model identifiers for data loading (in same manner as experimental models)

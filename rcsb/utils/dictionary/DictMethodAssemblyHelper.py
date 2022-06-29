@@ -9,6 +9,7 @@
 # 26-Apr-2022 bv Update pdbx_struct_assembly for computed models
 # 29-Apr-2022 dwp Use internal computed-model identifiers for 'rcsb_id'
 #  3-May-2022 dwp Use internal computed-model identifiers for 'entry_id' in containter_identifiers
+# 29-Jun-2022 dwp Use internal computed-model identifiers everywhere
 #
 ##
 """
@@ -50,7 +51,6 @@ class DictMethodAssemblyHelper(object):
         # dapw = rP.getResource("DictionaryAPIProviderWrapper instance") if rP else None
         # self.__dApi = dapw.getApiByName("pdbx_core") if dapw else None
         self.__dApi = kwargs.get("dictionaryApi", None)
-        self.__mcP = rP.getResource("ModelCacheProvider instance") if rP else None
 
         logger.debug("Dictionary method helper init")
 
@@ -213,26 +213,15 @@ class DictMethodAssemblyHelper(object):
             tObj = dataContainer.getObj("entry")
             entryId = tObj.getValue("id", 0)
             #
-            compModelId = None
-            if dataContainer.exists("ma_data"):
-                compModelId = self.__mcP.getInternalCompModelId(entryId)
-            #
-            if compModelId:
-                cObj.setValue(compModelId, "entry_id", 0)
-            else:
-                cObj.setValue(entryId, "entry_id", 0)
+            cObj.setValue(entryId, "entry_id", 0)
             #
             tObj = dataContainer.getObj("pdbx_struct_assembly")
             assemblyIdL = tObj.getAttributeValueList("id")
             #
             for ii, assemblyId in enumerate(assemblyIdL):
                 cObj.setValue(assemblyId, "assembly_id", ii)
-                if compModelId:
-                    cObj.setValue(compModelId, "entry_id", ii)
-                    cObj.setValue(compModelId + "-" + assemblyId, "rcsb_id", ii)
-                else:
-                    cObj.setValue(entryId, "entry_id", ii)
-                    cObj.setValue(entryId + "-" + assemblyId, "rcsb_id", ii)
+                cObj.setValue(entryId, "entry_id", ii)
+                cObj.setValue(entryId + "-" + assemblyId, "rcsb_id", ii)
 
             #
             return True
