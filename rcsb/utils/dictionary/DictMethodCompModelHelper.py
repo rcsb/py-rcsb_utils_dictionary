@@ -11,6 +11,7 @@
 #   02-Apr-2022   bv Add method 'consolidateGlobalQAScores'
 #   29-Apr-2022  dwp Add method 'buildCompModelProvenance'
 #   17-May-2022   bv Add method 'addStructInfo'
+#   29-Jun-2022  dwp Update method 'buildCompModelProvenance' for populating rcsb_comp_model_provenance using mapping between internal and external IDs
 ##
 """
 Helper class implements computed model method references in the RCSB dictionary extension.
@@ -322,12 +323,13 @@ class DictMethodCompModelHelper(object):
             tObj = dataContainer.getObj("entry")
             entryId = tObj.getValue("id", 0)
 
-            compModelId = self.__mcP.getInternalCompModelId(entryId)
-            if not compModelId:
-                logger.error("Unable to map computed-model entryId/sourceId (%s) to internal identifier - sourceId key not found.", entryId)
-                return False
+            # NOTE: Old approach - from when we were using the external/source ID as entry.id
+            # compModelId = self.__mcP.getInternalCompModelId(entryId)
+            # if not compModelId:
+            #     logger.error("Unable to map computed-model entryId/sourceId (%s) to internal identifier - sourceId key not found.", entryId)
+            #     return False
 
-            compModelD = self.__mcP.getCompModelData(compModelId)
+            compModelD = self.__mcP.getCompModelData(entryId)
 
             cObj.setValue(compModelD["sourceId"], "entry_id", 0)
             cObj.setValue(compModelD["sourceDb"], "source_db", 0)
