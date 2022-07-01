@@ -58,6 +58,7 @@
 # 30 Apr-2022 bv Update consolidateAccessionDetails
 #  3-May-2022 dwp Use internal computed-model identifiers for 'entry_id' in containter_identifiers
 # 29-Jun-2022 dwp Use internal computed-model identifiers everywhere (in same manner as experimental models)
+# 01-Jul-2022 dwp ...Except for pdbx_database_status of MA (or any CSM) models, in which case use the source/external ID
 #
 ##
 """
@@ -111,6 +112,7 @@ class DictMethodEntryHelper(object):
         #
         self.__crP = rP.getResource("CitationReferenceProvider instance") if rP else None
         self.__jtaP = rP.getResource("JournalTitleAbbreviationProvider instance") if rP else None
+        self.__mcP = rP.getResource("ModelCacheProvider instance") if rP else None
         #
         self.__ssU = DictMethodSecStructUtils(rP, raiseExceptions=self._raiseExceptions)
         # logger.debug("Dictionary entry method helper init")
@@ -623,16 +625,20 @@ class DictMethodEntryHelper(object):
             #
             # Add missing pdbx_database_status for MA models
             cName = "pdbx_database_status"
-            if dataContainer.exists("entry"):
-                dObj = dataContainer.getObj("entry")
-                entryId = dObj.getValue("id", 0)
-                if entryId.startswith("ma"):
-                    if not dataContainer.exists(cName):
-                        dataContainer.append(DataCategory(cName, attributeNameList=self.__dApi.getAttributeNameList(cName)))
-                        eObj = dataContainer.getObj(cName)
-                        eObj.setValue(entryId, "entry_id", 0)
-                        eObj.setValue("REL", "status_code", 0)
-                        eObj.setValue("?", "recvd_initial_deposition_date", 0)
+            if not dataContainer.exists(cName):
+                if dataContainer.exists("entry") and dataContainer.exists("ma_data"):
+                    dObj = dataContainer.getObj("entry")
+                    entryId = dObj.getValue("id", 0)
+                    compModelSourceId = None
+                    if entryId.upper().startswith("MA-") or entryId.upper().startswith("MA_"):
+                        compModelSourceId = self.__mcP.getCompModelData(entryId)["sourceId"]
+                        logger.debug("compModelSourceId %r for entryId %s", compModelSourceId, entryId)
+                        if compModelSourceId:
+                            dataContainer.append(DataCategory(cName, attributeNameList=self.__dApi.getAttributeNameList(cName)))
+                            eObj = dataContainer.getObj(cName)
+                            eObj.setValue(compModelSourceId, "entry_id", 0)
+                            eObj.setValue("REL", "status_code", 0)
+                            eObj.setValue("?", "recvd_initial_deposition_date", 0)
             # if there is incomplete accessioninformation then exit
             if not (dataContainer.exists("pdbx_database_status") and dataContainer.exists("pdbx_audit_revision_history")):
                 return False

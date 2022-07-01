@@ -77,7 +77,6 @@ class DictMethodEntityHelper(object):
         self.__chemblP = rP.getResource("ChEMBLTargetCofactorProvider instance") if rP else None
         self.__dbP = rP.getResource("DrugBankTargetCofactorProvider instance") if rP else None
         self.__phP = rP.getResource("PharosTargetCofactorProvider instance") if rP else None
-        self.__mcP = rP.getResource("ModelCacheProvider instance") if rP else None
         #
         logger.debug("Dictionary entity method helper init")
 
