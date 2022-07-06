@@ -12,6 +12,7 @@
 #   29-Apr-2022  dwp Add method 'buildCompModelProvenance'
 #   17-May-2022   bv Add method 'addStructInfo'
 #   29-Jun-2022  dwp Update method 'buildCompModelProvenance' for populating rcsb_comp_model_provenance using mapping between internal and external IDs
+#    6-Jul-2022   bv RO-3357: Fix taxonomy assignment in addPolymerEntityTaxonomy
 ##
 """
 Helper class implements computed model method references in the RCSB dictionary extension.
@@ -163,12 +164,9 @@ class DictMethodCompModelHelper(object):
         try:
             if not (dataContainer.exists("ma_data") and dataContainer.exists("ma_target_ref_db_details")):
                 return False
-            if not all([ai in dataContainer.getObj('ma_target_ref_db_details').getAttributeList() for ai in ["ncbi_taxonomy_id", "organism_scientific"]]):
+            if not all([ai in dataContainer.getObj('ma_target_ref_db_details').getAttributeList() for ai in ["ncbi_taxonomy_id", "organism_scientific", "db_name"]]):
                 return False
             geneName = None
-            if dataContainer.exists("af_target_ref_db_details"):
-                tObj = dataContainer.getObj("af_target_ref_db_details")
-                geneName = tObj.getValue("gene", 0)
 
             epLenD = self.__commonU.getPolymerEntityLengths(dataContainer)
             tObj = dataContainer.getObj("ma_target_ref_db_details")
@@ -176,18 +174,23 @@ class DictMethodCompModelHelper(object):
                 dataContainer.append(DataCategory("entity_src_nat", attributeNameList=atL))
             sObj = dataContainer.getObj("entity_src_nat")
             #
+            jj = 0
             for ii in range(tObj.getRowCount()):
                 taxId = tObj.getValue("ncbi_taxonomy_id", ii)
                 orgName = tObj.getValue("organism_scientific", ii)
                 entityId = tObj.getValue("target_entity_id", ii)
+                geneName = tObj.getValueOrDefault("gene_name", ii, defaultValue=None)
+                dbName = tObj.getValue("db_name", ii)
                 #
-                sObj.setValue(entityId, "entity_id", ii)
-                sObj.setValue(taxId, "pdbx_ncbi_taxonomy_id", ii)
-                sObj.setValue(orgName, "pdbx_organism_scientific", ii)
-                sObj.setValue("1", "pdbx_src_id", ii)
-                sObj.setValue("1", "pdbx_beg_seq_num", ii)
-                sObj.setValue(str(epLenD[entityId]), "pdbx_end_seq_num", ii)
-                sObj.setValue(geneName, "rcsb_gene_name", ii)
+                if dbName == "UNP":
+                    sObj.setValue(entityId, "entity_id", jj)
+                    sObj.setValue(taxId, "pdbx_ncbi_taxonomy_id", jj)
+                    sObj.setValue(orgName, "pdbx_organism_scientific", jj)
+                    sObj.setValue("1", "pdbx_src_id", jj)
+                    sObj.setValue("1", "pdbx_beg_seq_num", jj)
+                    sObj.setValue(str(epLenD[entityId]), "pdbx_end_seq_num", jj)
+                    sObj.setValue(geneName, "rcsb_gene_name", jj)
+                    jj += 1
             #
             return True
         except Exception as e:
