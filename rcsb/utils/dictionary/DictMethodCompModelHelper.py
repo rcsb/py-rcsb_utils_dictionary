@@ -13,6 +13,7 @@
 #   17-May-2022   bv Add method 'addStructInfo'
 #   29-Jun-2022  dwp Update method 'buildCompModelProvenance' for populating rcsb_comp_model_provenance using mapping between internal and external IDs
 #    6-Jul-2022   bv RO-3357: Fix taxonomy assignment in addPolymerEntityTaxonomy
+#    6-Jul-2022  dwp Only populate rcsb_comp_model_provenance.source_url if it exists in CSM holdings file (may not exist for all AF fragments)
 ##
 """
 Helper class implements computed model method references in the RCSB dictionary extension.
@@ -336,7 +337,9 @@ class DictMethodCompModelHelper(object):
 
             cObj.setValue(compModelD["sourceId"], "entry_id", 0)
             cObj.setValue(compModelD["sourceDb"], "source_db", 0)
-            cObj.setValue(compModelD["sourceModelUrl"], "source_url", 0)
+            sourceModelUrl = compModelD.get("sourceModelUrl", None)
+            if sourceModelUrl:
+                cObj.setValue(compModelD["sourceModelUrl"], "source_url", 0)
             cObj.setValue(compModelD["sourceModelFileName"], "source_filename", 0)
 
             return True
