@@ -164,7 +164,7 @@ class DictMethodCompModelHelper(object):
         try:
             if not (dataContainer.exists("ma_data") and dataContainer.exists("ma_target_ref_db_details")):
                 return False
-            if not all([ai in dataContainer.getObj('ma_target_ref_db_details').getAttributeList() for ai in ["ncbi_taxonomy_id", "organism_scientific", "db_name"]]):
+            if not all([ai in dataContainer.getObj('ma_target_ref_db_details').getAttributeList() for ai in ["ncbi_taxonomy_id", "organism_scientific"]]):
                 return False
             geneName = None
 
