@@ -59,6 +59,7 @@
 #  3-May-2022 dwp Use internal computed-model identifiers for 'entry_id' in containter_identifiers
 # 29-Jun-2022 dwp Use internal computed-model identifiers everywhere (in same manner as experimental models)
 # 06-Jul-2022 dwp ...except for pdbx_database_status of MA (or any CSM) models, in which case use the source/external ID
+#             dwp Add addtional filters for populating _rcsb_accession_info
 #
 ##
 """
@@ -623,16 +624,17 @@ class DictMethodEntryHelper(object):
         try:
             logger.debug("Starting with  %r %r %r", dataContainer.getName(), catName, kwargs)
             #
+            internalEntryId = None
             # Add missing pdbx_database_status for MA or AF models (if absent in mmCIF file)
             cName = "pdbx_database_status"
             if not dataContainer.exists(cName):
                 if dataContainer.exists("entry") and dataContainer.exists("ma_data"):
                     dObj = dataContainer.getObj("entry")
-                    entryId = dObj.getValue("id", 0)
+                    internalEntryId = dObj.getValue("id", 0)
                     compModelSourceId = None
-                    if entryId.upper().startswith("MA_") or entryId.upper().startswith("MA-") or entryId.upper().startswith("AF_"):
-                        compModelSourceId = self.__mcP.getCompModelData(entryId)["sourceId"]
-                        logger.debug("compModelSourceId %r for entryId %s", compModelSourceId, entryId)
+                    if internalEntryId.upper().startswith("MA_") or internalEntryId.upper().startswith("MA-") or internalEntryId.upper().startswith("AF_"):
+                        compModelSourceId = self.__mcP.getCompModelData(internalEntryId)["sourceId"]
+                        logger.debug("compModelSourceId %r for entryId %s", compModelSourceId, internalEntryId)
                         if compModelSourceId:
                             dataContainer.append(DataCategory(cName, attributeNameList=self.__dApi.getAttributeNameList(cName)))
                             eObj = dataContainer.getObj(cName)
@@ -640,7 +642,7 @@ class DictMethodEntryHelper(object):
                             eObj.setValue("REL", "status_code", 0)
                             eObj.setValue("?", "recvd_initial_deposition_date", 0)
             # if there is incomplete accessioninformation then exit
-            if not (dataContainer.exists("pdbx_database_status") and dataContainer.exists("pdbx_audit_revision_history")):
+            if not dataContainer.exists("pdbx_database_status"):
                 return False
             # Create the new target category
             if not dataContainer.exists(catName):
@@ -649,7 +651,10 @@ class DictMethodEntryHelper(object):
             cObj = dataContainer.getObj(catName)
             #
             tObj = dataContainer.getObj("pdbx_database_status")
-            entryId = tObj.getValue("entry_id", 0)
+            if internalEntryId:
+                entryId = internalEntryId
+            else:
+                entryId = tObj.getValue("entry_id", 0)
             statusCode = tObj.getValue("status_code", 0)
             depositDate = tObj.getValue("recvd_initial_deposition_date", 0)
             #
@@ -676,18 +681,19 @@ class DictMethodEntryHelper(object):
             #
             cObj.setValue(expDataRelFlag, "has_released_experimental_data", 0)
             #
-            tObj = dataContainer.getObj("pdbx_audit_revision_history")
-            nRows = tObj.getRowCount()
-            # Assuming the default sorting order from the release module -
-            releaseDate = tObj.getValue("revision_date", 0)
-            minorRevision = tObj.getValue("minor_revision", nRows - 1)
-            majorRevision = tObj.getValue("major_revision", nRows - 1)
-            revisionDate = tObj.getValue("revision_date", nRows - 1)
-            cObj.setValue(releaseDate, "initial_release_date", 0)
-            # cObj.setValue(releaseDate[:4], "initial_release_year", 0)
-            cObj.setValue(minorRevision, "minor_revision", 0)
-            cObj.setValue(majorRevision, "major_revision", 0)
-            cObj.setValue(revisionDate, "revision_date", 0)
+            if dataContainer.exists("pdbx_audit_revision_history"):
+                tObj = dataContainer.getObj("pdbx_audit_revision_history")
+                nRows = tObj.getRowCount()
+                # Assuming the default sorting order from the release module -
+                releaseDate = tObj.getValue("revision_date", 0)
+                minorRevision = tObj.getValue("minor_revision", nRows - 1)
+                majorRevision = tObj.getValue("major_revision", nRows - 1)
+                revisionDate = tObj.getValue("revision_date", nRows - 1)
+                cObj.setValue(releaseDate, "initial_release_date", 0)
+                # cObj.setValue(releaseDate[:4], "initial_release_year", 0)
+                cObj.setValue(minorRevision, "minor_revision", 0)
+                cObj.setValue(majorRevision, "major_revision", 0)
+                cObj.setValue(revisionDate, "revision_date", 0)
             #
             return True
         except Exception as e:
