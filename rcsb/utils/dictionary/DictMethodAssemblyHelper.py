@@ -10,6 +10,7 @@
 # 29-Apr-2022 dwp Use internal computed-model identifiers for 'rcsb_id'
 #  3-May-2022 dwp Use internal computed-model identifiers for 'entry_id' in containter_identifiers
 # 29-Jun-2022 dwp Use internal computed-model identifiers everywhere
+# 06-Jul-2022 dwp Only run addDepositedAssembly for computed model files which don't already contain pdbx_struct_assembly
 #
 ##
 """
@@ -253,6 +254,10 @@ class DictMethodAssemblyHelper(object):
             # Only run this method for computational models. (This stopped being run for experimental models around May 2020)
             if not isCompModel:
                 return False
+            #
+            # Skip this method if pdbx_struct_assembly is already present in the computed model file
+            if dataContainer.exists("pdbx_struct_assembly"):
+                return True
             #
             if not dataContainer.exists("pdbx_struct_assembly"):
                 dataContainer.append(
