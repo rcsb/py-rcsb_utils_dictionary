@@ -58,8 +58,7 @@
 # 30 Apr-2022 bv Update consolidateAccessionDetails
 #  3-May-2022 dwp Use internal computed-model identifiers for 'entry_id' in containter_identifiers
 # 29-Jun-2022 dwp Use internal computed-model identifiers everywhere (in same manner as experimental models)
-# 06-Jul-2022 dwp ...except for pdbx_database_status of MA (or any CSM) models, in which case use the source/external ID
-#             dwp Add addtional filters for populating _rcsb_accession_info
+# 06-Jul-2022 dwp Add addtional filters for populating _rcsb_accession_info
 #
 ##
 """
@@ -113,7 +112,6 @@ class DictMethodEntryHelper(object):
         #
         self.__crP = rP.getResource("CitationReferenceProvider instance") if rP else None
         self.__jtaP = rP.getResource("JournalTitleAbbreviationProvider instance") if rP else None
-        self.__mcP = rP.getResource("ModelCacheProvider instance") if rP else None
         #
         self.__ssU = DictMethodSecStructUtils(rP, raiseExceptions=self._raiseExceptions)
         # logger.debug("Dictionary entry method helper init")
@@ -624,23 +622,18 @@ class DictMethodEntryHelper(object):
         try:
             logger.debug("Starting with  %r %r %r", dataContainer.getName(), catName, kwargs)
             #
-            internalEntryId = None
+            entryId = None
             # Add missing pdbx_database_status for MA or AF models (if absent in mmCIF file)
             cName = "pdbx_database_status"
             if not dataContainer.exists(cName):
                 if dataContainer.exists("entry") and dataContainer.exists("ma_data"):
                     dObj = dataContainer.getObj("entry")
-                    internalEntryId = dObj.getValue("id", 0)
-                    compModelSourceId = None
-                    if internalEntryId.upper().startswith("MA_") or internalEntryId.upper().startswith("MA-") or internalEntryId.upper().startswith("AF_"):
-                        compModelSourceId = self.__mcP.getCompModelData(internalEntryId)["sourceId"]
-                        logger.debug("compModelSourceId %r for entryId %s", compModelSourceId, internalEntryId)
-                        if compModelSourceId:
-                            dataContainer.append(DataCategory(cName, attributeNameList=self.__dApi.getAttributeNameList(cName)))
-                            eObj = dataContainer.getObj(cName)
-                            eObj.setValue(compModelSourceId, "entry_id", 0)
-                            eObj.setValue("REL", "status_code", 0)
-                            eObj.setValue("?", "recvd_initial_deposition_date", 0)
+                    entryId = dObj.getValue("id", 0)
+                    dataContainer.append(DataCategory(cName, attributeNameList=self.__dApi.getAttributeNameList(cName)))
+                    eObj = dataContainer.getObj(cName)
+                    eObj.setValue(entryId, "entry_id", 0)
+                    eObj.setValue("REL", "status_code", 0)
+                    eObj.setValue("?", "recvd_initial_deposition_date", 0)
             # if there is incomplete accessioninformation then exit
             if not dataContainer.exists("pdbx_database_status"):
                 return False
@@ -651,10 +644,7 @@ class DictMethodEntryHelper(object):
             cObj = dataContainer.getObj(catName)
             #
             tObj = dataContainer.getObj("pdbx_database_status")
-            if internalEntryId:
-                entryId = internalEntryId
-            else:
-                entryId = tObj.getValue("entry_id", 0)
+            entryId = tObj.getValue("entry_id", 0)
             statusCode = tObj.getValue("status_code", 0)
             depositDate = tObj.getValue("recvd_initial_deposition_date", 0)
             #
