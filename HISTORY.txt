@@ -85,7 +85,6 @@
 27-Jun-2022 - V0.93 Update _rcsb_ma_qa_metric_global.ma_qa_metric_global_type to 'pLDDT' for AF models
 29-Jun-2022 - V0.94 Use internal computed-model identifiers for data loading (in same manner as experimental models)
 06-Jul-2022 - V0.95 RO-3357: Fix taxonomy assignment in addPolymerEntityTaxonomy;
-                    Use source/external IDs for populating pdbx_database_status of MA (or any) computed models;
                     Only populate rcsb_comp_model_provenance.source_url if it exists in CSM holdings file;
                     Add addtional filters for populating _rcsb_accession_info;
                     Only run addDepositedAssembly for computed model files which don't already contain pdbx_struct_assembly
