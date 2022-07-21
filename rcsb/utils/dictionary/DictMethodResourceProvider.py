@@ -21,6 +21,7 @@
 #  27-Jul-2021 jdw add exclusion filter for testing
 #   3-Aug-2021 jdw add backup options for nonbuildable providers
 #  29-Apr-2022 dwp add ModelCacheProvider()
+#  21-Jul-2022  bv Update ModelCacheProvider to make providerType "core" and not stashable or buildable
 ##
 ##
 """
@@ -358,9 +359,9 @@ class DictMethodResourceProvider(SingletonClass):
                 "configArgMap": {
                     "holdingsRemotePath": ("PDBX_COMP_MODEL_CACHE_LIST_PATH", "configPath"),
                 },
-                "stashable": True,
+                "stashable": False,
                 "buildable": False,
-                "providerType": "optional_1",
+                "providerType": "core",
             },
             # --
         }
