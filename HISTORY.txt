@@ -88,5 +88,6 @@
                     Only populate rcsb_comp_model_provenance.source_url if it exists in CSM holdings file;
                     Add addtional filters for populating _rcsb_accession_info;
                     Only run addDepositedAssembly for computed model files which don't already contain pdbx_struct_assembly
-21-Jul-2022 - V0.96 Update ModelCacheProvider to make providerType "core" and not stashable or buildable
+01-Aug-2022 - V0.96 Update ModelCacheProvider to make providerType "core" and not stashable or buildable
                     Fix logic for assigning reference sequence identifiers for computed models
+                    Override cases where struct.pdbx_structure_determination_methodology is '?' or '.' in mmCIF file
