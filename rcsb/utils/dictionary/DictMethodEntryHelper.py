@@ -801,7 +801,7 @@ class DictMethodEntryHelper(object):
                 methodCount, expMethod = self.__commonU.filterExperimentalMethod(methodL)
             #
             if methodType not in ["experimental", "computational"]:
-                logger.info("Unexpected methodType %r found for entry %r", methodType, entryId)
+                logger.error("Unexpected methodType %r found for entry %r", methodType, entryId)
             #
             cObj.setValue(entryId, "entry_id", 0)
             cObj.setValue(methodCount, "experimental_method_count", 0)
