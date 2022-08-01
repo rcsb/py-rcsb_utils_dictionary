@@ -775,6 +775,7 @@ class DictMethodEntryHelper(object):
             methodCount = 0
             expMethod = None
             methodType = None
+            entryId = None
             #
             if dataContainer.exists("struct"):
                 xObj = dataContainer.getObj("struct")
@@ -798,6 +799,9 @@ class DictMethodEntryHelper(object):
                 mObj = dataContainer.getObj("ma_model_list")
                 methodL = mObj.getAttributeUniqueValueList("model_type")
                 methodCount, expMethod = self.__commonU.filterExperimentalMethod(methodL)
+            #
+            if methodType not in ["experimental", "computational"]:
+                logger.info("Unexpected methodType %r found for entry %r", methodType, entryId)
             #
             cObj.setValue(entryId, "entry_id", 0)
             cObj.setValue(methodCount, "experimental_method_count", 0)
