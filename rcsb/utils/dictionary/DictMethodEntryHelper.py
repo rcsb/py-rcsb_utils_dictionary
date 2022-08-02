@@ -59,6 +59,7 @@
 #  3-May-2022 dwp Use internal computed-model identifiers for 'entry_id' in containter_identifiers
 # 29-Jun-2022 dwp Use internal computed-model identifiers everywhere (in same manner as experimental models)
 # 06-Jul-2022 dwp Add addtional filters for populating _rcsb_accession_info
+# 01-Aug-2022 dwp Override rcsb_entry_info.structure_determination_methodology if struct.pdbx_structure_determination_methodology is '?' or '.' in the CIF file
 #
 ##
 """
@@ -774,12 +775,13 @@ class DictMethodEntryHelper(object):
             methodCount = 0
             expMethod = None
             methodType = None
+            entryId = None
             #
             if dataContainer.exists("struct"):
                 xObj = dataContainer.getObj("struct")
                 if xObj.hasAttribute("pdbx_structure_determination_methodology"):
                     methodType = xObj.getValue("pdbx_structure_determination_methodology", 0)
-            if not methodType:
+            if not methodType or methodType == "?" or methodType == ".":
                 if dataContainer.exists("exptl"):
                     methodType = "experimental"
                 if dataContainer.exists("ma_data"):
@@ -797,6 +799,9 @@ class DictMethodEntryHelper(object):
                 mObj = dataContainer.getObj("ma_model_list")
                 methodL = mObj.getAttributeUniqueValueList("model_type")
                 methodCount, expMethod = self.__commonU.filterExperimentalMethod(methodL)
+            #
+            if methodType not in ["experimental", "computational"]:
+                logger.error("Unexpected methodType %r found for entry %r", methodType, entryId)
             #
             cObj.setValue(entryId, "entry_id", 0)
             cObj.setValue(methodCount, "experimental_method_count", 0)
