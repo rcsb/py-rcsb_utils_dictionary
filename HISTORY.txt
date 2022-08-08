@@ -92,3 +92,4 @@
                     Fix logic for assigning reference sequence identifiers for computed models
                     Override cases where struct.pdbx_structure_determination_methodology is '?' or '.' in mmCIF file
                     Map DSSP SS types to PROMOTIF SS types in DictMethodSecStructUtils
+                    Set values for rcsb_entry_info.structure_determination_methodology_priority in DictMethodEntryHelper
