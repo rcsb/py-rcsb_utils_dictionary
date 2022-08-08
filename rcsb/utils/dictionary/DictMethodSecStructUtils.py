@@ -5,6 +5,8 @@
 # Version: 0.001 Initial version
 #
 # Updates:
+# 08-Aug-2022  bv RO-3382 Map DSSP SS types to PROMOTIF SS types (temporary fix until DSSP can be run for all experimental structures)
+#
 ##
 """
 Helper class implements utilities to process secondary structure records.
@@ -791,6 +793,16 @@ class DictMethodSecStructUtils(object):
 
         """
 
+        dsspTypeMapD = {
+            "HELX_RH_AL_P": "HELIX_P",
+            "STRN": "SHEET",
+            "HELX_RH_3T_P": "HELIX_P",
+            "HELX_RH_PI_P": "HELIX_P",
+            "HELX_LH_PP_P": "HELIX_P",
+            "TURN_TY1_P": "TURN_TY1_P",
+            "BEND": "BEND"
+        }
+
         rD = {
             "helixCountD": {},
             "sheetStrandCountD": {},
@@ -830,7 +842,10 @@ class DictMethodSecStructUtils(object):
 
             if dataContainer.exists("struct_conf"):
                 tObj = dataContainer.getObj("struct_conf")
-
+                numH = 0
+                numS = 0
+                numB = 0
+                numT = 0
                 for ii in range(tObj.getRowCount()):
                     confType = str(tObj.getValue("conf_type_id", ii)).strip().upper()
                     if confType in DictMethodSecStructUtils.dsspTypeNames:
@@ -847,22 +862,30 @@ class DictMethodSecStructUtils(object):
                         #
 
                         if confType.startswith("HELX") and (begAsymId == endAsymId) and (begSeqId <= endSeqId):
-                            helixRangeD.setdefault(ssId, []).append((begAsymId, begSeqId, endSeqId, confType, "DSSP", "4"))
+                            numH += 1
+                            sId = dsspTypeMapD[confType] + str(numH)
+                            helixRangeD.setdefault(sId, []).append((begAsymId, begSeqId, endSeqId, dsspTypeMapD[confType], "DSSP", "4"))
                         else:
                             logger.debug("%s inconsistent struct_conf description id = %s", dataContainer.getName(), ssId)
                         #
                         if confType.startswith("STRN") and (begAsymId == endAsymId) and (begSeqId <= endSeqId):
-                            sheetRangeD.setdefault(ssId, []).append((begAsymId, begSeqId, endSeqId, confType, "DSSP", "4"))
+                            numS += 1
+                            sId = dsspTypeMapD[confType] + str(numS)
+                            sheetRangeD.setdefault(sId, []).append((begAsymId, begSeqId, endSeqId, dsspTypeMapD[confType], "DSSP", "4"))
                         else:
                             logger.debug("%s inconsistent struct_conf description id = %s", dataContainer.getName(), ssId)
 
                         if confType.startswith("BEND") and (begAsymId == endAsymId) and (begSeqId <= endSeqId):
-                            bendRangeD.setdefault(ssId, []).append((begAsymId, begSeqId, endSeqId, confType, "DSSP", "4"))
+                            numB += 1
+                            sId = dsspTypeMapD[confType] + str(numB)
+                            bendRangeD.setdefault(sId, []).append((begAsymId, begSeqId, endSeqId, dsspTypeMapD[confType], "DSSP", "4"))
                         else:
                             logger.debug("%s inconsistent struct_conf description id = %s", dataContainer.getName(), ssId)
 
                         if confType.startswith("TURN") and (begAsymId == endAsymId) and (begSeqId <= endSeqId):
-                            turnRangeD.setdefault(ssId, []).append((begAsymId, begSeqId, endSeqId, confType, "DSSP", "4"))
+                            numT += 1
+                            sId = dsspTypeMapD[confType] + str(numT)
+                            turnRangeD.setdefault(sId, []).append((begAsymId, begSeqId, endSeqId, dsspTypeMapD[confType], "DSSP", "4"))
                         else:
                             logger.debug("%s inconsistent struct_conf description id = %s", dataContainer.getName(), ssId)
 
