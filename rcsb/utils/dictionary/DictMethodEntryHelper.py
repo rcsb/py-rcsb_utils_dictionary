@@ -60,6 +60,7 @@
 # 29-Jun-2022 dwp Use internal computed-model identifiers everywhere (in same manner as experimental models)
 # 06-Jul-2022 dwp Add addtional filters for populating _rcsb_accession_info
 # 01-Aug-2022 dwp Override rcsb_entry_info.structure_determination_methodology if struct.pdbx_structure_determination_methodology is '?' or '.' in the CIF file
+# 08-Aug-2022  bv Set values for rcsb_entry_info.structure_determination_methodology_priority
 #
 ##
 """
@@ -776,6 +777,7 @@ class DictMethodEntryHelper(object):
             expMethod = None
             methodType = None
             entryId = None
+            methodPriority = None
             #
             if dataContainer.exists("struct"):
                 xObj = dataContainer.getObj("struct")
@@ -786,6 +788,10 @@ class DictMethodEntryHelper(object):
                     methodType = "experimental"
                 if dataContainer.exists("ma_data"):
                     methodType = "computational"
+            if methodType == "experimental":
+                    methodPriority = 10 
+            elif methodType == "computational":
+                    methodPriority = 100
             #
             if dataContainer.exists("exptl"):
                 xObj = dataContainer.getObj("exptl")
@@ -806,6 +812,7 @@ class DictMethodEntryHelper(object):
             cObj.setValue(entryId, "entry_id", 0)
             cObj.setValue(methodCount, "experimental_method_count", 0)
             cObj.setValue(methodType, "structure_determination_methodology", 0)
+            cObj.setValue(methodPriority, "structure_determination_methodology_priority", 0)
             #
             # --------------------------------------------------------------------------------------------------------
             #  Experimental resolution -
