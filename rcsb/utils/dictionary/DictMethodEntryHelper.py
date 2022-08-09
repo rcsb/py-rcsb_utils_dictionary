@@ -789,9 +789,9 @@ class DictMethodEntryHelper(object):
                 if dataContainer.exists("ma_data"):
                     methodType = "computational"
             if methodType == "experimental":
-                    methodPriority = 10 
+                methodPriority = 10
             elif methodType == "computational":
-                    methodPriority = 100
+                methodPriority = 100
             #
             if dataContainer.exists("exptl"):
                 xObj = dataContainer.getObj("exptl")
