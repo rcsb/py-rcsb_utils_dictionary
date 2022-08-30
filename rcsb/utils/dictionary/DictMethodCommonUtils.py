@@ -16,6 +16,13 @@
 #                 add it to computational method list
 # 28-Mar-2022 bv add method 'getRepresentativeModels' to get representative models for NMR ensembles
 #                Fix pylint issues
+#  2-Apr-2022 bv Add methods 'getCompModelDb2L', 'getMaQaMetricType', and 'getCompModelLocalScores'
+# 20-Apr-2022 bv Update method 'getCompModelDb2L'
+# 29-Apr-2022 dwp Use internal computed-model identifiers for 'rcsb_id'
+#  3-May-2022 dwp Use internal computed-model identifiers for 'entry_id' in containter_identifiers
+# 27-Jun-2022 bv  Update _rcsb_ma_qa_metric_global.ma_qa_metric_global_type to 'pLDDT' for AF models
+# 29-Jun-2022 dwp Use internal computed-model identifiers everywhere (in same manner as experimental models)
+#
 ##
 """
 Helper class implements common utility external method references supporting the RCSB dictionary extension.
@@ -1086,6 +1093,9 @@ class DictMethodCommonUtils(object):
         try:
             eObj = dataContainer.getObj("entry")
             entryId = eObj.getValue("id", 0)
+            #
+            # if eObj.hasAttribute("rcsb_comp_model_id"):
+            #     entryId = eObj.getValue("rcsb_comp_model_id", 0)
             #
             psObj = dataContainer.getObj("pdbx_poly_seq_scheme")
             if psObj is not None:
@@ -4046,6 +4056,140 @@ class DictMethodCommonUtils(object):
         #
         logger.info("Completed %s at %s (%.4f seconds)", dataContainer.getName(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), time.time() - startTime)
         return rD
+
+    def getCompModelDb2L(self, dataContainer):
+        """Get list of comp model database_ids from database_2
+
+        Args:
+            dataContainer (object): mmif.api.DataContainer object instance
+
+        Returns:
+            compModelDb2L = ["AlphaFoldDB", ...]
+
+        """
+
+        compModelDb2L = []
+
+        try:
+            db2EnumL = ["AlphaFoldDB", "MODBASE", "ModelArchive", "SWISS-MODEL_REPOSITORY", "AF", "MA", "SMR"]
+            if dataContainer.exists("database_2"):
+                eObj = dataContainer.getObj("database_2")
+                dbL = eObj.getAttributeValueList("database_2")
+                compModelDb2L = [db for db in dbL if db in db2EnumL]
+            else:
+                dObj = dataContainer.getObj("entry")
+                entryId = dObj.getValue("id", 0)
+                if entryId.upper().startswith("MA"):
+                    compModelDb2L = ["MA"]
+                elif entryId.upper().startswith("AF"):
+                    compModelDb2L = ["AF"]
+
+        except Exception as e:
+            logger.exception("Missing database_2 information. %r failing with %s", dataContainer.getName(), str(e))
+
+        if not compModelDb2L:
+            logger.debug("Missing database_2 information for %r", dataContainer.getName())
+
+        return compModelDb2L
+
+    def getMaQaMetricType(self, dataContainer):
+        """ Get mapping of metric ids to metric names and types for computed models
+            from ma_qa_metric
+
+            Args:
+                dataContainer (object): mmif.api.DataContainer object instance
+
+        """
+
+        maQaMetricTypeD = {}
+        maQaMetricLocalTypeD = {}
+        maQaMetricGlobalTypeD = {}
+
+        compModelScoreTypeEnumD = {
+            "zscore": "MA_QA_METRIC_LOCAL_TYPE_ZSCORE",
+            "energy": "MA_QA_METRIC_LOCAL_TYPE_ENERGY",
+            "distance": "MA_QA_METRIC_LOCAL_TYPE_DISTANCE",
+            "normalized score": "MA_QA_METRIC_LOCAL_TYPE_NORMALIZED_SCORE",
+            "pLDDT": "MA_QA_METRIC_LOCAL_TYPE_PLDDT",
+            "pLDDT in [0,1]": "MA_QA_METRIC_LOCAL_TYPE_PLDDT_[0,1]",
+            "pLDDT all-atom": "MA_QA_METRIC_LOCAL_TYPE_PLDDT_ALL-ATOM",
+            "pLDDT all-atom in [0,1]": "MA_QA_METRIC_LOCAL_TYPE_PLDDT_ALL-ATOM_[0,1]",
+            "PAE": "MA_QA_METRIC_LOCAL_TYPE_PAE",
+            "pTM": "MA_QA_METRIC_LOCAL_TYPE_PTM",
+            "ipTM": "MA_QA_METRIC_LOCAL_TYPE_IPTM",
+            "contact probability": "MA_QA_METRIC_LOCAL_TYPE_CONTACT_PROBABILITY",
+            "other": "MA_QA_METRIC_LOCAL_TYPE_OTHER"
+        }
+
+        try:
+            if dataContainer.exists("ma_qa_metric"):
+                aObj = dataContainer.getObj("ma_qa_metric")
+                for ii in range(aObj.getRowCount()):
+                    mId = aObj.getValue("id", ii)
+                    mMode = aObj.getValue("mode", ii)
+                    mType = aObj.getValue("type", ii)
+                    mName = aObj.getValue("name", ii)
+                    if mName == "pLDDT" and mType.lower() == "other":
+                        mType = "pLDDT"
+                    if mMode == "local":
+                        maQaMetricLocalTypeD[mId] = {"type": compModelScoreTypeEnumD[mType], "name": mName}
+                    if mMode == "global":
+                        maQaMetricGlobalTypeD[mId] = {"type": mType, "name": mName}
+
+                maQaMetricTypeD["maQaMetricLocalTypeD"] = maQaMetricLocalTypeD
+                maQaMetricTypeD["maQaMetricGlobalTypeD"] = maQaMetricGlobalTypeD
+
+        except Exception as e:
+            logger.exception("Failing for %s with %s", dataContainer.getName(), str(e))
+
+        return maQaMetricTypeD
+
+    def getCompModelLocalScores(self, dataContainer):
+        """ Get Local QA Scores for computed models from the ModelCIF file
+            (ma_qa_metric_local) and convert to objects corresponding to
+            rcsb_entity_instance_feature in the RCSB extension dictionary
+
+            Args:
+                dataContainer (object): mmif.api.DataContainer object instance
+
+        """
+        metricValD = OrderedDict()
+        compModelLocalScoresD = OrderedDict()
+
+        try:
+            if dataContainer.exists("ma_qa_metric_local"):
+                tObj = dataContainer.getObj("ma_qa_metric_local")
+                dL = []
+                for ii in range(tObj.getRowCount()):
+                    modelId = tObj.getValue("model_id", ii)
+                    seqId = tObj.getValue("label_seq_id", ii)
+                    asymId = tObj.getValue("label_asym_id", ii)
+                    metricId = tObj.getValue("metric_id", ii)
+                    metricV = tObj.getValue("metric_value", ii)
+                    tId = modelId + "_" + asymId + "_" + metricId + "_" + seqId
+                    if seqId and seqId not in [".", "?"]:   # Eliminates non-polymers and branched
+                        if tId not in dL:
+                            metricValD.setdefault((modelId, asymId, metricId), []).append((seqId, metricV))
+                            dL.append(tId)
+
+                for (modelId, asymId, metricId), aL in metricValD.items():
+                    tD = {}
+                    sL = sorted(aL, key=lambda i: int(i[0]))
+                    mL = [int(s[0]) for s in sL]
+                    for ii in range(len(sL)):
+                        seqId = sL[ii][0]
+                        metricV = sL[ii][1]
+                        for tup in list(self.__toRangeList(mL)):
+                            beg = tup[0]
+                            end = tup[1]
+                            if int(beg) <= int(seqId) <= int(end):
+                                tD.setdefault(int(beg), []).append(float(metricV))
+                    compModelLocalScoresD.setdefault((modelId, asymId, metricId), []).append(tD)
+
+        except Exception as e:
+            logger.exception("Failing for %s with %s", dataContainer.getName(), str(e))
+
+        return compModelLocalScoresD
 
     def getRepresentativeModels(self, dataContainer):
         """Return the list of representative models

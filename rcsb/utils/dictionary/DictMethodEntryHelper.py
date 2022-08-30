@@ -53,6 +53,14 @@
 # 25-Nov-2019 jdw add method normalizeCitationJournalAbbrev() and dependencies
 # 11-Mar-2022 bv Fix _rcsb_entry_info.deposited_model_count not being populated for certain NMR entries
 # 28-Mar-2022 bv Move 'getRepresentativeModels' method to DictMethodCommonUtils
+# 26-Apr-2022 bv Add missing pdbx_database_status for MA models and _rcsb_entry_info.structure_determination_methodology
+# 29-Apr-2022 dwp Use internal computed-model identifiers for 'rcsb_id'
+# 30 Apr-2022 bv Update consolidateAccessionDetails
+#  3-May-2022 dwp Use internal computed-model identifiers for 'entry_id' in containter_identifiers
+# 29-Jun-2022 dwp Use internal computed-model identifiers everywhere (in same manner as experimental models)
+# 06-Jul-2022 dwp Add addtional filters for populating _rcsb_accession_info
+# 01-Aug-2022 dwp Override rcsb_entry_info.structure_determination_methodology if struct.pdbx_structure_determination_methodology is '?' or '.' in the CIF file
+# 08-Aug-2022  bv Set values for rcsb_entry_info.structure_determination_methodology_priority
 #
 ##
 """
@@ -509,6 +517,7 @@ class DictMethodEntryHelper(object):
 
             tObj = dataContainer.getObj("entry")
             entryId = tObj.getValue("id", 0)
+
             cObj.setValue(entryId, "entry_id", 0)
             cObj.setValue(entryId, "rcsb_id", 0)
 
@@ -615,8 +624,20 @@ class DictMethodEntryHelper(object):
         try:
             logger.debug("Starting with  %r %r %r", dataContainer.getName(), catName, kwargs)
             #
+            entryId = None
+            # Add missing pdbx_database_status for MA or AF models (if absent in mmCIF file)
+            cName = "pdbx_database_status"
+            if not dataContainer.exists(cName):
+                if dataContainer.exists("entry") and dataContainer.exists("ma_data"):
+                    dObj = dataContainer.getObj("entry")
+                    entryId = dObj.getValue("id", 0)
+                    dataContainer.append(DataCategory(cName, attributeNameList=self.__dApi.getAttributeNameList(cName)))
+                    eObj = dataContainer.getObj(cName)
+                    eObj.setValue(entryId, "entry_id", 0)
+                    eObj.setValue("REL", "status_code", 0)
+                    eObj.setValue("?", "recvd_initial_deposition_date", 0)
             # if there is incomplete accessioninformation then exit
-            if not (dataContainer.exists("pdbx_database_status") or dataContainer.exists("pdbx_audit_revision_history")):
+            if not dataContainer.exists("pdbx_database_status"):
                 return False
             # Create the new target category
             if not dataContainer.exists(catName):
@@ -652,18 +673,19 @@ class DictMethodEntryHelper(object):
             #
             cObj.setValue(expDataRelFlag, "has_released_experimental_data", 0)
             #
-            tObj = dataContainer.getObj("pdbx_audit_revision_history")
-            nRows = tObj.getRowCount()
-            # Assuming the default sorting order from the release module -
-            releaseDate = tObj.getValue("revision_date", 0)
-            minorRevision = tObj.getValue("minor_revision", nRows - 1)
-            majorRevision = tObj.getValue("major_revision", nRows - 1)
-            revisionDate = tObj.getValue("revision_date", nRows - 1)
-            cObj.setValue(releaseDate, "initial_release_date", 0)
-            # cObj.setValue(releaseDate[:4], "initial_release_year", 0)
-            cObj.setValue(minorRevision, "minor_revision", 0)
-            cObj.setValue(majorRevision, "major_revision", 0)
-            cObj.setValue(revisionDate, "revision_date", 0)
+            if dataContainer.exists("pdbx_audit_revision_history"):
+                tObj = dataContainer.getObj("pdbx_audit_revision_history")
+                nRows = tObj.getRowCount()
+                # Assuming the default sorting order from the release module -
+                releaseDate = tObj.getValue("revision_date", 0)
+                minorRevision = tObj.getValue("minor_revision", nRows - 1)
+                majorRevision = tObj.getValue("major_revision", nRows - 1)
+                revisionDate = tObj.getValue("revision_date", nRows - 1)
+                cObj.setValue(releaseDate, "initial_release_date", 0)
+                # cObj.setValue(releaseDate[:4], "initial_release_year", 0)
+                cObj.setValue(minorRevision, "minor_revision", 0)
+                cObj.setValue(majorRevision, "major_revision", 0)
+                cObj.setValue(revisionDate, "revision_date", 0)
             #
             return True
         except Exception as e:
@@ -754,19 +776,28 @@ class DictMethodEntryHelper(object):
             methodCount = 0
             expMethod = None
             methodType = None
+            entryId = None
+            methodPriority = None
             #
             if dataContainer.exists("struct"):
                 xObj = dataContainer.getObj("struct")
                 if xObj.hasAttribute("pdbx_structure_determination_methodology"):
                     methodType = xObj.getValue("pdbx_structure_determination_methodology", 0)
+            if not methodType or methodType == "?" or methodType == ".":
+                if dataContainer.exists("exptl"):
+                    methodType = "experimental"
+                if dataContainer.exists("ma_data"):
+                    methodType = "computational"
+            if methodType == "experimental":
+                methodPriority = 10
+            elif methodType == "computational":
+                methodPriority = 100
             #
             if dataContainer.exists("exptl"):
                 xObj = dataContainer.getObj("exptl")
                 entryId = xObj.getValue("entry_id", 0)
                 methodL = xObj.getAttributeValueList("method")
                 methodCount, expMethod = self.__commonU.filterExperimentalMethod(methodL)
-                if not methodType:
-                    methodType = self.__commonU.filterStructureDeterminationMethodType(methodL)
                 cObj.setValue(expMethod, "experimental_method", 0)
             elif dataContainer.exists("ma_model_list"):
                 tObj = dataContainer.getObj("entry")
@@ -774,12 +805,14 @@ class DictMethodEntryHelper(object):
                 mObj = dataContainer.getObj("ma_model_list")
                 methodL = mObj.getAttributeUniqueValueList("model_type")
                 methodCount, expMethod = self.__commonU.filterExperimentalMethod(methodL)
-                if not methodType:
-                    methodType = self.__commonU.filterStructureDeterminationMethodType(methodL)
+            #
+            if methodType not in ["experimental", "computational"]:
+                logger.error("Unexpected methodType %r found for entry %r", methodType, entryId)
             #
             cObj.setValue(entryId, "entry_id", 0)
             cObj.setValue(methodCount, "experimental_method_count", 0)
-            # cObj.setValue(methodType, "structure_determination_methodology", 0)  # Exclude until present in production schema
+            cObj.setValue(methodType, "structure_determination_methodology", 0)
+            cObj.setValue(methodPriority, "structure_determination_methodology_priority", 0)
             #
             # --------------------------------------------------------------------------------------------------------
             #  Experimental resolution -

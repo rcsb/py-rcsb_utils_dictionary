@@ -6,6 +6,11 @@
 #
 # Updates:
 # 28-Mar-2022 bv Fix _rcsb_assembly_info.atom_count not being populated for certain NMR entries
+# 26-Apr-2022 bv Update pdbx_struct_assembly for computed models
+# 29-Apr-2022 dwp Use internal computed-model identifiers for 'rcsb_id'
+#  3-May-2022 dwp Use internal computed-model identifiers for 'entry_id' in containter_identifiers
+# 29-Jun-2022 dwp Use internal computed-model identifiers everywhere
+# 06-Jul-2022 dwp Only run addDepositedAssembly for computed model files which don't already contain pdbx_struct_assembly
 #
 ##
 """
@@ -206,16 +211,17 @@ class DictMethodAssemblyHelper(object):
                 dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
             #
             cObj = dataContainer.getObj(catName)
-
             tObj = dataContainer.getObj("entry")
             entryId = tObj.getValue("id", 0)
+            #
             cObj.setValue(entryId, "entry_id", 0)
             #
             tObj = dataContainer.getObj("pdbx_struct_assembly")
             assemblyIdL = tObj.getAttributeValueList("id")
+            #
             for ii, assemblyId in enumerate(assemblyIdL):
-                cObj.setValue(entryId, "entry_id", ii)
                 cObj.setValue(assemblyId, "assembly_id", ii)
+                cObj.setValue(entryId, "entry_id", ii)
                 cObj.setValue(entryId + "-" + assemblyId, "rcsb_id", ii)
 
             #
@@ -248,6 +254,10 @@ class DictMethodAssemblyHelper(object):
             # Only run this method for computational models. (This stopped being run for experimental models around May 2020)
             if not isCompModel:
                 return False
+            #
+            # Skip this method if pdbx_struct_assembly is already present in the computed model file
+            if dataContainer.exists("pdbx_struct_assembly"):
+                return True
             #
             if not dataContainer.exists("pdbx_struct_assembly"):
                 dataContainer.append(
@@ -307,21 +317,14 @@ class DictMethodAssemblyHelper(object):
             # Ordinal is added by subsequent attribure-level method.
             tObj = dataContainer.getObj("pdbx_struct_assembly_gen")
             rowIdx = tObj.getRowCount()
-            if isCompModel:
-                tObj.setValue("computed_model", "assembly_id", rowIdx)
-            else:
-                tObj.setValue("deposited", "assembly_id", rowIdx)
+            tObj.setValue("deposited", "assembly_id", rowIdx)
             tObj.setValue("1", "oper_expression", rowIdx)
             tObj.setValue(",".join(asymIdL), "asym_id_list", rowIdx)
             #
             tObj = dataContainer.getObj("pdbx_struct_assembly")
             rowIdx = tObj.getRowCount()
-            if isCompModel:
-                tObj.setValue("computed_model", "id", rowIdx)
-                tObj.setValue("software_defined_assembly", "details", rowIdx)
-            else:
-                tObj.setValue("deposited", "id", rowIdx)
-                tObj.setValue("deposited_coordinates", "details", rowIdx)
+            tObj.setValue("deposited", "id", rowIdx)
+            tObj.setValue("deposited_coordinates", "details", rowIdx)
             #
             for atName in ["oligomeric_details", "method_details", "oligomeric_count"]:
                 if tObj.hasAttribute(atName):
@@ -397,6 +400,8 @@ class DictMethodAssemblyHelper(object):
                     tObj.setValue(mD[details], "rcsb_details", iRow)
                 else:
                     tObj.setValue("software_defined_assembly", "rcsb_details", iRow)
+                if dataContainer.exists("ma_data"):
+                    tObj.setValue("?", "rcsb_details", iRow)
                 # logger.debug("Full row is %r", tObj.getRow(iRow))
             return True
         except Exception as e:
@@ -468,6 +473,8 @@ class DictMethodAssemblyHelper(object):
             for iRow in range(tObj.getRowCount()):
                 details = tObj.getValue("details", iRow)
                 if details in mD and details not in eD:
+                    tObj.setValue("Y", "rcsb_candidate_assembly", iRow)
+                elif dataContainer.exists("ma_data"):
                     tObj.setValue("Y", "rcsb_candidate_assembly", iRow)
                 else:
                     tObj.setValue("N", "rcsb_candidate_assembly", iRow)
