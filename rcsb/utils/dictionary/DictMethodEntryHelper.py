@@ -61,6 +61,7 @@
 # 06-Jul-2022 dwp Add addtional filters for populating _rcsb_accession_info
 # 01-Aug-2022 dwp Override rcsb_entry_info.structure_determination_methodology if struct.pdbx_structure_determination_methodology is '?' or '.' in the CIF file
 # 08-Aug-2022  bv Set values for rcsb_entry_info.structure_determination_methodology_priority
+# 03-Oct-2022  bv Set values for rcsb_entry_info.ndb_struct_conf_na_feature_combined
 #
 ##
 """
@@ -841,6 +842,14 @@ class DictMethodEntryHelper(object):
             # ---------------------------------------------------------------------------------------------------------
             #  ENTITY FEATURES
             #
+            # Nucleic acid secondary structure features
+            naFeatureL = []
+            if dataContainer.exists("ndb_struct_conf_na"):
+                naObj = dataContainer.getObj("ndb_struct_conf_na")
+                naFeatureL.extend(naObj.getAttributeUniqueValueList("feature"))
+            if naFeatureL:
+                nL = [naFeature.strip() for naFeature in naFeatureL if naFeature not in [".", "?"]]
+                cObj.setValue(",".join(nL), "ndb_struct_conf_na_feature_combined", 0)
             #  entity and polymer entity counts -
             ##
             eObj = dataContainer.getObj("entity")
