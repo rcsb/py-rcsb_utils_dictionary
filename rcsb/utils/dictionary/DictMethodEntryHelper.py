@@ -649,7 +649,7 @@ class DictMethodEntryHelper(object):
             tObj = dataContainer.getObj("pdbx_database_status")
             entryId = tObj.getValue("entry_id", 0)
             statusCode = tObj.getValue("status_code", 0)
-            depositDate = tObj.getValue("recvd_initial_deposition_date", 0)
+            depositDate = tObj.getValueOrDefault("recvd_initial_deposition_date", 0, "?")
             #
             cObj.setValue(entryId, "entry_id", 0)
             cObj.setValue(statusCode, "status_code", 0)
