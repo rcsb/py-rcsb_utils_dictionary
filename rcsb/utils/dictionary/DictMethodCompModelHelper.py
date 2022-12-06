@@ -341,6 +341,9 @@ class DictMethodCompModelHelper(object):
             if sourceModelUrl:
                 cObj.setValue(compModelD["sourceModelUrl"], "source_url", 0)
             cObj.setValue(compModelD["sourceModelFileName"], "source_filename", 0)
+            sourceModelPaeUrl = compModelD.get("sourceModelPaeUrl", None)
+            if sourceModelPaeUrl:
+                cObj.setValue(compModelD["sourceModelPaeUrl"], "source_pae_url", 0)
 
             return True
 
