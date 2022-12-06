@@ -94,3 +94,5 @@
                     Map DSSP SS types to PROMOTIF SS types in DictMethodSecStructUtils
                     Set values for rcsb_entry_info.structure_determination_methodology_priority in DictMethodEntryHelper
 03-Oct-2022 - V0.97 Set values for rcsb_entry_info.ndb_struct_conf_na_feature_combined in DictMethodEntryHelper
+06-Dec-2022 - V0.98 Handle missing pdbx_database_status.recvd_initial_deposition_date in DictMethodEntryHelper;
+                    Populate rcsb_comp_model_provenance.source_pae_url from CSM holdings file
