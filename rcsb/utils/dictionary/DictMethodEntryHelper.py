@@ -62,6 +62,7 @@
 # 01-Aug-2022 dwp Override rcsb_entry_info.structure_determination_methodology if struct.pdbx_structure_determination_methodology is '?' or '.' in the CIF file
 # 08-Aug-2022  bv Set values for rcsb_entry_info.structure_determination_methodology_priority
 # 03-Oct-2022  bv Set values for rcsb_entry_info.ndb_struct_conf_na_feature_combined
+# 03-Jan-2023  bv Include _pdbx_database_status.status_code_nmr_data for experimental data availability
 #
 ##
 """
@@ -662,8 +663,9 @@ class DictMethodEntryHelper(object):
             statusSf = tObj.getValueOrDefault("status_code_sf", 0, defaultValue=None)
             statusMr = tObj.getValueOrDefault("status_code_mr", 0, defaultValue=None)
             statusCs = tObj.getValueOrDefault("status_code_cs", 0, defaultValue=None)
+            statusNmrData = tObj.getValueOrDefault("status_code_nmr_data", 0, defaultValue=None)
             #
-            if statusSf == "REL" or statusMr == "REL" or statusCs == "REL":
+            if statusSf == "REL" or statusMr == "REL" or statusCs == "REL" or statusNmrData == "REL":
                 expDataRelFlag = "Y"
             else:
                 if dataContainer.exists("pdbx_database_related"):
