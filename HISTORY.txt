@@ -98,3 +98,4 @@
                     Populate rcsb_comp_model_provenance.source_pae_url from CSM holdings file
 23-Dec-2022 - V0.99 Configuration changes to support tox 4
 03-Jan-2023 - V1.00 Include _pdbx_database_status.status_code_nmr_data for experimental data availability
+13-Jan-2023 - V1.01 Update method in DictMethodCompModelHelper for populating entity_src_nat
