@@ -646,10 +646,13 @@ class DictMethodEntryHelper(object):
                     if "entry_id" not in pdsAttrL:
                         dObj = dataContainer.getObj("entry")
                         entryId = dObj.getValue("id", 0)
+                        eObj.appendAttribute("entry_id")
                         eObj.setValue(entryId, "entry_id", 0)
                     if "status_code" not in pdsAttrL:
+                        eObj.appendAttribute("status_code")
                         eObj.setValue("REL", "status_code", 0)
                     if "recvd_initial_deposition_date" not in pdsAttrL:
+                        eObj.appendAttribute("recvd_initial_deposition_date")
                         eObj.setValue("?", "recvd_initial_deposition_date", 0)
 
             # if there is incomplete accessioninformation then exit
