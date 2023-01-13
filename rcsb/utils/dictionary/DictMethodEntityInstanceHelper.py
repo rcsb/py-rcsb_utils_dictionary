@@ -11,6 +11,7 @@
 #                  (rcsb_nonpolymer_instance_validation_score.is_subject_of_investigation_provenance)
 #   2-Apr-2022  bv Update buildEntityInstanceFeatures to populate ma_qa_metric_local scores for computed models
 #  21-Apr-2022  bv Update buildEntityInstanceFeatureSummary for handling ma_qa_metric_local scores
+#  13-Jan-2023 aae  Update buildEntityInstanceFeatures to handle local q-score for EM
 #
 ##
 """
@@ -919,6 +920,36 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue(sId, "feature_positions_beg_seq_id", ii)
                     ii += 1
                 logger.debug("Completed populating local QA scores for computed model %r", dataContainer.getName())
+
+            # Populate local EM Q-scores
+            if dataContainer.exists("pdbx_vrpt_instance_results"):
+                entryObj = dataContainer.getObj("rcsb_entry_info")
+                localScoresD = self.__commonU.getLocalEMQScores(dataContainer)
+                if not localScoresD: # No Q-Score, so probably not EM
+                    return
+                for (modelId, asymId), aD in localScoresD.items():
+                    addPropTupL = []
+                    entityId = asymIdD[asymId]
+                    cObj.setValue(ii + 1, "ordinal", ii)
+                    cObj.setValue(entryId, "entry_id", ii)
+                    cObj.setValue(entityId, "entity_id", ii)
+                    cObj.setValue(asymId, "asym_id", ii)
+                    cObj.setValue("VALIDATION_REPORT", "type", ii)
+                    cObj.setValue("Q_SCORE", "name", ii)
+                    cObj.setValue("Q_SCORE", "feature_id", ii)
+                    addPropTupL.append(("MODELCIF_MODEL_ID", modelId))
+                    cObj.setValue(";".join([str(tup1[0]) for tup1 in addPropTupL]), "additional_properties_name", ii)
+                    cObj.setValue(";".join([str(tup1[1]) for tup1 in addPropTupL]), "additional_properties_values", ii)
+                    fValL = []
+                    for _, vD in enumerate(aD):
+                        for k1, vL in vD.items():
+                            fVal = ",".join([str(v) for v in vL])
+                            fValL.append(fVal)
+                        sId = ";".join([str(k1) for k1, vL in vD.items()])
+                    cObj.setValue(";".join([str(tup) for tup in fValL]), "feature_positions_values", ii)
+                    cObj.setValue(sId, "feature_positions_beg_seq_id", ii)
+                    ii += 1
+                logger.debug("Completed populating local EM Q-scores for %r", dataContainer.getName())
 
             npbD = self.__commonU.getBoundNonpolymersByInstance(dataContainer)
             jj = 1
