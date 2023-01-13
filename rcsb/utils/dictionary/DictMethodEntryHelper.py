@@ -63,6 +63,7 @@
 # 08-Aug-2022  bv Set values for rcsb_entry_info.structure_determination_methodology_priority
 # 03-Oct-2022  bv Set values for rcsb_entry_info.ndb_struct_conf_na_feature_combined
 # 03-Jan-2023  bv Include _pdbx_database_status.status_code_nmr_data for experimental data availability
+# 13-Jan-2023 dwp Populate missing pdbx_database_status attributes for CSMs
 #
 ##
 """
@@ -629,8 +630,8 @@ class DictMethodEntryHelper(object):
             entryId = None
             # Add missing pdbx_database_status for MA or AF models (if absent in mmCIF file)
             cName = "pdbx_database_status"
-            if not dataContainer.exists(cName):
-                if dataContainer.exists("entry") and dataContainer.exists("ma_data"):
+            if dataContainer.exists("entry") and dataContainer.exists("ma_data"):
+                if not dataContainer.exists(cName):
                     dObj = dataContainer.getObj("entry")
                     entryId = dObj.getValue("id", 0)
                     dataContainer.append(DataCategory(cName, attributeNameList=self.__dApi.getAttributeNameList(cName)))
@@ -638,6 +639,19 @@ class DictMethodEntryHelper(object):
                     eObj.setValue(entryId, "entry_id", 0)
                     eObj.setValue("REL", "status_code", 0)
                     eObj.setValue("?", "recvd_initial_deposition_date", 0)
+                else:
+                    # if it does exist but is missing one or more attributes, fill them in (for CSMs only!)
+                    pdsAttrL = dataContainer.getObj(cName).getAttributeList()
+                    eObj = dataContainer.getObj(cName)
+                    if "entry_id" not in pdsAttrL:
+                        dObj = dataContainer.getObj("entry")
+                        entryId = dObj.getValue("id", 0)
+                        eObj.setValue(entryId, "entry_id", 0)
+                    if "status_code" not in pdsAttrL:
+                        eObj.setValue("REL", "status_code", 0)
+                    if "recvd_initial_deposition_date" not in pdsAttrL:
+                        eObj.setValue("?", "recvd_initial_deposition_date", 0)
+
             # if there is incomplete accessioninformation then exit
             if not dataContainer.exists("pdbx_database_status"):
                 return False
