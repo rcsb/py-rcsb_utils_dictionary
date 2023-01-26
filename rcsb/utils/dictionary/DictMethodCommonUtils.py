@@ -4252,8 +4252,9 @@ class DictMethodCommonUtils(object):
         """
         metricValD = OrderedDict()
         localScoresD = OrderedDict()
-        ValidationFields = ["phi", "psi", "num_H_reduce", "cis_peptide", "ramachandran_class", "rotamer_class",
-                            "flippable_sidechain", "mogul_angles_RMSZ", "mogul_bonds_RMSZ", "mogul_RMSZ_num_angles",
+        ValidationFields = ["phi", "psi", #"num_H_reduce", "cis_peptide", "ramachandran_class",
+                            # "rotamer_class", "flippable_sidechain",
+                            "mogul_angles_RMSZ", "mogul_bonds_RMSZ", "mogul_RMSZ_num_angles",
                             "mogul_RMSZ_num_bonds", "residue_inclusion", "Q_score"]
 
         try:
@@ -4291,7 +4292,7 @@ class DictMethodCommonUtils(object):
                             beg = tup[0]
                             end = tup[1]
                             if int(beg) <= int(seqId) <= int(end) and metricV is not None:
-                                tD.setdefault(int(beg), []).append(metricV)
+                                tD.setdefault(int(beg), []).append(float(metricV))
                     localScoresD.setdefault((modelId, asymId, attrId, hasSeq), []).append(tD)
 
         except Exception as e:

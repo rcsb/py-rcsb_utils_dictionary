@@ -904,7 +904,6 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue(entityId, "entity_id", ii)
                     cObj.setValue(asymId, "asym_id", ii)
                     cObj.setValue(dbId, "provenance_source", ii)
-                    cObj.setValue("PDB entity", "reference_scheme", ii)  # TODO: is this right?
                     cObj.setValue(metricT, "type", ii)
                     cObj.setValue(metricN, "name", ii)
                     cObj.setValue(metricN, "feature_id", ii)
@@ -932,8 +931,7 @@ class DictMethodEntityInstanceHelper(object):
                         cObj.setValue(entryId, "entry_id", ii)
                         cObj.setValue(entityId, "entity_id", ii)
                         cObj.setValue(asymId, "asym_id", ii)
-                        cObj.setValue("PDB", "provenance_source", ii)  # TODO: what should this be?
-                        cObj.setValue("PDB entity", "reference_scheme", ii)  # TODO: what should this be?
+                        cObj.setValue("PDB validation report", "provenance_source", ii)
                         cObj.setValue("VALIDATION_REPORT", "type", ii)
                         cObj.setValue(metricId, "name", ii)
                         cObj.setValue(metricId, "feature_id", ii)
