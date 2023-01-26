@@ -4241,9 +4241,9 @@ class DictMethodCommonUtils(object):
 
         return repModelL
 
-    def getLocalEMQScores(self, dataContainer):
-        """ Get Local Q Scores for EM structures from the Validation report
-            (pdbx_vrpt_instance_results.Q_score) and convert to objects corresponding to
+    def getLocalValidationScores(self, dataContainer):
+        """ Get Local validation scores from the Validation report
+            (e.g., pdbx_vrpt_instance_results.Q_score) and convert to objects corresponding to
             rcsb_entity_instance_feature in the RCSB extension dictionary
 
             Args:
@@ -4252,26 +4252,35 @@ class DictMethodCommonUtils(object):
         """
         metricValD = OrderedDict()
         localScoresD = OrderedDict()
+        ValidationFields = ["phi", "psi", "num_H_reduce", "cis_peptide", "ramachandran_class", "rotamer_class",
+                            "flippable_sidechain", "mogul_angles_RMSZ", "mogul_bonds_RMSZ", "mogul_RMSZ_num_angles",
+                            "mogul_RMSZ_num_bonds", "residue_inclusion", "Q_score"]
 
         try:
             if dataContainer.exists("pdbx_vrpt_instance_results"):
                 tObj = dataContainer.getObj("pdbx_vrpt_instance_results")
-                if not tObj.hasAttribute("Q_score"):
-                    return None
+                eObj = dataContainer.getObj("entry")
+                entryId = eObj.getValue("id", 0)
+                logger.info("Starting validation report feature for %s.", entryId)
                 dL = []
                 for ii in range(tObj.getRowCount()):
                     entityId = tObj.getValue("entity_id", ii)
                     seqId = tObj.getValue("label_seq_id", ii)
+                    hasSeq = False
                     if seqId == ".":
                         seqId = "0"
+                    else:
+                        hasSeq = True
                     asymId = tObj.getValue("label_asym_id", ii)
-                    qScore = tObj.getValue("Q_score", ii)
-                    tId = entityId + "_" + asymId + "_" + seqId
-                    if tId not in dL:
-                        metricValD.setdefault((entityId, asymId), []).append((seqId, qScore))
-                        dL.append(tId)
+                    for iFd in ValidationFields:
+                        value = tObj.getValueOrDefault(iFd, ii, None)
+                        if value is not None:
+                            tId = iFd + "_" + entityId + "_" + asymId + "_" + seqId
+                            if tId not in dL:
+                                metricValD.setdefault((entityId, asymId, iFd, hasSeq), []).append((seqId, value))
+                                dL.append(tId)
 
-                for (modelId, asymId), aL in metricValD.items():
+                for (modelId, asymId, attrId, hasSeq), aL in metricValD.items():
                     tD = {}
                     sL = sorted(aL, key=lambda i: int(i[0]))
                     mL = [int(s[0]) for s in sL]
@@ -4281,9 +4290,9 @@ class DictMethodCommonUtils(object):
                         for tup in list(self.__toRangeList(mL)):
                             beg = tup[0]
                             end = tup[1]
-                            if int(beg) <= int(seqId) <= int(end):
-                                tD.setdefault(int(beg), []).append(float(metricV))
-                    localScoresD.setdefault((modelId, asymId), []).append(tD)
+                            if int(beg) <= int(seqId) <= int(end) and metricV is not None:
+                                tD.setdefault(int(beg), []).append(metricV)
+                    localScoresD.setdefault((modelId, asymId, attrId, hasSeq), []).append(tD)
 
         except Exception as e:
             logger.exception("Failing for %s with %s", dataContainer.getName(), str(e))

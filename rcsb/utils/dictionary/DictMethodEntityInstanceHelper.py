@@ -904,6 +904,7 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue(entityId, "entity_id", ii)
                     cObj.setValue(asymId, "asym_id", ii)
                     cObj.setValue(dbId, "provenance_source", ii)
+                    cObj.setValue("PDB entity", "reference_scheme", ii)  # TODO: is this right?
                     cObj.setValue(metricT, "type", ii)
                     cObj.setValue(metricN, "name", ii)
                     cObj.setValue(metricN, "feature_id", ii)
@@ -921,35 +922,35 @@ class DictMethodEntityInstanceHelper(object):
                     ii += 1
                 logger.debug("Completed populating local QA scores for computed model %r", dataContainer.getName())
 
-            # Populate local EM Q-scores
+            # Populate local scores
             if dataContainer.exists("pdbx_vrpt_instance_results"):
-                entryObj = dataContainer.getObj("rcsb_entry_info")
-                localScoresD = self.__commonU.getLocalEMQScores(dataContainer)
-                if not localScoresD: # No Q-Score, so probably not EM
-                    return
-                for (modelId, asymId), aD in localScoresD.items():
-                    addPropTupL = []
-                    entityId = asymIdD[asymId]
-                    cObj.setValue(ii + 1, "ordinal", ii)
-                    cObj.setValue(entryId, "entry_id", ii)
-                    cObj.setValue(entityId, "entity_id", ii)
-                    cObj.setValue(asymId, "asym_id", ii)
-                    cObj.setValue("VALIDATION_REPORT", "type", ii)
-                    cObj.setValue("Q_SCORE", "name", ii)
-                    cObj.setValue("Q_SCORE", "feature_id", ii)
-                    addPropTupL.append(("MODELCIF_MODEL_ID", modelId))
-                    cObj.setValue(";".join([str(tup1[0]) for tup1 in addPropTupL]), "additional_properties_name", ii)
-                    cObj.setValue(";".join([str(tup1[1]) for tup1 in addPropTupL]), "additional_properties_values", ii)
-                    fValL = []
-                    for _, vD in enumerate(aD):
-                        for k1, vL in vD.items():
-                            fVal = ",".join([str(v) for v in vL])
-                            fValL.append(fVal)
-                        sId = ";".join([str(k1) for k1, vL in vD.items()])
-                    cObj.setValue(";".join([str(tup) for tup in fValL]), "feature_positions_values", ii)
-                    cObj.setValue(sId, "feature_positions_beg_seq_id", ii)
-                    ii += 1
-                logger.debug("Completed populating local EM Q-scores for %r", dataContainer.getName())
+                localScoresD = self.__commonU.getLocalValidationScores(dataContainer)
+                if localScoresD: # No validation scores
+                    for (modelId, asymId, metricId, hasSeq), aD in localScoresD.items():
+                        entityId = asymIdD[asymId]
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        cObj.setValue(asymId, "asym_id", ii)
+                        cObj.setValue("PDB", "provenance_source", ii)  # TODO: what should this be?
+                        cObj.setValue("PDB entity", "reference_scheme", ii)  # TODO: what should this be?
+                        cObj.setValue("VALIDATION_REPORT", "type", ii)
+                        cObj.setValue(metricId, "name", ii)
+                        cObj.setValue(metricId, "feature_id", ii)
+                        fValL = []
+                        if hasSeq:
+                            for _, vD in enumerate(aD):
+                                for k1, vL in vD.items():
+                                    fVal = ",".join([str(v) for v in vL])
+                                    fValL.append(fVal)
+                                sId = ";".join([str(k1) for k1, vL in vD.items()])
+                            cObj.setValue(";".join([str(tup) for tup in fValL]), "feature_positions_values", ii)
+                            cObj.setValue(sId, "feature_positions_beg_seq_id", ii)
+                        else:  # nonpolymer
+                            cObj.setValue(aD[0][0][0], "feature_value_reported", ii)
+
+                        ii += 1
+                    logger.debug("Completed populating local validation report scores for %r", dataContainer.getName())
 
             npbD = self.__commonU.getBoundNonpolymersByInstance(dataContainer)
             jj = 1
