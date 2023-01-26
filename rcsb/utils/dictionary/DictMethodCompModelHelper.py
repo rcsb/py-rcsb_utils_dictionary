@@ -14,6 +14,8 @@
 #   29-Jun-2022  dwp Update method 'buildCompModelProvenance' for populating rcsb_comp_model_provenance using mapping between internal and external IDs
 #    6-Jul-2022   bv RO-3357: Fix taxonomy assignment in addPolymerEntityTaxonomy
 #    6-Jul-2022  dwp Only populate rcsb_comp_model_provenance.source_url if it exists in CSM holdings file (may not exist for all AF fragments)
+#   26-Jan-2023  dwp Update method for populating entity_src_nat for cases where CSM already contains entity_src_nat;
+#                    No longer populate _struct.pdbx_structure_determination_methodology - was made internal to wwPDB
 ##
 """
 Helper class implements computed model method references in the RCSB dictionary extension.
@@ -173,6 +175,12 @@ class DictMethodCompModelHelper(object):
             tObj = dataContainer.getObj("ma_target_ref_db_details")
             if not dataContainer.exists("entity_src_nat"):
                 dataContainer.append(DataCategory("entity_src_nat", attributeNameList=atL))
+            else:
+                # append additional attributes to entity_src_nat if not already present
+                esnAttrL = dataContainer.getObj('entity_src_nat').getAttributeList()
+                for ai in atL:
+                    if ai not in esnAttrL:
+                        dataContainer.getObj('entity_src_nat').appendAttribute(ai)
             sObj = dataContainer.getObj("entity_src_nat")
             #
             jj = 0
@@ -380,7 +388,6 @@ class DictMethodCompModelHelper(object):
             tObj = dataContainer.getObj("entry")
             entryId = tObj.getValue("id", 0)
 
-            methodType = "computational"
             tL = []
             qObj = dataContainer.getObj("entity")
 
@@ -398,7 +405,6 @@ class DictMethodCompModelHelper(object):
 
             xObj.setValue(entryId, "entry_id", 0)
             xObj.setValue(strTitle, "title", 0)
-            xObj.setValue(methodType, "pdbx_structure_determination_methodology", 0)
 
             return True
         except Exception as e:
