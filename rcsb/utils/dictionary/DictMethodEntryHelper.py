@@ -63,7 +63,7 @@
 # 08-Aug-2022  bv Set values for rcsb_entry_info.structure_determination_methodology_priority
 # 03-Oct-2022  bv Set values for rcsb_entry_info.ndb_struct_conf_na_feature_combined
 # 03-Jan-2023  bv Include _pdbx_database_status.status_code_nmr_data for experimental data availability
-# 13-Jan-2023 dwp Populate missing pdbx_database_status attributes for CSMs
+# 26-Jan-2023 dwp Populate or update pdbx_database_status attributes for CSMs to make ready for RELease
 #
 ##
 """
@@ -654,6 +654,9 @@ class DictMethodEntryHelper(object):
                     if "recvd_initial_deposition_date" not in pdsAttrL:
                         eObj.appendAttribute("recvd_initial_deposition_date")
                         eObj.setValue("?", "recvd_initial_deposition_date", 0)
+                # Make sure status_code is set to "REL" (and not "HPUB" or something else)
+                if eObj.getValue("status_code", 0) != "REL":
+                    eObj.setValue("REL", "status_code", 0)
 
             # if there is incomplete accessioninformation then exit
             if not dataContainer.exists("pdbx_database_status"):
