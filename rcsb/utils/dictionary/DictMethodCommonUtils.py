@@ -4252,27 +4252,32 @@ class DictMethodCommonUtils(object):
         """
         metricValD = OrderedDict()
         localScoresD = OrderedDict()
-        ValidationFields = ["phi", "psi", #"num_H_reduce", "cis_peptide", "ramachandran_class",
+        ValidationFields = [
+                            # "phi", "psi", #"num_H_reduce", "cis_peptide", "ramachandran_class",
                             # "rotamer_class", "flippable_sidechain",
-                            "mogul_angles_RMSZ", "mogul_bonds_RMSZ", "mogul_RMSZ_num_angles",
-                            "mogul_RMSZ_num_bonds", "residue_inclusion", "Q_score"]
+                            #"mogul_angles_RMSZ", "mogul_bonds_RMSZ", "mogul_RMSZ_num_angles",
+                            # "mogul_RMSZ_num_bonds", "residue_inclusion",
+                            "Q_score"]
 
         try:
-            if dataContainer.exists("pdbx_vrpt_instance_results"):
-                tObj = dataContainer.getObj("pdbx_vrpt_instance_results")
+            if dataContainer.exists("pdbx_vrpt_model_instance_map_fitting"):
+                tObj = dataContainer.getObj("pdbx_vrpt_model_instance_map_fitting")
+                iObjList = dataContainer.getObj("pdbx_vrpt_model_instance")
                 eObj = dataContainer.getObj("entry")
                 entryId = eObj.getValue("id", 0)
-                logger.info("Starting validation report feature for %s.", entryId)
+                logger.debug("Starting validation report feature for %s.", entryId)
                 dL = []
                 for ii in range(tObj.getRowCount()):
-                    entityId = tObj.getValue("entity_id", ii)
-                    seqId = tObj.getValue("label_seq_id", ii)
+                    instId = tObj.getValue("instance_id", ii)
+                    instObj = iObjList[instId]
+                    entityId = instObj.getValue("entity_id", ii)
+                    seqId = instObj.getValue("label_seq_id", ii)
                     hasSeq = False
                     if seqId == ".":
                         seqId = "0"
                     else:
                         hasSeq = True
-                    asymId = tObj.getValue("label_asym_id", ii)
+                    asymId = instObj.getValue("label_asym_id", ii)
                     for iFd in ValidationFields:
                         value = tObj.getValueOrDefault(iFd, ii, None)
                         if value is not None:

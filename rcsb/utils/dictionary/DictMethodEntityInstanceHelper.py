@@ -922,7 +922,7 @@ class DictMethodEntityInstanceHelper(object):
                 logger.debug("Completed populating local QA scores for computed model %r", dataContainer.getName())
 
             # Populate local scores
-            if dataContainer.exists("pdbx_vrpt_instance_results"):
+            if dataContainer.exists("pdbx_vrpt_model_instance_map_fitting"):
                 localScoresD = self.__commonU.getLocalValidationScores(dataContainer)
                 if localScoresD: # No validation scores
                     for (modelId, asymId, metricId, hasSeq), aD in localScoresD.items():
