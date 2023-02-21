@@ -64,6 +64,7 @@
 # 03-Oct-2022  bv Set values for rcsb_entry_info.ndb_struct_conf_na_feature_combined
 # 03-Jan-2023  bv Include _pdbx_database_status.status_code_nmr_data for experimental data availability
 # 26-Jan-2023 dwp Populate or update pdbx_database_status attributes for CSMs to make ready for RELease
+# 21-Feb-2023  bv Update '__filterExperimentalResolution' method to handle experimental resolutions properly (see RO-3559)
 #
 ##
 """
@@ -1150,22 +1151,42 @@ class DictMethodEntryHelper(object):
 
     def __filterExperimentalResolution(self, dataContainer):
         """Collect resolution estimates from method specific sources."""
+
         rL = []
+        fL = []
+        eL = []
+
+        # _refine.pdbx_refine_id and refine.entry_id are joint composite keys for the refine category
+        # So, it is not possible to have multiple resolutions values for the same method in this category
+        # But _refine.pdbx_refine_id does not have a controlled vocabulary, and this can lead to accidental errors
         if dataContainer.exists("refine"):
             tObj = dataContainer.getObj("refine")
-            if tObj.hasAttribute("ls_d_res_high"):
+            if tObj.hasAttribute("ls_d_res_high") and tObj.hasAttribute("pdbx_refine_id"):
                 for ii in range(tObj.getRowCount()):
                     rv = tObj.getValue("ls_d_res_high", ii)
-                    if self.__commonU.isFloat(rv):
+                    rid = tObj.getValue("pdbx_refine_id", ii)
+                    rm = rid.upper()
+                    if rm in ["X-RAY DIFFRACTION", "FIBER DIFFRACTION", "POWDER DIFFRACTION", "ELECTRON CRYSTALLOGRAPHY", "NEUTRON DIFFRACTION", "ELECTRON DIFFRACTION"] and self.__commonU.isFloat(rv):
                         rL.append(rv)
 
         if dataContainer.exists("em_3d_reconstruction"):
             tObj = dataContainer.getObj("em_3d_reconstruction")
-            if tObj.hasAttribute("resolution"):
+            if tObj.hasAttribute("resolution") and tObj.hasAttribute("resolution_method"):
                 for ii in range(tObj.getRowCount()):
                     rv = tObj.getValue("resolution", ii)
+                    rm = tObj.getValue("resolution_method", ii)
                     if self.__commonU.isFloat(rv):
-                        rL.append(rv)
+                        if rm in ["FSC 0.143 CUT-OFF"]:
+                            fL.append(rv)
+                        else:
+                            eL.append(rv)
+                if fL:
+                    rL.append(min(fL))
+                elif eL:
+                    rL.append(min(eL))
+                else:
+                    pass
+
         return rL
 
     def addCategoryPrimaryCitation(self, dataContainer, blockName, **kwargs):
