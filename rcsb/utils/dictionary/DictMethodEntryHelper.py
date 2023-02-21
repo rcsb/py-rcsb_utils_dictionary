@@ -1166,8 +1166,9 @@ class DictMethodEntryHelper(object):
                     rv = tObj.getValue("ls_d_res_high", ii)
                     rid = tObj.getValue("pdbx_refine_id", ii)
                     rm = rid.upper()
-                    if rm in ["X-RAY DIFFRACTION", "FIBER DIFFRACTION", "POWDER DIFFRACTION", "ELECTRON CRYSTALLOGRAPHY", "NEUTRON DIFFRACTION", "ELECTRON DIFFRACTION"] and self.__commonU.isFloat(rv):
-                        rL.append(rv)
+                    if self.__commonU.isFloat(rv):
+                        if rm in ["X-RAY DIFFRACTION", "FIBER DIFFRACTION", "POWDER DIFFRACTION", "ELECTRON CRYSTALLOGRAPHY", "NEUTRON DIFFRACTION", "ELECTRON DIFFRACTION"]:
+                            rL.append(rv)
 
         if dataContainer.exists("em_3d_reconstruction"):
             tObj = dataContainer.getObj("em_3d_reconstruction")
