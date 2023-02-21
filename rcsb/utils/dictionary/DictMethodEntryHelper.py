@@ -1165,9 +1165,9 @@ class DictMethodEntryHelper(object):
                 for ii in range(tObj.getRowCount()):
                     rv = tObj.getValue("ls_d_res_high", ii)
                     rid = tObj.getValue("pdbx_refine_id", ii)
-                    rm = rid.upper()
+                    rM = rid.upper()
                     if self.__commonU.isFloat(rv):
-                        if rm in ["X-RAY DIFFRACTION", "FIBER DIFFRACTION", "POWDER DIFFRACTION", "ELECTRON CRYSTALLOGRAPHY", "NEUTRON DIFFRACTION", "ELECTRON DIFFRACTION"]:
+                        if rM in ["X-RAY DIFFRACTION", "FIBER DIFFRACTION", "POWDER DIFFRACTION", "ELECTRON CRYSTALLOGRAPHY", "NEUTRON DIFFRACTION", "ELECTRON DIFFRACTION"]:
                             rL.append(rv)
 
         if dataContainer.exists("em_3d_reconstruction"):
@@ -1175,9 +1175,9 @@ class DictMethodEntryHelper(object):
             if tObj.hasAttribute("resolution") and tObj.hasAttribute("resolution_method"):
                 for ii in range(tObj.getRowCount()):
                     rv = tObj.getValue("resolution", ii)
-                    rm = tObj.getValue("resolution_method", ii)
+                    rM = tObj.getValue("resolution_method", ii)
                     if self.__commonU.isFloat(rv):
-                        if rm in ["FSC 0.143 CUT-OFF"]:
+                        if rM.upper() in ["FSC 0.143 CUT-OFF"]:
                             fL.append(rv)
                         else:
                             eL.append(rv)
