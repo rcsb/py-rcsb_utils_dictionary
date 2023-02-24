@@ -74,6 +74,7 @@ class DictMethodResourceCacheWorkflow(object):
         )
         ok = rP.cacheResources(useCache=False, doBackup=True, useStash=True, useGit=True)
         logger.info("Cache rebuild status (%r)", ok)
+        return ok
 
     def testRecoverCacheFromStash(self):
         # remove any cache directory
