@@ -33,7 +33,7 @@ logger = logging.getLogger()
 
 
 class DictMethodResourceCacheWorkflowTests(unittest.TestCase):
-    skipFlag = False
+    skipFlag = True
 
     def setUp(self):
         self.__mockTopPath = os.path.join(TOPDIR, "rcsb", "mock-data")
@@ -51,7 +51,7 @@ class DictMethodResourceCacheWorkflowTests(unittest.TestCase):
         endTime = time.time()
         logger.info("Completed %s at %s (%.4f seconds)", self.id(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - self.__startTime)
 
-    @unittest.skipIf(skipFlag, "For updating stash")
+    @unittest.skipIf(skipFlag, "Test requires files that are too large for Docker")
     def testBuildResourceCacheStash(self):
         try:
             tiWf = DictMethodResourceCacheWorkflow(
