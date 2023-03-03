@@ -101,3 +101,4 @@
 26-Jan-2023 - V1.01 Update method in DictMethodCompModelHelper for populating entity_src_nat;
                     Update method in DictMethodEntryHelper to populate missing pdbx_database_status attributes for CSMs
 21-Feb-2023 - V1.02 Update method in DictMethodEntryHelper to handle experimental resolutions properly (see RO-3559)
+03-Mar-2023 - V1.03 Standardize configuration for DictMethodResourceCacheWorkflow, add testResourceCacheWorkflow
