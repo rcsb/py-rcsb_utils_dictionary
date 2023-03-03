@@ -72,7 +72,7 @@ class DictMethodEntityHelper(object):
         self.__ggP = rP.getResource("GlyGenProvider instance") if rP else None
         self.__pfP = rP.getResource("PfamProvider instance") if rP else None
         self.__birdP = rP.getResource("BirdProvider instance") if rP else None
-        self.__cardP = rP.getResource("CARDTargetFeatureProvider instance") if rP else None
+        # self.__cardP = rP.getResource("CARDTargetFeatureProvider instance") if rP else None
         self.__imgtP = rP.getResource("IMGTTargetFeatureProvider instance") if rP else None
         self.__sabdabP = rP.getResource("SAbDabTargetFeatureProvider instance") if rP else None
         self.__chemblP = rP.getResource("ChEMBLTargetCofactorProvider instance") if rP else None
