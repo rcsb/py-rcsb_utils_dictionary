@@ -102,3 +102,5 @@
                     Update method in DictMethodEntryHelper to populate missing pdbx_database_status attributes for CSMs
 21-Feb-2023 - V1.02 Update method in DictMethodEntryHelper to handle experimental resolutions properly (see RO-3559)
 03-Mar-2023 - V1.03 Standardize configuration for DictMethodResourceCacheWorkflow, add testResourceCacheWorkflow
+07-Mar-2023 - V1.04 Bug fix in DictMethodChemRefHelper;
+                    Stop loading CARD data to rcsb_polymer_entity_feature
