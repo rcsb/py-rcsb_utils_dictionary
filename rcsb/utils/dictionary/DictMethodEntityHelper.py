@@ -2,14 +2,14 @@
 # File:    DictMethodEntityHelper.py
 # Author:  J. Westbrook
 # Date:    16-Jul-2019
-# Version: 0.001 Initial version
 #
 # Updates:
-# 29-Apr-2022 dwp Use internal computed-model identifiers for 'rcsb_id'
-#  3-May-2022 dwp Use internal computed-model identifiers for 'entry_id' in containter_identifiers
-# 23-June-2022 bv Use ma_target_ref_db_details to populate rcsb_polymer_entity_container_identifiers.reference_sequence_identifiers for MA models
-# 29-Jun-2022 dwp Use internal computed-model identifiers everywhere (in same manner as experimental models)
-# 21-Jul-2022 dwp Fix logic for assigning reference sequence identifiers for computed models
+#  29-Apr-2022 dwp Use internal computed-model identifiers for 'rcsb_id'
+#   3-May-2022 dwp Use internal computed-model identifiers for 'entry_id' in containter_identifiers
+#  23-Jun-2022 bv  Use ma_target_ref_db_details to populate rcsb_polymer_entity_container_identifiers.reference_sequence_identifiers for MA models
+#  29-Jun-2022 dwp Use internal computed-model identifiers everywhere (in same manner as experimental models)
+#  21-Jul-2022 dwp Fix logic for assigning reference sequence identifiers for computed models
+#   6-Mar-2023 dwp Stop loading CARD data to rcsb_polymer_entity_feature
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
@@ -72,7 +72,7 @@ class DictMethodEntityHelper(object):
         self.__ggP = rP.getResource("GlyGenProvider instance") if rP else None
         self.__pfP = rP.getResource("PfamProvider instance") if rP else None
         self.__birdP = rP.getResource("BirdProvider instance") if rP else None
-        self.__cardP = rP.getResource("CARDTargetFeatureProvider instance") if rP else None
+        # self.__cardP = rP.getResource("CARDTargetFeatureProvider instance") if rP else None
         self.__imgtP = rP.getResource("IMGTTargetFeatureProvider instance") if rP else None
         self.__sabdabP = rP.getResource("SAbDabTargetFeatureProvider instance") if rP else None
         self.__chemblP = rP.getResource("ChEMBLTargetCofactorProvider instance") if rP else None
@@ -1690,33 +1690,33 @@ class DictMethodEntityHelper(object):
                 ii += 1
             #
             # --- CARD
-            if self.__cardP:
-                for entityId, eType in eTypeD.items():
-                    if eType not in ["polymer", "branched"]:
-                        continue
-                    eId = entryId + "_" + entityId
-                    fDL = self.__cardP.getFeatures(eId)
-                    for fD in fDL:
-                        begSeqId = ";".join([str(tD["beg_seq_id"]) for tD in fD["feature_positions"]])
-                        endSeqId = ";".join([str(tD["end_seq_id"]) for tD in fD["feature_positions"]])
-                        #
-                        cObj.setValue(ii + 1, "ordinal", ii)
-                        cObj.setValue(entryId, "entry_id", ii)
-                        cObj.setValue(entityId, "entity_id", ii)
-                        cObj.setValue("CARD_MODEL", "type", ii)
-                        cObj.setValue(fD["feature_id"], "feature_id", ii)
-                        cObj.setValue(fD["name"], "name", ii)
-                        cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
-                        cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
-                        cObj.setValue("CARD", "provenance_source", ii)
-                        cObj.setValue(str(fD["assignment_version"]), "assignment_version", ii)
-                        addPropTupL = []
-                        addPropTupL.append(("CARD_MODEL_DESCRIPTION", fD["description"]))
-                        addPropTupL.append(("CARD_MODEL_ORGANISM", fD["query_tax_name"]))
-                        cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
-                        cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
-                        #
-                        ii += 1
+            # if self.__cardP:
+            #     for entityId, eType in eTypeD.items():
+            #         if eType not in ["polymer", "branched"]:
+            #             continue
+            #         eId = entryId + "_" + entityId
+            #         fDL = self.__cardP.getFeatures(eId)
+            #         for fD in fDL:
+            #             begSeqId = ";".join([str(tD["beg_seq_id"]) for tD in fD["feature_positions"]])
+            #             endSeqId = ";".join([str(tD["end_seq_id"]) for tD in fD["feature_positions"]])
+            #             #
+            #             cObj.setValue(ii + 1, "ordinal", ii)
+            #             cObj.setValue(entryId, "entry_id", ii)
+            #             cObj.setValue(entityId, "entity_id", ii)
+            #             cObj.setValue("CARD_MODEL", "type", ii)
+            #             cObj.setValue(fD["feature_id"], "feature_id", ii)
+            #             cObj.setValue(fD["name"], "name", ii)
+            #             cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
+            #             cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
+            #             cObj.setValue("CARD", "provenance_source", ii)
+            #             cObj.setValue(str(fD["assignment_version"]), "assignment_version", ii)
+            #             addPropTupL = []
+            #             addPropTupL.append(("CARD_MODEL_DESCRIPTION", fD["description"]))
+            #             addPropTupL.append(("CARD_MODEL_ORGANISM", fD["query_tax_name"]))
+            #             cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
+            #             cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
+            #             #
+            #             ii += 1
             # --- IMGT
             if self.__imgtP:
                 imgtIdD = {}
