@@ -1690,34 +1690,6 @@ class DictMethodEntityHelper(object):
                 jj += 1
                 ii += 1
             #
-            # --- CARD
-            # if self.__cardP:
-            #     for entityId, eType in eTypeD.items():
-            #         if eType not in ["polymer", "branched"]:
-            #             continue
-            #         eId = entryId + "_" + entityId
-            #         fDL = self.__cardP.getFeatures(eId)
-            #         for fD in fDL:
-            #             begSeqId = ";".join([str(tD["beg_seq_id"]) for tD in fD["feature_positions"]])
-            #             endSeqId = ";".join([str(tD["end_seq_id"]) for tD in fD["feature_positions"]])
-            #             #
-            #             cObj.setValue(ii + 1, "ordinal", ii)
-            #             cObj.setValue(entryId, "entry_id", ii)
-            #             cObj.setValue(entityId, "entity_id", ii)
-            #             cObj.setValue("CARD_MODEL", "type", ii)
-            #             cObj.setValue(fD["feature_id"], "feature_id", ii)
-            #             cObj.setValue(fD["name"], "name", ii)
-            #             cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
-            #             cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
-            #             cObj.setValue("CARD", "provenance_source", ii)
-            #             cObj.setValue(str(fD["assignment_version"]), "assignment_version", ii)
-            #             addPropTupL = []
-            #             addPropTupL.append(("CARD_MODEL_DESCRIPTION", fD["description"]))
-            #             addPropTupL.append(("CARD_MODEL_ORGANISM", fD["query_tax_name"]))
-            #             cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
-            #             cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
-            #             #
-            #             ii += 1
             # --- IMGT
             if self.__imgtP:
                 imgtIdD = {}
@@ -2657,9 +2629,9 @@ class DictMethodEntityHelper(object):
                             cObj.setValue(entryId, "entry_id", ii)
                             cObj.setValue(entityId, "entity_id", ii)
                             cObj.setValue("CARD", "type", ii)
+                            cObj.setValue("matching CARD Protein Homolog Models (PHM)", "provenance_source", ii)
                             cObj.setValue(fD["annotation_id"], "annotation_id", ii)
                             cObj.setValue(fD["name"], "name", ii)
-                            cObj.setValue(fD["provenance_source"], "provenance_source", ii)
                             cObj.setValue(fD["description"], "description", ii)
                             cObj.setValue(str(fD["assignment_version"]), "assignment_version", ii)
                             addPropTupL = []
@@ -2668,7 +2640,7 @@ class DictMethodEntityHelper(object):
                             cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
                             cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
                             #
-                            idLinL = self.__cardP.getLineage(fD["annotation_id"])
+                            idLinL = fD["annotation_lineage"]
                             cObj.setValue(";".join([str(lD["id"]) for lD in idLinL]), "annotation_lineage_id", ii)
                             cObj.setValue(";".join([str(lD["name"]) for lD in idLinL]), "annotation_lineage_name", ii)
                             cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
@@ -2679,9 +2651,9 @@ class DictMethodEntityHelper(object):
                         cObj.setValue(entryId, "entry_id", ii)
                         cObj.setValue(entityId, "entity_id", ii)
                         cObj.setValue("CARD", "type", ii)
+                        cObj.setValue("matching CARD Protein Homolog Models (PHM)", "provenance_source", ii)
                         cObj.setValue(fD["family_annotation_id"], "annotation_id", ii)
                         cObj.setValue(fD["family_name"], "name", ii)
-                        cObj.setValue(fD["provenance_source"], "provenance_source", ii)
                         cObj.setValue(fD["family_description"], "description", ii)
                         cObj.setValue(str(fD["assignment_version"]), "assignment_version", ii)
                         addPropTupL = []
@@ -2692,7 +2664,7 @@ class DictMethodEntityHelper(object):
                         cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
                         cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
                         #
-                        idLinL = self.__cardP.getLineage(fD["family_annotation_id"])
+                        idLinL = fD["family_annotation_lineage"]
                         cObj.setValue(";".join([str(lD["id"]) for lD in idLinL]), "annotation_lineage_id", ii)
                         cObj.setValue(";".join([str(lD["name"]) for lD in idLinL]), "annotation_lineage_name", ii)
                         cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
