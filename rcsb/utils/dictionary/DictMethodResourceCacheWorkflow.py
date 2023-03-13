@@ -5,6 +5,7 @@
 #
 # Update:
 #   3-Mar-2023 aae  Use arguments to get the configuration
+#  14-Mar-2023 dwp  Replace CARDTargetFeatureProvider with CARDTargetAnnotationProvider
 ##
 """
 Workflow to rebuild and stash "buildable" cache resources.
@@ -124,7 +125,7 @@ class DictMethodResourceCacheWorkflow(object):
             "DrugBankTargetCofactorProvider instance",
             "ChEMBLTargetCofactorProvider instance",
             "PharosTargetCofactorProvider instance",
-            "CARDTargetFeatureProvider instance",
+            "CARDTargetAnnotationProvider instance",
             "IMGTTargetFeatureProvider instance",
             "SAbDabTargetFeatureProvider instance",
         ]:

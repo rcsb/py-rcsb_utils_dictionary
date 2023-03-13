@@ -22,7 +22,7 @@
 #   3-Aug-2021 jdw add backup options for nonbuildable providers
 #  29-Apr-2022 dwp add ModelCacheProvider()
 #  21-Jul-2022  bv Update ModelCacheProvider to make providerType "core" and not stashable or buildable
-##
+#  14-Mar-2023 dwp Replace CARDTargetFeatureProvider with CARDTargetAnnotationProvider
 ##
 """
 Resource provider for dictionary method runner and DictMethodHelper tools.
@@ -75,7 +75,7 @@ from rcsb.utils.struct.Scop2ClassificationProvider import Scop2ClassificationPro
 from rcsb.utils.struct.ScopClassificationProvider import ScopClassificationProvider
 
 # ---
-from rcsb.utils.targets.CARDTargetFeatureProvider import CARDTargetFeatureProvider
+from rcsb.utils.targets.CARDTargetAnnotationProvider import CARDTargetAnnotationProvider
 from rcsb.utils.targets.ChEMBLTargetCofactorProvider import ChEMBLTargetCofactorProvider
 from rcsb.utils.targets.DrugBankTargetCofactorProvider import DrugBankTargetCofactorProvider
 from rcsb.utils.targets.IMGTTargetFeatureProvider import IMGTTargetFeatureProvider
@@ -326,8 +326,8 @@ class DictMethodResourceProvider(SingletonClass):
                 "buildable": False,
                 "providerType": "optional_1",
             },
-            "CARDTargetFeatureProvider instance": {
-                "class": CARDTargetFeatureProvider,
+            "CARDTargetAnnotationProvider instance": {
+                "class": CARDTargetAnnotationProvider,
                 "configArgMap": {},
                 "stashable": True,
                 "buildable": False,
