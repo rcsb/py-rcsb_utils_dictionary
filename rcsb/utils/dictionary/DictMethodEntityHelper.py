@@ -2618,7 +2618,7 @@ class DictMethodEntityHelper(object):
             if self.__cardP:
                 eTypeD = self.__commonU.getEntityTypes(dataContainer)
                 for entityId, eType in eTypeD.items():
-                    if eType not in ["polymer", "branched"]:
+                    if eType not in ["polymer"]:
                         continue
                     eId = entryId + "_" + entityId
                     fD = self.__cardP.getAnnotation(eId)
