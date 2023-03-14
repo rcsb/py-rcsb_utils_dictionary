@@ -2643,7 +2643,7 @@ class DictMethodEntityHelper(object):
                             idLinL = fD["annotation_lineage"]
                             cObj.setValue(";".join([str(lD["id"]) for lD in idLinL]), "annotation_lineage_id", ii)
                             cObj.setValue(";".join([str(lD["name"]) for lD in idLinL]), "annotation_lineage_name", ii)
-                            cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
+                            cObj.setValue(";".join([str(lD["depth"]) for lD in idLinL]), "annotation_lineage_depth", ii)
                             #
                             ii += 1
                         # Now add "AMR Gene Family" annotation (applicable for all entities)
@@ -2659,7 +2659,7 @@ class DictMethodEntityHelper(object):
                         addPropTupL = []
                         addPropTupL.append(("CARD_ARO_CATEGORY", "AMR Gene Family"))
                         addPropTupL.append(("CARD_ARO_CVTERM_ID", fD["family_card_aro_cvterm_id"]))
-                        addPropTupL.append(("CARD_ARO_DRUG_CLASS", fD["card_aro_drug_class"]))
+                        addPropTupL.append(("CARD_ARO_DRUG_CLASS", ",".join(fD["card_aro_drug_class"])))
                         addPropTupL.append(("CARD_ARO_RESISTANCE_MECHANISM", fD["card_aro_resistance_mechanism"]))
                         cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
                         cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
@@ -2667,7 +2667,7 @@ class DictMethodEntityHelper(object):
                         idLinL = fD["family_annotation_lineage"]
                         cObj.setValue(";".join([str(lD["id"]) for lD in idLinL]), "annotation_lineage_id", ii)
                         cObj.setValue(";".join([str(lD["name"]) for lD in idLinL]), "annotation_lineage_name", ii)
-                        cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
+                        cObj.setValue(";".join([str(lD["depth"]) for lD in idLinL]), "annotation_lineage_depth", ii)
                         #
                         ii += 1
                         #
