@@ -40,7 +40,7 @@ class DictMethodResourceCacheWorkflow(object):
 
         Args:
             configPath (str, optional): path to configuration file (default: exdb-config-example.yml)
-            configName (str, optional): configuration section name (default: site_info_configuration)
+            configName (str, optional): configuration section name (default: site_info_remote_configuration)
             mockTopPath (str, optional):  mockTopPath is prepended to path configuration options if it specified (default=None)
             workPath (str, optional):  path to working directory (default: HERE)
             cachePath (str, optional):  path to cache directory (default: HERE/CACHE)
@@ -48,7 +48,7 @@ class DictMethodResourceCacheWorkflow(object):
             debugFlag (bool, optional):  sets logger to debug mode (default: False)
         """
         configPath = kwargs.get("configPath", "exdb-config-example.yml")
-        self.__configName = kwargs.get("configName", "site_info_configuration")
+        self.__configName = kwargs.get("configName", "site_info_remote_configuration")
         mockTopPath = kwargs.get("mockTopPath", None)
         self.__cfgOb = ConfigUtil(configPath=configPath, defaultSectionName=self.__configName, mockTopPath=mockTopPath)
         self.__workPath = kwargs.get("workPath", HERE)
