@@ -6,6 +6,7 @@
 # Update:
 #   3-Mar-2023 aae  Use arguments to get the configuration
 #  14-Mar-2023 dwp  Replace CARDTargetFeatureProvider with CARDTargetAnnotationProvider
+#  16-Mar-2023 aae  Update configuration to use HERE and CACHE folder
 ##
 """
 Workflow to rebuild and stash "buildable" cache resources.
@@ -30,6 +31,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s]-%(mo
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
+HERE = os.path.abspath(os.path.dirname(__file__))
+
 
 class DictMethodResourceCacheWorkflow(object):
     def __init__(self, **kwargs):
@@ -37,17 +40,20 @@ class DictMethodResourceCacheWorkflow(object):
 
         Args:
             configPath (str, optional): path to configuration file (default: exdb-config-example.yml)
-            configName (str, optional): configuration section name (default: site_info_configuration)
-            cachePath (str, optional):  path to cache directory (default: '.')
+            configName (str, optional): configuration section name (default: site_info_remote_configuration)
+            mockTopPath (str, optional):  mockTopPath is prepended to path configuration options if it specified (default=None)
+            workPath (str, optional):  path to working directory (default: HERE)
+            cachePath (str, optional):  path to cache directory (default: HERE/CACHE)
             stashRemotePrefix (str, optional): file name prefix (channel) applied to remote stash file artifacts (default: None)
+            debugFlag (bool, optional):  sets logger to debug mode (default: False)
         """
         configPath = kwargs.get("configPath", "exdb-config-example.yml")
-        self.__configName = kwargs.get("configName", "site_info_configuration")
+        self.__configName = kwargs.get("configName", "site_info_remote_configuration")
         mockTopPath = kwargs.get("mockTopPath", None)
         self.__cfgOb = ConfigUtil(configPath=configPath, defaultSectionName=self.__configName, mockTopPath=mockTopPath)
+        self.__workPath = kwargs.get("workPath", HERE)
+        self.__cachePath = kwargs.get("cachePath", os.path.join(self.__workPath, "CACHE"))
         #
-        self.__cachePath = kwargs.get("cachePath", ".")
-        self.__cachePath = os.path.abspath(self.__cachePath)
         self.__stashRemotePrefix = kwargs.get("stashRemotePrefix", None)
         #
         self.__debugFlag = kwargs.get("debugFlag", False)
