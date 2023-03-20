@@ -105,3 +105,4 @@
 07-Mar-2023 - V1.04 Bug fix in DictMethodChemRefHelper;
                     Stop loading CARD data to rcsb_polymer_entity_feature
 14-Mar-2023 - V1.05 Load CARD annotation data to rcsb_polymer_entity_annotation
+20-Mar-2023 - V1.06 Fix formula weight calculation of CSM polymer entities
