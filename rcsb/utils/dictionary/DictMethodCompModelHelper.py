@@ -65,7 +65,7 @@ class DictMethodCompModelHelper(object):
         self.__mcP = rP.getResource("ModelCacheProvider instance") if rP else None
         #
         # Dictionary of amino acids and their formula weights as they exist in a linked polymer chain vs as isolated amino acids (i.e. less 1 oxygen and 2 hydrogens)
-        self.aaFwDict3 = {k: f"{v - 18.015:.3f}" for k, v in {
+        self.aaFwDict3 = {k: v - 18.015 for k, v in {
             "ALA": 89.093,
             "ARG": 175.209,
             "ASN": 132.118,
