@@ -81,9 +81,9 @@ class DictionaryApiProviderWrapper(SingletonClass):
         else:
             dictLocators = [self.__cfgOb.getPath(configLocator, sectionName=self.__configName) for configLocator in self.__dictLocatorMap[databaseName]]
             # Example dictLocators for databaseName 'pdbx_comp_model_core':
-            #  ['https://raw.githubusercontent.com/rcsb/py-rcsb_exdb_assets/development/dictionary_files/reference/mmcif_pdbx_v5_next.dic',
-            #   'https://raw.githubusercontent.com/rcsb/py-rcsb_exdb_assets/development/dictionary_files/dist/rcsb_mmcif_comp_model_ext.dic',
-            #   'https://raw.githubusercontent.com/rcsb/py-rcsb_exdb_assets/development/dictionary_files/reference/mmcif_ma.dic']
+            #  ['https://raw.githubusercontent.com/rcsb/py-rcsb_exdb_assets/master/dictionary_files/reference/mmcif_pdbx_v5_next.dic',
+            #   'https://raw.githubusercontent.com/rcsb/py-rcsb_exdb_assets/master/dictionary_files/dist/rcsb_mmcif_comp_model_ext.dic',
+            #   'https://raw.githubusercontent.com/rcsb/py-rcsb_exdb_assets/master/dictionary_files/reference/mmcif_ma.dic']
         #
         logger.debug("Fetching dictionary API for %s using %r", databaseName, dictLocators)
         return self.__dP.getApi(dictLocators, **kwargs)
