@@ -83,7 +83,7 @@ class DictionaryApiProviderWrapper(SingletonClass):
             # Example dictLocators for databaseName 'pdbx_comp_model_core':
             #  ['https://raw.githubusercontent.com/rcsb/py-rcsb_exdb_assets/master/dictionary_files/reference/mmcif_pdbx_v5_next.dic',
             #   'https://raw.githubusercontent.com/rcsb/py-rcsb_exdb_assets/master/dictionary_files/dist/rcsb_mmcif_comp_model_ext.dic',
-            #   'https://raw.githubusercontent.com/rcsb/py-rcsb_exdb_assets/master/dictionary_files/reference/mmcif_ma.dic']
+            #   'https://raw.githubusercontent.com/rcsb/py-rcsb_exdb_assets/master/dictionary_files/reference/mmcif_ma_ext.dic']
         #
         logger.debug("Fetching dictionary API for %s using %r", databaseName, dictLocators)
         return self.__dP.getApi(dictLocators, **kwargs)
