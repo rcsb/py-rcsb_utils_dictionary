@@ -63,6 +63,8 @@
 # 08-Aug-2022  bv Set values for rcsb_entry_info.structure_determination_methodology_priority
 # 03-Oct-2022  bv Set values for rcsb_entry_info.ndb_struct_conf_na_feature_combined
 # 03-Jan-2023  bv Include _pdbx_database_status.status_code_nmr_data for experimental data availability
+# 26-Jan-2023 dwp Populate or update pdbx_database_status attributes for CSMs to make ready for RELease
+# 21-Feb-2023  bv Update '__filterExperimentalResolution' method to handle experimental resolutions properly (see RO-3559)
 #
 ##
 """
@@ -629,8 +631,8 @@ class DictMethodEntryHelper(object):
             entryId = None
             # Add missing pdbx_database_status for MA or AF models (if absent in mmCIF file)
             cName = "pdbx_database_status"
-            if not dataContainer.exists(cName):
-                if dataContainer.exists("entry") and dataContainer.exists("ma_data"):
+            if dataContainer.exists("entry") and dataContainer.exists("ma_data"):
+                if not dataContainer.exists(cName):
                     dObj = dataContainer.getObj("entry")
                     entryId = dObj.getValue("id", 0)
                     dataContainer.append(DataCategory(cName, attributeNameList=self.__dApi.getAttributeNameList(cName)))
@@ -638,6 +640,25 @@ class DictMethodEntryHelper(object):
                     eObj.setValue(entryId, "entry_id", 0)
                     eObj.setValue("REL", "status_code", 0)
                     eObj.setValue("?", "recvd_initial_deposition_date", 0)
+                else:
+                    # if it does exist but is missing one or more attributes, fill them in (for CSMs only!)
+                    pdsAttrL = dataContainer.getObj(cName).getAttributeList()
+                    eObj = dataContainer.getObj(cName)
+                    if "entry_id" not in pdsAttrL:
+                        dObj = dataContainer.getObj("entry")
+                        entryId = dObj.getValue("id", 0)
+                        eObj.appendAttribute("entry_id")
+                        eObj.setValue(entryId, "entry_id", 0)
+                    if "status_code" not in pdsAttrL:
+                        eObj.appendAttribute("status_code")
+                        eObj.setValue("REL", "status_code", 0)
+                    if "recvd_initial_deposition_date" not in pdsAttrL:
+                        eObj.appendAttribute("recvd_initial_deposition_date")
+                        eObj.setValue("?", "recvd_initial_deposition_date", 0)
+                # Make sure status_code is set to "REL" (and not "HPUB" or something else)
+                if eObj.getValue("status_code", 0) != "REL":
+                    eObj.setValue("REL", "status_code", 0)
+
             # if there is incomplete accessioninformation then exit
             if not dataContainer.exists("pdbx_database_status"):
                 return False
@@ -1130,22 +1151,43 @@ class DictMethodEntryHelper(object):
 
     def __filterExperimentalResolution(self, dataContainer):
         """Collect resolution estimates from method specific sources."""
+
         rL = []
+        fL = []
+        eL = []
+
+        # _refine.pdbx_refine_id and refine.entry_id are joint composite keys for the refine category
+        # So, it is not possible to have multiple resolutions values for the same method in this category
+        # But _refine.pdbx_refine_id does not have a controlled vocabulary, and this can lead to accidental errors
         if dataContainer.exists("refine"):
             tObj = dataContainer.getObj("refine")
-            if tObj.hasAttribute("ls_d_res_high"):
+            if tObj.hasAttribute("ls_d_res_high") and tObj.hasAttribute("pdbx_refine_id"):
                 for ii in range(tObj.getRowCount()):
                     rv = tObj.getValue("ls_d_res_high", ii)
+                    rid = tObj.getValue("pdbx_refine_id", ii)
+                    rM = rid.upper()
                     if self.__commonU.isFloat(rv):
-                        rL.append(rv)
+                        if rM in ["X-RAY DIFFRACTION", "FIBER DIFFRACTION", "POWDER DIFFRACTION", "ELECTRON CRYSTALLOGRAPHY", "NEUTRON DIFFRACTION", "ELECTRON DIFFRACTION"]:
+                            rL.append(rv)
 
         if dataContainer.exists("em_3d_reconstruction"):
             tObj = dataContainer.getObj("em_3d_reconstruction")
-            if tObj.hasAttribute("resolution"):
+            if tObj.hasAttribute("resolution") and tObj.hasAttribute("resolution_method"):
                 for ii in range(tObj.getRowCount()):
                     rv = tObj.getValue("resolution", ii)
+                    rM = tObj.getValue("resolution_method", ii)
                     if self.__commonU.isFloat(rv):
-                        rL.append(rv)
+                        if rM.upper() in ["FSC 0.143 CUT-OFF"]:
+                            fL.append(rv)
+                        else:
+                            eL.append(rv)
+                if fL:
+                    rL.append(min(fL))
+                elif eL:
+                    rL.append(min(eL))
+                else:
+                    pass
+
         return rL
 
     def addCategoryPrimaryCitation(self, dataContainer, blockName, **kwargs):

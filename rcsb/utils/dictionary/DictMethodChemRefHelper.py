@@ -698,7 +698,7 @@ class DictMethodChemRefHelper(object):
                 cObj = dataContainer.getObj("chem_comp_bond")
                 numBonds = cObj.getRowCount()
                 numBondsAro = 0
-                for ii in range(numAtoms):
+                for ii in range(numBonds):
                     aroFlag = cObj.getValue("pdbx_aromatic_flag", ii)
                     if aroFlag != "N":
                         numBondsAro += 1

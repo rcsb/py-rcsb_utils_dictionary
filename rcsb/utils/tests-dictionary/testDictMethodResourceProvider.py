@@ -127,7 +127,7 @@ class DictmethodResourceProviderTests(unittest.TestCase):
             restoreUseGit=False,
         )
         for providerName in [
-            "CARDTargetFeatureProvider instance",
+            "CARDTargetAnnotationProvider instance",
             "ChEMBLTargetCofactorProvider instance",
             "DrugBankTargetCofactorProvider instance",
             "GlycanProvider instance",
@@ -151,7 +151,7 @@ class DictmethodResourceProviderTests(unittest.TestCase):
             restoreUseGit=False,
         )
         for providerName in [
-            "CARDTargetFeatureProvider instance",
+            "CARDTargetAnnotationProvider instance",
             "ChEMBLTargetCofactorProvider instance",
             "DrugBankTargetCofactorProvider instance",
             "GlycanProvider instance",
@@ -212,7 +212,7 @@ class DictmethodResourceProviderTests(unittest.TestCase):
             providerTypeExclude=None,
         )
         for providerName in [
-            "CARDTargetFeatureProvider instance",
+            "CARDTargetAnnotationProvider instance",
             "ChEMBLTargetCofactorProvider instance",
             "DrugBankTargetCofactorProvider instance",
             "GlycanProvider instance",

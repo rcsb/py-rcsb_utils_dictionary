@@ -14,6 +14,9 @@
 #   29-Jun-2022  dwp Update method 'buildCompModelProvenance' for populating rcsb_comp_model_provenance using mapping between internal and external IDs
 #    6-Jul-2022   bv RO-3357: Fix taxonomy assignment in addPolymerEntityTaxonomy
 #    6-Jul-2022  dwp Only populate rcsb_comp_model_provenance.source_url if it exists in CSM holdings file (may not exist for all AF fragments)
+#   26-Jan-2023  dwp Update method for populating entity_src_nat for cases where CSM already contains entity_src_nat;
+#                    No longer populate _struct.pdbx_structure_determination_methodology - was made internal to wwPDB
+#   20-Mar-2023  dwp Adjust formula weight calculation of polymer entities to use weights of amino acids as they exist in a linked polymer chains
 ##
 """
 Helper class implements computed model method references in the RCSB dictionary extension.
@@ -39,33 +42,6 @@ logger = logging.getLogger(__name__)
 class DictMethodCompModelHelper(object):
     """Helper class implements computed model method references in the RCSB dictionary extension."""
 
-    aaFwDict3 = {
-        "ALA": 89.093,
-        "ARG": 175.209,
-        "ASN": 132.118,
-        "ASP": 133.103,
-        "ASX": 100.096,
-        "CYS": 121.158,
-        "GLN": 146.144,
-        "GLU": 147.129,
-        "GLX": 114.123,
-        "GLY": 75.067,
-        "HIS": 156.162,
-        "ILE": 131.173,
-        "LEU": 131.173,
-        "LYS": 147.195,
-        "MET": 149.211,
-        "PHE": 165.189,
-        "PRO": 115.130,
-        "SER": 105.093,
-        "THR": 119.119,
-        "TRP": 204.225,
-        "TYR": 181.189,
-        "VAL": 117.146,
-        "PYL": 255.313,
-        "SEC": 168.053,
-    }
-
     def __init__(self, **kwargs):
         """
         Args:
@@ -88,7 +64,33 @@ class DictMethodCompModelHelper(object):
         #
         self.__mcP = rP.getResource("ModelCacheProvider instance") if rP else None
         #
-        # logger.debug("Dictionary entry method helper init")
+        # Dictionary of amino acids and their formula weights as they exist in a linked polymer chain vs as isolated amino acids (i.e. less 1 oxygen and 2 hydrogens)
+        self.aaFwDict3 = {k: v - 18.015 for k, v in {
+            "ALA": 89.093,
+            "ARG": 175.209,
+            "ASN": 132.118,
+            "ASP": 133.103,
+            "ASX": 100.096,
+            "CYS": 121.158,
+            "GLN": 146.144,
+            "GLU": 147.129,
+            "GLX": 114.123,
+            "GLY": 75.067,
+            "HIS": 156.162,
+            "ILE": 131.173,
+            "LEU": 131.173,
+            "LYS": 147.195,
+            "MET": 149.211,
+            "PHE": 165.189,
+            "PRO": 115.130,
+            "SER": 105.093,
+            "THR": 119.119,
+            "TRP": 204.225,
+            "TYR": 181.189,
+            "VAL": 117.146,
+            "PYL": 255.313,
+            "SEC": 168.053,
+        }.items()}
 
     def echo(self, msg):
         logger.info(msg)
@@ -109,14 +111,25 @@ class DictMethodCompModelHelper(object):
                 return False
             eObj = dataContainer.getObj("entity")
             epsObj = dataContainer.getObj("entity_poly_seq")
+            epObj = dataContainer.getObj("entity_poly")
+            epD = {}
             fwD = defaultdict(float)
             for ii in range(epsObj.getRowCount()):
                 monId = epsObj.getValue("mon_id", ii)
                 entityId = epsObj.getValue("entity_id", ii)
-                if monId not in DictMethodCompModelHelper.aaFwDict3:
+                if monId not in self.aaFwDict3:
                     logger.error("Unanticipated amino acid %r", monId)
                 else:
-                    fwD[entityId] += DictMethodCompModelHelper.aaFwDict3[monId]
+                    fwD[entityId] += self.aaFwDict3[monId]
+            for ii in range(epObj.getRowCount()):
+                entityId = epObj.getValue("entity_id", ii)
+                entityType = epObj.getValue("type", ii)
+                epD[entityId] = entityType
+            #
+            # Add the weight of 2 hydrogens + 1 oxygen to account for extra H and O atoms on NH3+ and COO- termini
+            for eId in fwD:
+                if eId in epD and "polypeptide" in epD[eId]:
+                    fwD[eId] += 18.015
             if not eObj.hasAttribute("formula_weight"):
                 eObj.appendAttribute("formula_weight")
             for ii in range(eObj.getRowCount()):
@@ -173,6 +186,12 @@ class DictMethodCompModelHelper(object):
             tObj = dataContainer.getObj("ma_target_ref_db_details")
             if not dataContainer.exists("entity_src_nat"):
                 dataContainer.append(DataCategory("entity_src_nat", attributeNameList=atL))
+            else:
+                # append additional attributes to entity_src_nat if not already present
+                esnAttrL = dataContainer.getObj('entity_src_nat').getAttributeList()
+                for ai in atL:
+                    if ai not in esnAttrL:
+                        dataContainer.getObj('entity_src_nat').appendAttribute(ai)
             sObj = dataContainer.getObj("entity_src_nat")
             #
             jj = 0
@@ -380,7 +399,6 @@ class DictMethodCompModelHelper(object):
             tObj = dataContainer.getObj("entry")
             entryId = tObj.getValue("id", 0)
 
-            methodType = "computational"
             tL = []
             qObj = dataContainer.getObj("entity")
 
@@ -398,7 +416,6 @@ class DictMethodCompModelHelper(object):
 
             xObj.setValue(entryId, "entry_id", 0)
             xObj.setValue(strTitle, "title", 0)
-            xObj.setValue(methodType, "pdbx_structure_determination_methodology", 0)
 
             return True
         except Exception as e:

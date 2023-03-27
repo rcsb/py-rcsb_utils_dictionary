@@ -2,14 +2,15 @@
 # File:    DictMethodEntityHelper.py
 # Author:  J. Westbrook
 # Date:    16-Jul-2019
-# Version: 0.001 Initial version
 #
 # Updates:
-# 29-Apr-2022 dwp Use internal computed-model identifiers for 'rcsb_id'
-#  3-May-2022 dwp Use internal computed-model identifiers for 'entry_id' in containter_identifiers
-# 23-June-2022 bv Use ma_target_ref_db_details to populate rcsb_polymer_entity_container_identifiers.reference_sequence_identifiers for MA models
-# 29-Jun-2022 dwp Use internal computed-model identifiers everywhere (in same manner as experimental models)
-# 21-Jul-2022 dwp Fix logic for assigning reference sequence identifiers for computed models
+#  29-Apr-2022 dwp Use internal computed-model identifiers for 'rcsb_id'
+#   3-May-2022 dwp Use internal computed-model identifiers for 'entry_id' in containter_identifiers
+#  23-Jun-2022 bv  Use ma_target_ref_db_details to populate rcsb_polymer_entity_container_identifiers.reference_sequence_identifiers for MA models
+#  29-Jun-2022 dwp Use internal computed-model identifiers everywhere (in same manner as experimental models)
+#  21-Jul-2022 dwp Fix logic for assigning reference sequence identifiers for computed models
+#   6-Mar-2023 dwp Stop loading CARD data to rcsb_polymer_entity_feature
+#  14-Mar-2023 dwp Load CARD data to rcsb_polymer_entity_annotation
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
@@ -72,7 +73,7 @@ class DictMethodEntityHelper(object):
         self.__ggP = rP.getResource("GlyGenProvider instance") if rP else None
         self.__pfP = rP.getResource("PfamProvider instance") if rP else None
         self.__birdP = rP.getResource("BirdProvider instance") if rP else None
-        self.__cardP = rP.getResource("CARDTargetFeatureProvider instance") if rP else None
+        self.__cardP = rP.getResource("CARDTargetAnnotationProvider instance") if rP else None
         self.__imgtP = rP.getResource("IMGTTargetFeatureProvider instance") if rP else None
         self.__sabdabP = rP.getResource("SAbDabTargetFeatureProvider instance") if rP else None
         self.__chemblP = rP.getResource("ChEMBLTargetCofactorProvider instance") if rP else None
@@ -1689,34 +1690,6 @@ class DictMethodEntityHelper(object):
                 jj += 1
                 ii += 1
             #
-            # --- CARD
-            if self.__cardP:
-                for entityId, eType in eTypeD.items():
-                    if eType not in ["polymer", "branched"]:
-                        continue
-                    eId = entryId + "_" + entityId
-                    fDL = self.__cardP.getFeatures(eId)
-                    for fD in fDL:
-                        begSeqId = ";".join([str(tD["beg_seq_id"]) for tD in fD["feature_positions"]])
-                        endSeqId = ";".join([str(tD["end_seq_id"]) for tD in fD["feature_positions"]])
-                        #
-                        cObj.setValue(ii + 1, "ordinal", ii)
-                        cObj.setValue(entryId, "entry_id", ii)
-                        cObj.setValue(entityId, "entity_id", ii)
-                        cObj.setValue("CARD_MODEL", "type", ii)
-                        cObj.setValue(fD["feature_id"], "feature_id", ii)
-                        cObj.setValue(fD["name"], "name", ii)
-                        cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
-                        cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
-                        cObj.setValue("CARD", "provenance_source", ii)
-                        cObj.setValue(str(fD["assignment_version"]), "assignment_version", ii)
-                        addPropTupL = []
-                        addPropTupL.append(("CARD_MODEL_DESCRIPTION", fD["description"]))
-                        addPropTupL.append(("CARD_MODEL_ORGANISM", fD["query_tax_name"]))
-                        cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
-                        cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
-                        #
-                        ii += 1
             # --- IMGT
             if self.__imgtP:
                 imgtIdD = {}
@@ -2611,7 +2584,7 @@ class DictMethodEntityHelper(object):
                 jj += 1
                 ii += 1
             #
-            # Pfam annotations
+            # --- Pfam annotations
             if self.__pfP:
                 polymerIdMapD = self.__commonU.getPolymerIdMap(dataContainer)
                 instEntityD = self.__commonU.getInstanceEntityMap(dataContainer)
@@ -2641,8 +2614,65 @@ class DictMethodEntityHelper(object):
                             cObj.setValue(str(self.__pfP.getVersion()), "assignment_version", ii)
                             #
                             ii += 1
+            # --- CARD annotations
+            if self.__cardP:
+                eTypeD = self.__commonU.getEntityTypes(dataContainer)
+                for entityId, eType in eTypeD.items():
+                    if eType not in ["polymer"]:
+                        continue
+                    eId = entryId + "_" + entityId
+                    fD = self.__cardP.getAnnotation(eId)
+                    if fD:
+                        # First add "AMR Gene" annotation for entities with perfect CARD matches
+                        if fD["perfect_match"] == "Y":
+                            cObj.setValue(ii + 1, "ordinal", ii)
+                            cObj.setValue(entryId, "entry_id", ii)
+                            cObj.setValue(entityId, "entity_id", ii)
+                            cObj.setValue("CARD", "type", ii)
+                            cObj.setValue("matching CARD Protein Homolog Models (PHM)", "provenance_source", ii)
+                            cObj.setValue(fD["annotation_id"], "annotation_id", ii)
+                            cObj.setValue(fD["name"], "name", ii)
+                            cObj.setValue(fD["description"], "description", ii)
+                            cObj.setValue(str(fD["assignment_version"]), "assignment_version", ii)
+                            addPropTupL = []
+                            addPropTupL.append(("CARD_ARO_CATEGORY", "AMR Gene"))
+                            addPropTupL.append(("CARD_ARO_CVTERM_ID", fD["card_aro_cvterm_id"]))
+                            cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
+                            cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
+                            #
+                            idLinL = fD["annotation_lineage"]
+                            cObj.setValue(";".join([str(lD["id"]) for lD in idLinL]), "annotation_lineage_id", ii)
+                            cObj.setValue(";".join([str(lD["name"]) for lD in idLinL]), "annotation_lineage_name", ii)
+                            cObj.setValue(";".join([str(lD["depth"]) for lD in idLinL]), "annotation_lineage_depth", ii)
+                            #
+                            ii += 1
+                        # Now add "AMR Gene Family" annotation (applicable for all entities)
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        cObj.setValue("CARD", "type", ii)
+                        cObj.setValue("matching CARD Protein Homolog Models (PHM)", "provenance_source", ii)
+                        cObj.setValue(fD["family_annotation_id"], "annotation_id", ii)
+                        cObj.setValue(fD["family_name"], "name", ii)
+                        cObj.setValue(fD["family_description"], "description", ii)
+                        cObj.setValue(str(fD["assignment_version"]), "assignment_version", ii)
+                        addPropTupL = []
+                        addPropTupL.append(("CARD_ARO_CATEGORY", "AMR Gene Family"))
+                        addPropTupL.append(("CARD_ARO_CVTERM_ID", fD["family_card_aro_cvterm_id"]))
+                        addPropTupL.append(("CARD_ARO_DRUG_CLASS", ",".join(fD["card_aro_drug_class"])))
+                        addPropTupL.append(("CARD_ARO_RESISTANCE_MECHANISM", fD["card_aro_resistance_mechanism"]))
+                        cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
+                        cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
+                        #
+                        idLinL = fD["family_annotation_lineage"]
+                        cObj.setValue(";".join([str(lD["id"]) for lD in idLinL]), "annotation_lineage_id", ii)
+                        cObj.setValue(";".join([str(lD["name"]) for lD in idLinL]), "annotation_lineage_name", ii)
+                        cObj.setValue(";".join([str(lD["depth"]) for lD in idLinL]), "annotation_lineage_depth", ii)
+                        #
+                        ii += 1
+                        #
             # ---
-            skipBird = True
+            skipBird = True  # JDW added this in: https://github.com/rcsb/py-rcsb_db/commit/c3432f32859557042cfb77d69cb9e2fea1b4bfac
             if not skipBird:
                 # BIRD type and class
                 birdFeatureD = self.__getBirdFeatures(dataContainer)
