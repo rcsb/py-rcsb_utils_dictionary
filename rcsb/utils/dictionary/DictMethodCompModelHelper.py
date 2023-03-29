@@ -147,6 +147,8 @@ class DictMethodCompModelHelper(object):
     def addPolymerEntityTaxonomy(self, dataContainer, catName, **kwargs):
         """Add unassigned polymer entity-level taxonomy (if both _ma_target_ref_db_details.ncbi_taxonomy_id and .organism_scientific are present).
 
+        Also add transient '_entity_src_nat.rcsb_provenance_source' attribute here, to use later for populating '_rcsb_entity_source_organism.provenance_source'.
+
         Args:
             dataContainer (object): mmif.api.DataContainer object instance
             catName (str): Category name
@@ -175,15 +177,37 @@ class DictMethodCompModelHelper(object):
             "pdbx_beg_seq_num",
             "pdbx_end_seq_num",
             "rcsb_gene_name",
+            "rcsb_provenance_source",
         ]
         logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
         try:
-            if not (dataContainer.exists("ma_data") and dataContainer.exists("ma_target_ref_db_details")):
+            if not dataContainer.exists("ma_data"):
                 return False
+            #
+            esnFullyPopulated = False
+            if dataContainer.exists("entity_src_nat"):  # If 'entity_src_nat' already exists, check to see how complete it is
+                sObj = dataContainer.getObj("entity_src_nat")
+                if all([ai in sObj.getAttributeList() for ai in ["pdbx_ncbi_taxonomy_id", "pdbx_organism_scientific"]]):
+                    if not sObj.hasAttribute("rcsb_provenance_source"):
+                        sObj.appendAttribute("rcsb_provenance_source")
+                    for ii in range(sObj.getRowCount()):
+                        if all(sObj.getValue(at, ii) and sObj.getValue(at, ii) not in [".", "?"] for at in ["pdbx_ncbi_taxonomy_id", "pdbx_organism_scientific"]):
+                            sObj.setValue("Primary Data", "rcsb_provenance_source", ii)
+                            esnFullyPopulated = True
+                        else:
+                            sObj.setValue(None, "rcsb_provenance_source", ii)
+            #
+            if esnFullyPopulated:  # Cases where entity_src_nat is already properly populated, in which case don't proceed with overwriting values below
+                return True
+            #
+            if not dataContainer.exists("ma_target_ref_db_details"):  # Case for models such as ma-coffe-slac
+                return False
+            #
             if not all([ai in dataContainer.getObj('ma_target_ref_db_details').getAttributeList() for ai in ["ncbi_taxonomy_id", "organism_scientific"]]):
                 return False
+            #
             geneName = None
-
+            #
             epLenD = self.__commonU.getPolymerEntityLengths(dataContainer)
             tObj = dataContainer.getObj("ma_target_ref_db_details")
             if not dataContainer.exists("entity_src_nat"):
@@ -198,7 +222,7 @@ class DictMethodCompModelHelper(object):
             #
             jj = 0
             dbSrcL = []
-            for ii in range(tObj.getRowCount()):
+            for ii in range(tObj.getRowCount()):  # This will only execute if 'ma_target_ref_db_details' exists
                 taxId = tObj.getValue("ncbi_taxonomy_id", ii)
                 orgName = tObj.getValue("organism_scientific", ii)
                 entityId = tObj.getValue("target_entity_id", ii)
@@ -216,9 +240,6 @@ class DictMethodCompModelHelper(object):
                     sObj.setValue("1", "pdbx_beg_seq_num", jj)
                     sObj.setValue(str(epLenD[entityId]), "pdbx_end_seq_num", jj)
                     sObj.setValue(geneName, "rcsb_gene_name", jj)
-                    # Set transient '_entity_src_nat.rcsb_provenance_source' attribute here, to use later for populating '_rcsb_entity_source_organism.provenance_source'
-                    if not sObj.hasAttribute("rcsb_provenance_source"):
-                        sObj.appendAttribute("rcsb_provenance_source")
                     if dbName == "UNP":
                         sObj.setValue("UniProt", "rcsb_provenance_source", jj)
                     if dbName == "Other":
