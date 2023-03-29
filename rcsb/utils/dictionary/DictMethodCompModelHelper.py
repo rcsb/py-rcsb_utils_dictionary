@@ -206,7 +206,9 @@ class DictMethodCompModelHelper(object):
                 dbName = tObj.getValue("db_name", ii)
                 #
                 if dbName in ["UNP", "Other"]:
-                    srcId = str(len(dbSrcL) + 1)
+                    if dbName not in dbSrcL:
+                        dbSrcL.append(dbName)
+                    srcId = str(dbSrcL.index(dbName) + 1)
                     sObj.setValue(entityId, "entity_id", jj)
                     sObj.setValue(taxId, "pdbx_ncbi_taxonomy_id", jj)
                     sObj.setValue(orgName, "pdbx_organism_scientific", jj)
@@ -221,7 +223,6 @@ class DictMethodCompModelHelper(object):
                         sObj.setValue("UniProt", "rcsb_provenance_source", jj)
                     if dbName == "Other":
                         sObj.setValue("NCBI", "rcsb_provenance_source", jj)
-                    dbSrcL.append(dbName)
                     jj += 1
             #
             return True
