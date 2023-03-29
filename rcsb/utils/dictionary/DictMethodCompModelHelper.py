@@ -17,6 +17,8 @@
 #   26-Jan-2023  dwp Update method for populating entity_src_nat for cases where CSM already contains entity_src_nat;
 #                    No longer populate _struct.pdbx_structure_determination_methodology - was made internal to wwPDB
 #   20-Mar-2023  dwp Adjust formula weight calculation of polymer entities to use weights of amino acids as they exist in a linked polymer chains
+#   28-Mar-2023  dwp Add transient '_entity_src_nat.rcsb_provenance_source' attribute to use later for populating '_rcsb_entity_source_organism.provenance_source';
+#                    Update assignment of '_entity_src_nat.pdbx_src_id'
 ##
 """
 Helper class implements computed model method references in the RCSB dictionary extension.
@@ -212,7 +214,7 @@ class DictMethodCompModelHelper(object):
                     sObj.setValue("1", "pdbx_beg_seq_num", jj)
                     sObj.setValue(str(epLenD[entityId]), "pdbx_end_seq_num", jj)
                     sObj.setValue(geneName, "rcsb_gene_name", jj)
-                    # Set transient 'entity_src_nat.rcsb_provenance_source' attribute here to use later to populate '_rcsb_entity_source_organism.provenance_source'
+                    # Set transient '_entity_src_nat.rcsb_provenance_source' attribute here, to use later for populating '_rcsb_entity_source_organism.provenance_source'
                     if not sObj.hasAttribute("rcsb_provenance_source"):
                         sObj.appendAttribute("rcsb_provenance_source")
                     if dbName == "UNP":
