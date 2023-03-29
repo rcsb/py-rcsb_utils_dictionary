@@ -11,6 +11,7 @@
 #  21-Jul-2022 dwp Fix logic for assigning reference sequence identifiers for computed models
 #   6-Mar-2023 dwp Stop loading CARD data to rcsb_polymer_entity_feature
 #  14-Mar-2023 dwp Load CARD data to rcsb_polymer_entity_annotation
+#  28-Mar-2023 dwp Populate 'rcsb_entity_source_organism.provenance_source' with transient value from 'entity_src_nat.rcsb_provenance_source' (applicable to CSMs only)
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
@@ -605,10 +606,14 @@ class DictMethodEntityHelper(object):
             #
             eObj = dataContainer.getObj("entity")
             entityIdL = eObj.getAttributeValueList("id")
+            #
             if isCompModel:
-                provSource = "UniProt"
+                if s2Obj.hasAttribute("rcsb_provenance_source"):
+                    provSource = s2Obj.getValue("rcsb_provenance_source", 0)
+                else:
+                    provSource = None
             else:
-                provSource = "PDB Primary Data"
+                provSource = "Primary Data"
             #
             partCountD = {}
             srcL = []

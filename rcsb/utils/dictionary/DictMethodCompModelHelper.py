@@ -195,6 +195,7 @@ class DictMethodCompModelHelper(object):
             sObj = dataContainer.getObj("entity_src_nat")
             #
             jj = 0
+            dbSrcL = []
             for ii in range(tObj.getRowCount()):
                 taxId = tObj.getValue("ncbi_taxonomy_id", ii)
                 orgName = tObj.getValue("organism_scientific", ii)
@@ -202,14 +203,23 @@ class DictMethodCompModelHelper(object):
                 geneName = tObj.getValueOrDefault("gene_name", ii, defaultValue=None)
                 dbName = tObj.getValue("db_name", ii)
                 #
-                if dbName == "UNP":
+                if dbName in ["UNP", "Other"]:
+                    srcId = str(len(dbSrcL) + 1)
                     sObj.setValue(entityId, "entity_id", jj)
                     sObj.setValue(taxId, "pdbx_ncbi_taxonomy_id", jj)
                     sObj.setValue(orgName, "pdbx_organism_scientific", jj)
-                    sObj.setValue("1", "pdbx_src_id", jj)
+                    sObj.setValue(srcId, "pdbx_src_id", jj)
                     sObj.setValue("1", "pdbx_beg_seq_num", jj)
                     sObj.setValue(str(epLenD[entityId]), "pdbx_end_seq_num", jj)
                     sObj.setValue(geneName, "rcsb_gene_name", jj)
+                    # Set transient 'entity_src_nat.rcsb_provenance_source' attribute here to use later to populate '_rcsb_entity_source_organism.provenance_source'
+                    if not sObj.hasAttribute("rcsb_provenance_source"):
+                        sObj.appendAttribute("rcsb_provenance_source")
+                    if dbName == "UNP":
+                        sObj.setValue("UniProt", "rcsb_provenance_source", jj)
+                    if dbName == "Other":
+                        sObj.setValue("NCBI", "rcsb_provenance_source", jj)
+                    dbSrcL.append(dbName)
                     jj += 1
             #
             return True
