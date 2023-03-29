@@ -608,12 +608,9 @@ class DictMethodEntityHelper(object):
             entityIdL = eObj.getAttributeValueList("id")
             #
             if isCompModel:
-                if s2Obj.hasAttribute("rcsb_provenance_source"):
-                    provSource = s2Obj.getValue("rcsb_provenance_source", 0)
-                else:
-                    provSource = None
-            else:
-                provSource = "Primary Data"
+                provSource = None  # Initialize empty provSource for CSMs (will be retrieved on a per-entity basis below)
+            if not isCompModel:
+                provSource = "Primary Data"  # For all experimental entities, use this provSource
             #
             partCountD = {}
             srcL = []
@@ -676,6 +673,14 @@ class DictMethodEntityHelper(object):
                     partCountD[entityId] = len(tvL)
                 else:
                     tvL = [tv]
+                # Get provSource corresopnding to current entityId (for CSMs only. Experimental entities are always "Primary Data")
+                if isCompModel and s2Obj.hasAttribute("rcsb_provenance_source"):
+                    provSource = None  # Initialize empty provSource (reset state between each entity loop)
+                    for kk in range(s2Obj.getRowCount()):
+                        if s2Obj.getValue("entity_id", kk) == entityId:
+                            provSource = s2Obj.getValue("rcsb_provenance_source", kk)
+                            if provSource and provSource not in [".", "?"]:
+                                break  # Break after finding the first non-empty entity_nat_src.provenance_source value
                 for v in tvL:
                     cObj.setValue(sType, "source_type", iRow)
                     cObj.setValue(provSource, "provenance_source", iRow)
@@ -731,6 +736,14 @@ class DictMethodEntityHelper(object):
                     # partCountD[entityId] = len(tvL)
                 else:
                     tvL = [tv]
+                # Get provSource corresopnding to current entityId (for CSMs only. Experimental entities are always "Primary Data")
+                if isCompModel and s2Obj.hasAttribute("rcsb_provenance_source"):
+                    provSource = None  # Initialize empty provSource (reset state between each entity loop)
+                    for kk in range(s2Obj.getRowCount()):
+                        if s2Obj.getValue("entity_id", kk) == entityId:
+                            provSource = s2Obj.getValue("rcsb_provenance_source", kk)
+                            if provSource and provSource not in [".", "?"]:
+                                break  # Break after finding the first non-empty entity_nat_src.provenance_source value
                 for v in tvL:
                     hObj.setValue(provSource, "provenance_source", iRow)
                     for ii, at in enumerate(atL):
@@ -1319,7 +1332,7 @@ class DictMethodEntityHelper(object):
                         eObj.setValue(",".join(ecIdUpdL), "pdbx_ec", ii)
                         eObj.setValue(";".join(ecIdUpdL), "rcsb_enzyme_class_combined_ec", ii)
                         eObj.setValue(";".join(ecDepthUpdL), "rcsb_enzyme_class_combined_depth", ii)
-                        eObj.setValue(";".join(["Primary Data" for _ in ecIdUpdL]), "rcsb_enzyme_class_combined_provenance_source", ii)
+                        eObj.setValue(";".join(["PDB Primary Data" for _ in ecIdUpdL]), "rcsb_enzyme_class_combined_provenance_source", ii)
                     else:
                         eObj.setValue("?", "pdbx_ec", ii)
                         eObj.setValue("?", "rcsb_enzyme_class_combined_ec", ii)
