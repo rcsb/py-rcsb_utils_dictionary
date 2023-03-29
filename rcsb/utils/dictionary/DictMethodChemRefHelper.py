@@ -4,6 +4,8 @@
 # Date:    16-Jul-2019
 # Version: 0.001 Initial version
 #
+# Updates:
+#   29-Mar-2023 dwp Correct attribute name '_rcsb_chem_comp_target.provenance_code' to '_rcsb_chem_comp_target.provenance_source'
 ##
 """
 Helper class implements external method references supporting chemical
@@ -470,7 +472,7 @@ class DictMethodChemRefHelper(object):
              _rcsb_chem_comp_target.organism_common_name
              _rcsb_chem_comp_target.reference_database_name
              _rcsb_chem_comp_target.reference_database_accession_code
-             _rcsb_chem_comp_target.provenance_code
+             _rcsb_chem_comp_target.provenance_source
              ATP 1 "O-phosphoseryl-tRNA(Sec) selenium transferase" target cofactor Human UniProt Q9HD40 DrugBank
 
         DrugBank target info:
@@ -518,13 +520,13 @@ class DictMethodChemRefHelper(object):
                                 "organism_common_name",
                                 "reference_database_name",
                                 "reference_database_accession_code",
-                                "provenance_code",
+                                "provenance_source",
                             ],
                         )
                     )
                 wObj = dataContainer.getObj(catName)
                 logger.debug("Using DrugBank mapping length %d", len(dbMapD))
-                rL = wObj.selectIndices("DrugBank", "provenance_code")
+                rL = wObj.selectIndices("DrugBank", "provenance_source")
                 if rL:
                     ok = wObj.removeRows(rL)
                     if not ok:
@@ -544,7 +546,7 @@ class DictMethodChemRefHelper(object):
                     if "uniprot_ids" in tD:
                         wObj.setValue("UniProt", "reference_database_name", iRow)
                         wObj.setValue(tD["uniprot_ids"], "reference_database_accession_code", iRow)
-                    wObj.setValue("DrugBank", "provenance_code", iRow)
+                    wObj.setValue("DrugBank", "provenance_source", iRow)
                     iRow += 1
 
             #

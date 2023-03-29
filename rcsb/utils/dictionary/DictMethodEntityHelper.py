@@ -498,7 +498,7 @@ class DictMethodEntityHelper(object):
             _rcsb_entity_source_organism.taxonomy_lineage_id
             _rcsb_entity_source_organism.taxonomy_lineage_name
             _rcsb_entity_source_organism.taxonomy_lineage_depth
-            1 1 natural 'Homo sapiens' human 9606  'PDB Primary Data' 1 202 . . .
+            1 1 natural 'Homo sapiens' human 9606  'Primary Data' 1 202 . . .
             # ... abbreviated
 
 
@@ -514,7 +514,7 @@ class DictMethodEntityHelper(object):
             _rcsb_entity_host_organism.taxonomy_lineage_id
             _rcsb_entity_host_organism.taxonomy_lineage_name
             _rcsb_entity_host_organism.taxonomy_lineage_depth
-                        1 1 'Escherichia coli' 'E. coli' 562  'PDB Primary Data' 1 102 .  . .
+                        1 1 'Escherichia coli' 'E. coli' 562  'Primary Data' 1 102 .  . .
             # ... abbreviated
 
             And two related items -
@@ -1319,7 +1319,7 @@ class DictMethodEntityHelper(object):
                         eObj.setValue(",".join(ecIdUpdL), "pdbx_ec", ii)
                         eObj.setValue(";".join(ecIdUpdL), "rcsb_enzyme_class_combined_ec", ii)
                         eObj.setValue(";".join(ecDepthUpdL), "rcsb_enzyme_class_combined_depth", ii)
-                        eObj.setValue(";".join(["PDB Primary Data" for _ in ecIdUpdL]), "rcsb_enzyme_class_combined_provenance_source", ii)
+                        eObj.setValue(";".join(["Primary Data" for _ in ecIdUpdL]), "rcsb_enzyme_class_combined_provenance_source", ii)
                     else:
                         eObj.setValue("?", "pdbx_ec", ii)
                         eObj.setValue("?", "rcsb_enzyme_class_combined_ec", ii)
