@@ -6,6 +6,7 @@
 #
 # Updates:
 #   29-Mar-2023 dwp Correct attribute name '_rcsb_chem_comp_target.provenance_code' to '_rcsb_chem_comp_target.provenance_source'
+#    5-Apr-2023 dwp Stop loading rcsb_chem_comp_synonyms for rcsb_chem_comp_synonyms.type 'Brand Name' (to be loaded to new separate data item later)
 ##
 """
 Helper class implements external method references supporting chemical
@@ -949,15 +950,15 @@ class DictMethodChemRefHelper(object):
                             wObj.setValue("DrugBank", "provenance_source", iRow)
                             wObj.setValue("Synonym", "type", iRow)
                             iRow += 1
-                    if "brand_names" in dbMapD[ccId]:
-                        iRow = wObj.getRowCount()
-                        for nm in dbMapD[ccId]["brand_names"]:
-                            wObj.setValue(ccId, "comp_id", iRow)
-                            wObj.setValue(str(nm).strip(), "name", iRow)
-                            wObj.setValue(iRow + 1, "ordinal", iRow)
-                            wObj.setValue("DrugBank", "provenance_source", iRow)
-                            wObj.setValue("Brand Name", "type", iRow)
-                            iRow += 1
+                    # if "brand_names" in dbMapD[ccId]:
+                    #     iRow = wObj.getRowCount()
+                    #     for nm in dbMapD[ccId]["brand_names"]:
+                    #         wObj.setValue(ccId, "comp_id", iRow)
+                    #         wObj.setValue(str(nm).strip(), "name", iRow)
+                    #         wObj.setValue(iRow + 1, "ordinal", iRow)
+                    #         wObj.setValue("DrugBank", "provenance_source", iRow)
+                    #         wObj.setValue("Brand Name", "type", iRow)
+                    #         iRow += 1
 
             return True
         except Exception as e:
