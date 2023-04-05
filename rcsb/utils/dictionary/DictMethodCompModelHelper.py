@@ -149,6 +149,10 @@ class DictMethodCompModelHelper(object):
 
         Also add transient '_entity_src_nat.rcsb_provenance_source' attribute here, to use later for populating '_rcsb_entity_source_organism.provenance_source'.
 
+        Note that there are two unique situations which are currently not handled by the current logic:
+          1. If an entry containing >1 entities has a entity_src_nat section, but only populates the metadata for one entity in CIF, then taxon data would be lost for the other entity
+          2. If an entry has gene_name information in _ma_target_ref_db_details, but also has entity_src_nat, then the gene_name information will not be propagated onto source_organism
+
         Args:
             dataContainer (object): mmif.api.DataContainer object instance
             catName (str): Category name
