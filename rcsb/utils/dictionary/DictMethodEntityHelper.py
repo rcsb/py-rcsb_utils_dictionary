@@ -11,6 +11,7 @@
 #  21-Jul-2022 dwp Fix logic for assigning reference sequence identifiers for computed models
 #   6-Mar-2023 dwp Stop loading CARD data to rcsb_polymer_entity_feature
 #  14-Mar-2023 dwp Load CARD data to rcsb_polymer_entity_annotation
+#  28-Mar-2023 dwp Populate 'rcsb_entity_source_organism.provenance_source' with transient value from 'entity_src_nat.rcsb_provenance_source' (applicable to CSMs only)
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
@@ -497,7 +498,7 @@ class DictMethodEntityHelper(object):
             _rcsb_entity_source_organism.taxonomy_lineage_id
             _rcsb_entity_source_organism.taxonomy_lineage_name
             _rcsb_entity_source_organism.taxonomy_lineage_depth
-            1 1 natural 'Homo sapiens' human 9606  'PDB Primary Data' 1 202 . . .
+            1 1 natural 'Homo sapiens' human 9606  'Primary Data' 1 202 . . .
             # ... abbreviated
 
 
@@ -513,7 +514,7 @@ class DictMethodEntityHelper(object):
             _rcsb_entity_host_organism.taxonomy_lineage_id
             _rcsb_entity_host_organism.taxonomy_lineage_name
             _rcsb_entity_host_organism.taxonomy_lineage_depth
-                        1 1 'Escherichia coli' 'E. coli' 562  'PDB Primary Data' 1 102 .  . .
+                        1 1 'Escherichia coli' 'E. coli' 562  'Primary Data' 1 102 .  . .
             # ... abbreviated
 
             And two related items -
@@ -605,10 +606,11 @@ class DictMethodEntityHelper(object):
             #
             eObj = dataContainer.getObj("entity")
             entityIdL = eObj.getAttributeValueList("id")
+            #
             if isCompModel:
-                provSource = "UniProt"
-            else:
-                provSource = "PDB Primary Data"
+                provSource = None  # Initialize empty provSource for CSMs (will be retrieved on a per-entity basis below)
+            if not isCompModel:
+                provSource = "Primary Data"  # For all experimental entities, use this provSource
             #
             partCountD = {}
             srcL = []
@@ -671,6 +673,14 @@ class DictMethodEntityHelper(object):
                     partCountD[entityId] = len(tvL)
                 else:
                     tvL = [tv]
+                # Get provSource corresopnding to current entityId (for CSMs only. Experimental entities are always "Primary Data")
+                if isCompModel and s2Obj.hasAttribute("rcsb_provenance_source"):
+                    provSource = None  # Initialize empty provSource (reset state between each entity loop)
+                    for kk in range(s2Obj.getRowCount()):
+                        if s2Obj.getValue("entity_id", kk) == entityId:
+                            provSource = s2Obj.getValue("rcsb_provenance_source", kk)
+                            if provSource and provSource not in [".", "?"]:
+                                break  # Break after finding the first non-empty entity_nat_src.provenance_source value
                 for v in tvL:
                     cObj.setValue(sType, "source_type", iRow)
                     cObj.setValue(provSource, "provenance_source", iRow)
@@ -726,6 +736,14 @@ class DictMethodEntityHelper(object):
                     # partCountD[entityId] = len(tvL)
                 else:
                     tvL = [tv]
+                # Get provSource corresopnding to current entityId (for CSMs only. Experimental entities are always "Primary Data")
+                if isCompModel and s2Obj.hasAttribute("rcsb_provenance_source"):
+                    provSource = None  # Initialize empty provSource (reset state between each entity loop)
+                    for kk in range(s2Obj.getRowCount()):
+                        if s2Obj.getValue("entity_id", kk) == entityId:
+                            provSource = s2Obj.getValue("rcsb_provenance_source", kk)
+                            if provSource and provSource not in [".", "?"]:
+                                break  # Break after finding the first non-empty entity_nat_src.provenance_source value
                 for v in tvL:
                     hObj.setValue(provSource, "provenance_source", iRow)
                     for ii, at in enumerate(atL):

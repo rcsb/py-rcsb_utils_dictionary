@@ -17,6 +17,8 @@
 #   26-Jan-2023  dwp Update method for populating entity_src_nat for cases where CSM already contains entity_src_nat;
 #                    No longer populate _struct.pdbx_structure_determination_methodology - was made internal to wwPDB
 #   20-Mar-2023  dwp Adjust formula weight calculation of polymer entities to use weights of amino acids as they exist in a linked polymer chains
+#   28-Mar-2023  dwp Add transient '_entity_src_nat.rcsb_provenance_source' attribute to use later for populating '_rcsb_entity_source_organism.provenance_source';
+#                    Update assignment of '_entity_src_nat.pdbx_src_id'
 ##
 """
 Helper class implements computed model method references in the RCSB dictionary extension.
@@ -145,6 +147,12 @@ class DictMethodCompModelHelper(object):
     def addPolymerEntityTaxonomy(self, dataContainer, catName, **kwargs):
         """Add unassigned polymer entity-level taxonomy (if both _ma_target_ref_db_details.ncbi_taxonomy_id and .organism_scientific are present).
 
+        Also add transient '_entity_src_nat.rcsb_provenance_source' attribute here, to use later for populating '_rcsb_entity_source_organism.provenance_source'.
+
+        Note that there are two unique situations which are currently not handled by the current logic:
+          1. If an entry containing >1 entities has a entity_src_nat section, but only populates the metadata for one entity in CIF, then taxon data would be lost for the other entity
+          2. If an entry has gene_name information in _ma_target_ref_db_details, but also has entity_src_nat, then the gene_name information will not be propagated onto source_organism
+
         Args:
             dataContainer (object): mmif.api.DataContainer object instance
             catName (str): Category name
@@ -173,15 +181,37 @@ class DictMethodCompModelHelper(object):
             "pdbx_beg_seq_num",
             "pdbx_end_seq_num",
             "rcsb_gene_name",
+            "rcsb_provenance_source",
         ]
         logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
         try:
-            if not (dataContainer.exists("ma_data") and dataContainer.exists("ma_target_ref_db_details")):
+            if not dataContainer.exists("ma_data"):
                 return False
+            #
+            esnFullyPopulated = False
+            if dataContainer.exists("entity_src_nat"):  # If 'entity_src_nat' already exists, check to see how complete it is
+                sObj = dataContainer.getObj("entity_src_nat")
+                if all([ai in sObj.getAttributeList() for ai in ["pdbx_ncbi_taxonomy_id", "pdbx_organism_scientific"]]):
+                    if not sObj.hasAttribute("rcsb_provenance_source"):
+                        sObj.appendAttribute("rcsb_provenance_source")
+                    for ii in range(sObj.getRowCount()):
+                        if all(sObj.getValue(at, ii) and sObj.getValue(at, ii) not in [".", "?"] for at in ["pdbx_ncbi_taxonomy_id", "pdbx_organism_scientific"]):
+                            sObj.setValue("Primary Data", "rcsb_provenance_source", ii)
+                            esnFullyPopulated = True
+                        else:
+                            sObj.setValue(None, "rcsb_provenance_source", ii)
+            #
+            if esnFullyPopulated:  # Cases where entity_src_nat is already properly populated, in which case don't proceed with overwriting values below
+                return True
+            #
+            if not dataContainer.exists("ma_target_ref_db_details"):  # Case for models such as ma-coffe-slac
+                return False
+            #
             if not all([ai in dataContainer.getObj('ma_target_ref_db_details').getAttributeList() for ai in ["ncbi_taxonomy_id", "organism_scientific"]]):
                 return False
+            #
             geneName = None
-
+            #
             epLenD = self.__commonU.getPolymerEntityLengths(dataContainer)
             tObj = dataContainer.getObj("ma_target_ref_db_details")
             if not dataContainer.exists("entity_src_nat"):
@@ -195,21 +225,29 @@ class DictMethodCompModelHelper(object):
             sObj = dataContainer.getObj("entity_src_nat")
             #
             jj = 0
-            for ii in range(tObj.getRowCount()):
+            dbSrcL = []
+            for ii in range(tObj.getRowCount()):  # This will only execute if 'ma_target_ref_db_details' exists
                 taxId = tObj.getValue("ncbi_taxonomy_id", ii)
                 orgName = tObj.getValue("organism_scientific", ii)
                 entityId = tObj.getValue("target_entity_id", ii)
                 geneName = tObj.getValueOrDefault("gene_name", ii, defaultValue=None)
                 dbName = tObj.getValue("db_name", ii)
                 #
-                if dbName == "UNP":
+                if dbName in ["UNP", "Other"]:
+                    if dbName not in dbSrcL:
+                        dbSrcL.append(dbName)
+                    srcId = str(dbSrcL.index(dbName) + 1)
                     sObj.setValue(entityId, "entity_id", jj)
                     sObj.setValue(taxId, "pdbx_ncbi_taxonomy_id", jj)
                     sObj.setValue(orgName, "pdbx_organism_scientific", jj)
-                    sObj.setValue("1", "pdbx_src_id", jj)
+                    sObj.setValue(srcId, "pdbx_src_id", jj)
                     sObj.setValue("1", "pdbx_beg_seq_num", jj)
                     sObj.setValue(str(epLenD[entityId]), "pdbx_end_seq_num", jj)
                     sObj.setValue(geneName, "rcsb_gene_name", jj)
+                    if dbName == "UNP":
+                        sObj.setValue("UniProt", "rcsb_provenance_source", jj)
+                    if dbName == "Other":
+                        sObj.setValue("NCBI", "rcsb_provenance_source", jj)
                     jj += 1
             #
             return True
