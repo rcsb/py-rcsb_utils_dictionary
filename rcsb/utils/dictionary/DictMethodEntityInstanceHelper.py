@@ -921,22 +921,27 @@ class DictMethodEntityInstanceHelper(object):
                     ii += 1
                 logger.debug("Completed populating local QA scores for computed model %r", dataContainer.getName())
 
-            # Populate local scores
-            if dataContainer.exists("pdbx_vrpt_model_instance_map_fitting"):
-                localScoresD = self.__commonU.getLocalValidationScores(dataContainer)
-                if localScoresD: # No validation scores
-                    for (modelId, asymId, metricId, hasSeq), aD in localScoresD.items():
+            # Populate local validation report data values
+            if dataContainer.exists("pdbx_vrpt_model_instance"):
+                localDataD = self.__commonU.getLocalValidationData(dataContainer)
+                if localDataD:  # No validation data at residue level
+                    for (modelId, asymId, authAsymId, pdbModelNum, metricId, hasSeq), aD in localDataD.items():
                         entityId = asymIdD[asymId]
                         cObj.setValue(ii + 1, "ordinal", ii)
                         cObj.setValue(entryId, "entry_id", ii)
                         cObj.setValue(entityId, "entity_id", ii)
                         cObj.setValue(asymId, "asym_id", ii)
-                        cObj.setValue("PDB validation report", "provenance_source", ii)
-                        cObj.setValue("VALIDATION_REPORT", "type", ii)
+                        cObj.setValue(authAsymId, "auth_asym_id", ii)
+                        cObj.setValue("PDB", "provenance_source", ii)
+                        cObj.setValue(metricId, "type", ii)
                         cObj.setValue(metricId, "name", ii)
                         cObj.setValue(metricId, "feature_id", ii)
+                        addPropTupL = [("MODEL_NUM", pdbModelNum)]
+                        cObj.setValue(";".join([str(tup1[0]) for tup1 in addPropTupL]), "additional_properties_name", ii)
+                        cObj.setValue(";".join([str(tup1[1]) for tup1 in addPropTupL]), "additional_properties_values", ii)
                         fValL = []
                         if hasSeq:
+                            sId = ""
                             for _, vD in enumerate(aD):
                                 for k1, vL in vD.items():
                                     fVal = ",".join([str(v) for v in vL])
@@ -944,11 +949,9 @@ class DictMethodEntityInstanceHelper(object):
                                 sId = ";".join([str(k1) for k1, vL in vD.items()])
                             cObj.setValue(";".join([str(tup) for tup in fValL]), "feature_positions_values", ii)
                             cObj.setValue(sId, "feature_positions_beg_seq_id", ii)
-                        else:  # nonpolymer
-                            cObj.setValue(aD[0][0][0], "feature_value_reported", ii)
 
                         ii += 1
-                    logger.debug("Completed populating local validation report scores for %r", dataContainer.getName())
+                    logger.debug("Completed populating local validation report data for %r", dataContainer.getName())
 
             npbD = self.__commonU.getBoundNonpolymersByInstance(dataContainer)
             jj = 1

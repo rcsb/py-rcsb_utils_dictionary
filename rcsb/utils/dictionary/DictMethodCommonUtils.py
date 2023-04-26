@@ -4241,9 +4241,27 @@ class DictMethodCommonUtils(object):
 
         return repModelL
 
-    def getLocalValidationScores(self, dataContainer):
-        """ Get Local validation scores from the Validation report
-            (e.g., pdbx_vrpt_instance_results.Q_score) and convert to objects corresponding to
+    def __getValidationData(self, tObj, iObj, fields, idField, metricValD, dL):
+        for ii in range(tObj.getRowCount()):
+            instId = tObj.getValue(idField, ii)
+            [[entityId, asymId, authAsymId, seqId, modelNum]] = iObj.selectValueListWhere(["entity_id", "label_asym_id", "auth_asym_id", "label_seq_id", "PDB_model_num"], instId, "id")
+            hasSeq = False
+            if seqId == ".":
+                seqId = "0"
+            else:
+                hasSeq = True
+            for iFd, iFdv in fields.items():
+                value = tObj.getValueOrDefault(iFdv, ii, None)
+                if value is not None:
+                    tId = iFd + "_" + entityId + "_" + asymId + "_" + modelNum + "_" + seqId
+                    if seqId and seqId not in [".", "?"]:  # Eliminates non-polymers and branched
+                        if tId not in dL:
+                            metricValD.setdefault((entityId, asymId, authAsymId, modelNum, iFd, hasSeq), []).append((seqId, value))
+                            dL.append(tId)
+
+    def getLocalValidationData(self, dataContainer):
+        """ Get Local validation data from the Validation report
+            (e.g., pdbx_vrpt_model_instance_map_fitting.Q_score) and convert to objects corresponding to
             rcsb_entity_instance_feature in the RCSB extension dictionary
 
             Args:
@@ -4251,56 +4269,78 @@ class DictMethodCommonUtils(object):
 
         """
         metricValD = OrderedDict()
-        localScoresD = OrderedDict()
-        ValidationFields = [
-                            # "phi", "psi", #"num_H_reduce", "cis_peptide", "ramachandran_class",
-                            # "rotamer_class", "flippable_sidechain",
-                            #"mogul_angles_RMSZ", "mogul_bonds_RMSZ", "mogul_RMSZ_num_angles",
-                            # "mogul_RMSZ_num_bonds", "residue_inclusion",
-                            "Q_score"]
+        localDataD = OrderedDict()
+
+        # Exit if no source categories are present
+        if not (
+                dataContainer.exists("pdbx_vrpt_model_instance_map_fitting")
+                or dataContainer.exists("pdbx_vrpt_model_instance_density")
+                or dataContainer.exists("pdbx_vrpt_model_instance_geometry")
+                or dataContainer.exists("pdbx_vrpt_model_instance")
+        ):
+            return localDataD
+
+        ValidationFields = {
+            "RSCC": "RSRCC",
+            "RSR": "RSR",
+            "RSRZ": "RSRZ",
+            "Q_SCORE": "Q_score"
+        }
+        OutlierCountFields = {
+            "COUNT_BOND_OUTLIERS": "count_bond_outliers",
+            "COUNT_ANGLE_OUTLIERS": "count_angle_outliers",
+            "COUNT_CLASHES": "count_clashes",
+            "COUNT_SYMM_CLASHES": "count_symm_clashes",
+            "COUNT_CHIRAL_OUTLIERS": "count_chiral_outliers",
+            "COUNT_PLANE_OUTLIERS": "count_plane_outliers",
+            "COUNT_MOGUL_BOND_OUTLIERS": "count_mogul_bond_outliers",
+            "COUNT_MOGUL_ANGLE_OUTLIERS": "count_mogul_angle_outliers",
+            "COUNT_MOGUL_TORSION_OUTLIERS": "count_mogul_torsion_outliers",
+            "COUNT_MOGUL_RING_OUTLIERS": "count_mogul_ring_outliers"
+        }
 
         try:
+            iObj = dataContainer.getObj("pdbx_vrpt_model_instance")
+            eObj = dataContainer.getObj("entry")
+            entryId = eObj.getValue("id", 0)
+            logger.debug("Starting validation report feature for %s.", entryId)
+            dL = []
+
+            # pdbx_vrpt_model_instance_map_fitting
             if dataContainer.exists("pdbx_vrpt_model_instance_map_fitting"):
                 tObj = dataContainer.getObj("pdbx_vrpt_model_instance_map_fitting")
-                iObjList = dataContainer.getObj("pdbx_vrpt_model_instance")
-                eObj = dataContainer.getObj("entry")
-                entryId = eObj.getValue("id", 0)
-                logger.debug("Starting validation report feature for %s.", entryId)
-                dL = []
-                for ii in range(tObj.getRowCount()):
-                    instId = tObj.getValue("instance_id", ii)
-                    instObj = iObjList[instId]
-                    entityId = instObj.getValue("entity_id", ii)
-                    seqId = instObj.getValue("label_seq_id", ii)
-                    hasSeq = False
-                    if seqId == ".":
-                        seqId = "0"
-                    else:
-                        hasSeq = True
-                    asymId = instObj.getValue("label_asym_id", ii)
-                    for iFd in ValidationFields:
-                        value = tObj.getValueOrDefault(iFd, ii, None)
-                        if value is not None:
-                            tId = iFd + "_" + entityId + "_" + asymId + "_" + seqId
-                            if tId not in dL:
-                                metricValD.setdefault((entityId, asymId, iFd, hasSeq), []).append((seqId, value))
-                                dL.append(tId)
+                self.__getValidationData(tObj, iObj, ValidationFields, "instance_id", metricValD, dL)
 
-                for (modelId, asymId, attrId, hasSeq), aL in metricValD.items():
-                    tD = {}
-                    sL = sorted(aL, key=lambda i: int(i[0]))
-                    mL = [int(s[0]) for s in sL]
-                    for ii in range(len(sL)):
-                        seqId = sL[ii][0]
-                        metricV = sL[ii][1]
-                        for tup in list(self.__toRangeList(mL)):
-                            beg = tup[0]
-                            end = tup[1]
-                            if int(beg) <= int(seqId) <= int(end) and metricV is not None:
-                                tD.setdefault(int(beg), []).append(float(metricV))
-                    localScoresD.setdefault((modelId, asymId, attrId, hasSeq), []).append(tD)
+            # pdbx_vrpt_model_instance_density
+            if dataContainer.exists("pdbx_vrpt_model_instance_density"):
+                tObj = dataContainer.getObj("pdbx_vrpt_model_instance_density")
+                self.__getValidationData(tObj, iObj, ValidationFields, "instance_id", metricValD, dL)
+
+            # pdbx_vrpt_model_instance_geometry
+            if dataContainer.exists("pdbx_vrpt_model_instance_geometry"):
+                tObj = dataContainer.getObj("pdbx_vrpt_model_instance_geometry")
+                self.__getValidationData(tObj, iObj, {"OWAB": "OWAB"}, "instance_id", metricValD, dL)
+
+            # pdbx_vrpt_model_instance
+            if dataContainer.exists("pdbx_vrpt_model_instance"):
+                tObj = dataContainer.getObj("pdbx_vrpt_model_instance")
+                self.__getValidationData(tObj, iObj, OutlierCountFields, "id", metricValD, dL)
+
+            for (modelId, asymId, authAsymId, modelNum, attrId, hasSeq), aL in metricValD.items():
+                tD = {}
+                sL = sorted(aL, key=lambda i: int(i[0]))
+                mL = [int(s[0]) for s in sL]
+                for ii in range(len(sL)):
+                    seqId = sL[ii][0]
+                    metricV = sL[ii][1]
+                    for tup in list(self.__toRangeList(mL)):
+                        beg = tup[0]
+                        end = tup[1]
+                        if int(beg) <= int(seqId) <= int(end) and metricV is not None:
+                            tD.setdefault(int(beg), []).append(float(metricV))
+                localDataD.setdefault((modelId, asymId, authAsymId, modelNum, attrId, hasSeq), []).append(tD)
 
         except Exception as e:
             logger.exception("Failing for %s with %s", dataContainer.getName(), str(e))
 
-        return localScoresD
+        return localDataD
