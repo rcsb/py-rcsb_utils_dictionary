@@ -4244,7 +4244,7 @@ class DictMethodCommonUtils(object):
     def __getValidationData(self, tObj, iObj, fields, idField, metricValD, dL):
         for ii in range(tObj.getRowCount()):
             instId = tObj.getValue(idField, ii)
-            [[entityId, asymId, authAsymId, seqId, modelNum]] = iObj.selectValueListWhere(["entity_id", "label_asym_id", "auth_asym_id", "label_seq_id", "PDB_model_num"], instId, "id")
+            [[entityId, asymId, compId, authAsymId, seqId, modelNum]] = iObj.selectValueListWhere(["entity_id", "label_asym_id", "label_comp_id", "auth_asym_id", "label_seq_id", "PDB_model_num"], instId, "id")
             hasSeq = False
             if seqId == ".":
                 seqId = "0"
@@ -4256,7 +4256,7 @@ class DictMethodCommonUtils(object):
                     tId = iFd + "_" + entityId + "_" + asymId + "_" + modelNum + "_" + seqId
                     if seqId and seqId not in [".", "?"]:  # Eliminates non-polymers and branched
                         if tId not in dL:
-                            metricValD.setdefault((entityId, asymId, authAsymId, modelNum, iFd, hasSeq), []).append((seqId, value))
+                            metricValD.setdefault((entityId, asymId, authAsymId, modelNum, iFd, hasSeq), []).append((compId, seqId, value))
                             dL.append(tId)
 
     def getLocalValidationData(self, dataContainer):
@@ -4328,16 +4328,17 @@ class DictMethodCommonUtils(object):
 
             for (modelId, asymId, authAsymId, modelNum, attrId, hasSeq), aL in metricValD.items():
                 tD = {}
-                sL = sorted(aL, key=lambda i: int(i[0]))
-                mL = [int(s[0]) for s in sL]
+                sL = sorted(aL, key=lambda i: int(i[1]))
+                mL = [int(s[1]) for s in sL]
                 for ii in range(len(sL)):
-                    seqId = sL[ii][0]
-                    metricV = sL[ii][1]
+                    compId = sL[ii][0]
+                    seqId = sL[ii][1]
+                    metricV = sL[ii][2]
                     for tup in list(self.__toRangeList(mL)):
                         beg = tup[0]
                         end = tup[1]
                         if int(beg) <= int(seqId) <= int(end) and metricV is not None:
-                            tD.setdefault(int(beg), []).append(float(metricV))
+                            tD.setdefault((compId, int(beg)), []).append(float(metricV))
                 localDataD.setdefault((modelId, asymId, authAsymId, modelNum, attrId, hasSeq), []).append(tD)
 
         except Exception as e:

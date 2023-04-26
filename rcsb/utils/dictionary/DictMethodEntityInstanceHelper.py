@@ -942,13 +942,16 @@ class DictMethodEntityInstanceHelper(object):
                         fValL = []
                         if hasSeq:
                             sId = ""
+                            cId = ""
                             for _, vD in enumerate(aD):
                                 for k1, vL in vD.items():
                                     fVal = ",".join([str(v) for v in vL])
                                     fValL.append(fVal)
-                                sId = ";".join([str(k1) for k1, vL in vD.items()])
+                                cId = ";".join([str(k1[0]) for k1, vL in vD.items()])
+                                sId = ";".join([str(k1[1]) for k1, vL in vD.items()])
                             cObj.setValue(";".join([str(tup) for tup in fValL]), "feature_positions_values", ii)
                             cObj.setValue(sId, "feature_positions_beg_seq_id", ii)
+                            cObj.setValue(cId, "feature_positions_beg_comp_id", ii)
 
                         ii += 1
                     logger.debug("Completed populating local validation report data for %r", dataContainer.getName())
