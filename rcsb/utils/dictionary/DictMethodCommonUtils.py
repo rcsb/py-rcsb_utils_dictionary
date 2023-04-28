@@ -3743,6 +3743,336 @@ class DictMethodCommonUtils(object):
             logger.exception("%s failing with %s", dataContainer.getName(), str(e))
         return rD
 
+    def __getInstanceModelOutliersCIF(self, dataContainer):
+        """Internal method to assemble model outliers details.
+
+        Args:
+            dataContainer ([type]): [description]
+
+        Returns:
+            {"instanceModelOutlierD": {(modelId, asymId): [(compId, seqId, "BOND_OUTLIER", optional_description), ...}}
+
+        """
+        logger.debug("Starting with %r", dataContainer.getName())
+        #
+        rD = {}
+        try:
+            # Exit if no source categories are present
+            if not (
+                    dataContainer.exists("pdbx_vrpt_model_instance")
+                    or dataContainer.exists("pdbx_vrpt_instance_intra_bond_outliers")
+                    or dataContainer.exists("pdbx_vrpt_instance_intra_angle_outliers")
+                    or dataContainer.exists("pdbx_vrpt_instance_mogul_bond_outliers")
+                    or dataContainer.exists("pdbx_vrpt_instance_mogul_angle_outliers")
+                    or dataContainer.exists("pdbx_vrpt_instance_stereo_outliers")
+                    or dataContainer.exists("pdbx_vrpt_instance_clashes")
+            ) or not dataContainer.exists("pdbx_vrpt_model_instance"):
+                return rD
+            # ------- --------- ------- --------- ------- --------- ------- --------- ------- ---------
+            instanceTypeD = self.getInstanceTypes(dataContainer)
+            #
+            instanceModelOutlierD = {}
+            instanceModelValidationD = {}
+            #
+            npMogulBondOutlierD = defaultdict(int)
+            npMogulAngleOutlierD = defaultdict(int)
+            npStereoOutlierD = defaultdict(int)
+            #
+            iObj = dataContainer.getObj("pdbx_vrpt_model_instance")
+            if not iObj:
+                return rD
+
+            #
+            vObj = None
+            if dataContainer.exists("pdbx_vrpt_instance_intra_bond_outliers"):
+                vObj = dataContainer.getObj("pdbx_vrpt_instance_intra_bond_outliers")
+            if vObj:
+                for ii in range(vObj.getRowCount()):
+                    instId = vObj.getValueOrDefault("instance_id", ii, defaultValue=None)
+                    [fL] = iObj.selectValueListWhere(["PDB_model_num", "label_asym_id", "label_comp_id", "label_alt_id", "label_seq_id"], instId, "id")
+                    [modelId, asymId, compId, altId, seqId] = [x if not (x in [".", "?"]) else None for x in fL]
+                    if seqId:
+                        #
+                        atomI = vObj.getValueOrDefault("atom_1", ii, defaultValue=None)
+                        atomJ = vObj.getValueOrDefault("atom_2", ii, defaultValue=None)
+                        obsDist = vObj.getValueOrDefault("obs", ii, defaultValue=None)
+                        zVal = vObj.getValueOrDefault("Z", ii, defaultValue=None)
+                        tS = "%s-%s (altId=%s) dist=%s Z=%s" % (atomI, atomJ, altId, obsDist, zVal) if altId else "%s-%s dist=%s Z=%s" % (atomI, atomJ, obsDist, zVal)
+                        #
+                        instanceModelOutlierD.setdefault((modelId, asymId, altId, True), []).append(
+                            OutlierValue(
+                                compId,
+                                int(seqId),
+                                "BOND_OUTLIER",
+                                tS,
+                            )
+                        )
+
+                #
+                logger.debug("length instanceModelOutlierD %d", len(instanceModelOutlierD))
+            # ----
+            vObj = None
+            if dataContainer.exists("pdbx_vrpt_instance_intra_angle_outliers"):
+                vObj = dataContainer.getObj("pdbx_vrpt_instance_intra_angle_outliers")
+            if vObj:
+                for ii in range(vObj.getRowCount()):
+                    instId = vObj.getValueOrDefault("instance_id", ii, defaultValue=None)
+                    [fL] = iObj.selectValueListWhere(["PDB_model_num", "label_asym_id", "label_comp_id", "label_alt_id", "label_seq_id"], instId, "id")
+                    [modelId, asymId, compId, altId, seqId] = [x if not (x in [".", "?"]) else None for x in fL]
+                    if seqId:
+                        #
+                        atomI = vObj.getValueOrDefault("atom_1", ii, defaultValue=None)
+                        atomJ = vObj.getValueOrDefault("atom_2", ii, defaultValue=None)
+                        atomK = vObj.getValueOrDefault("atom_3", ii, defaultValue=None)
+                        obsDist = vObj.getValueOrDefault("obs", ii, defaultValue=None)
+                        zVal = vObj.getValueOrDefault("Z", ii, defaultValue=None)
+                        tS = (
+                            "%s-%s-%s (altId %s) angle=%s Z=%s" % (atomI, atomJ, atomK, altId, obsDist, zVal)
+                            if altId
+                            else "%s-%s-%s angle=%s Z=%s" % (atomI, atomJ, atomK, obsDist, zVal)
+                        )
+                        #
+                        instanceModelOutlierD.setdefault((modelId, asymId, altId, True), []).append(
+                            OutlierValue(
+                                compId,
+                                int(seqId),
+                                "ANGLE_OUTLIER",
+                                tS,
+                            )
+                        )
+
+                #
+                logger.debug("length instanceModelOutlierD %d", len(instanceModelOutlierD))
+            # ----
+            vObj = None
+            if dataContainer.exists("pdbx_vrpt_instance_mogul_bond_outliers"):
+                vObj = dataContainer.getObj("pdbx_vrpt_instance_mogul_bond_outliers")
+            if vObj:
+                for ii in range(vObj.getRowCount()):
+                    instId = vObj.getValueOrDefault("instance_id", ii, defaultValue=None)
+                    [fL] = iObj.selectValueListWhere(["PDB_model_num", "label_asym_id", "label_comp_id", "label_alt_id", "label_seq_id"], instId, "id")
+                    [modelId, asymId, compId, altId, seqId] = [x if not (x in [".", "?"]) else None for x in fL]
+                    #
+                    atoms = [
+                        vObj.getValueOrDefault("atom_1", ii, defaultValue=None),
+                        vObj.getValueOrDefault("atom_2", ii, defaultValue=None)
+                    ]
+                    obsDist = vObj.getValueOrDefault("obsval", ii, defaultValue=None)
+                    meanValue = vObj.getValueOrDefault("mean", ii, defaultValue=None)
+                    zVal = vObj.getValueOrDefault("Zscore", ii, defaultValue=None)
+                    tS = "%s (altIt %s) angle=%s Z=%s" % (",".join(atoms), altId, obsDist, zVal) if altId else "%s angle=%s Z=%s" % (",".join(atoms), obsDist, zVal)
+                    # OutlierValue = collections.namedtuple("OutlierValue", "compId, seqId, outlierType, description, reported, reference, uncertaintyValue, uncertaintyType")
+                    if seqId:
+                        instanceModelOutlierD.setdefault((modelId, asymId, altId, True), []).append(
+                            OutlierValue(
+                                compId,
+                                int(seqId),
+                                "MOGUL_BOND_OUTLIER",
+                                tS,
+                            )
+                        )
+                    else:
+                        instanceModelOutlierD.setdefault((modelId, asymId, altId, False), []).append(
+                            OutlierValue(compId, None, "MOGUL_BOND_OUTLIER", tS, obsDist, meanValue, zVal, "Z-Score")
+                        )
+                        npMogulBondOutlierD[(modelId, asymId, altId, compId)] += 1
+                #
+                logger.debug("length instanceModelOutlierD %d", len(instanceModelOutlierD))
+
+            vObj = None
+            if dataContainer.exists("pdbx_vrpt_instance_mogul_angle_outliers"):
+                vObj = dataContainer.getObj("pdbx_vrpt_instance_mogul_angle_outliers")
+            if vObj:
+                for ii in range(vObj.getRowCount()):
+                    instId = vObj.getValueOrDefault("instance_id", ii, defaultValue=None)
+                    [fL] = iObj.selectValueListWhere(["PDB_model_num", "label_asym_id", "label_comp_id", "label_alt_id", "label_seq_id"], instId, "id")
+                    [modelId, asymId, compId, altId, seqId] = [x if not (x in [".", "?"]) else None for x in fL]
+                    #
+                    atoms = [
+                        vObj.getValueOrDefault("atom_1", ii, defaultValue=None),
+                        vObj.getValueOrDefault("atom_2", ii, defaultValue=None),
+                        vObj.getValueOrDefault("atom_3", ii, defaultValue=None)
+                    ]
+                    obsDist = vObj.getValueOrDefault("obsval", ii, defaultValue=None)
+                    meanValue = vObj.getValueOrDefault("mean", ii, defaultValue=None)
+                    zVal = vObj.getValueOrDefault("Zscore", ii, defaultValue=None)
+                    tS = "%s (altId %s) angle=%s Z=%s" % (",".join(atoms), altId, obsDist, zVal) if altId else "%s angle=%s Z=%s" % (",".join(atoms), obsDist, zVal)
+                    if seqId:
+                        instanceModelOutlierD.setdefault((modelId, asymId, altId, True), []).append(
+                            OutlierValue(
+                                compId,
+                                int(seqId),
+                                "MOGUL_ANGLE_OUTLIER",
+                                tS,
+                            )
+                        )
+                    else:
+                        instanceModelOutlierD.setdefault((modelId, asymId, altId, False), []).append(
+                            OutlierValue(compId, None, "MOGUL_ANGLE_OUTLIER", tS, obsDist, meanValue, zVal, "Z-Score")
+                        )
+                        npMogulAngleOutlierD[(modelId, asymId, altId, compId)] += 1
+                logger.debug("length instanceModelOutlierD %d", len(instanceModelOutlierD))
+                #
+            # --
+            vObj = None
+            if dataContainer.exists("pdbx_vrpt_instance_stereo_outliers"):
+                vObj = dataContainer.getObj("pdbx_vrpt_instance_stereo_outliers")
+            if vObj:
+                for ii in range(vObj.getRowCount()):
+                    instId = vObj.getValueOrDefault("instance_id", ii, defaultValue=None)
+                    [fL] = iObj.selectValueListWhere(["PDB_model_num", "label_asym_id", "label_comp_id", "label_alt_id", "label_seq_id"], instId, "id")
+                    [modelId, asymId, compId, altId, seqId] = [x if not (x in [".", "?"]) else None for x in fL]
+
+                    description = vObj.getValueOrDefault("problem", ii, defaultValue=None)
+                    #
+                    if seqId:
+                        instanceModelOutlierD.setdefault((modelId, asymId, altId, True), []).append(
+                            OutlierValue(
+                                compId,
+                                int(seqId),
+                                "STEREO_OUTLIER",
+                                description,
+                            )
+                        )
+                    else:
+                        instanceModelOutlierD.setdefault((modelId, asymId, altId, False), []).append(OutlierValue(compId, None, "STEREO_OUTLIER", description))
+                        npStereoOutlierD[(modelId, asymId, altId, compId)] += 1
+                logger.debug("length instanceModelOutlierD %d", len(instanceModelOutlierD))
+                #
+                #
+            # ----  Capture/evaluate non-polymer intermolecular clashes ... here filter internal molecule clashes ...
+            instanceTypeD = self.getInstanceTypes(dataContainer)
+            npClashD = defaultdict(int)
+            tClashD = {}
+            vObj = None
+            if dataContainer.exists("pdbx_vrpt_instance_clashes"):
+                vObj = dataContainer.getObj("pdbx_vrpt_instance_clashes")
+            if vObj:
+                logger.debug("Row count for %s: %d", vObj.getName(), vObj.getRowCount())
+                for ii in range(vObj.getRowCount()):
+                    instId = vObj.getValueOrDefault("instance_id", ii, defaultValue=None)
+                    [fL] = iObj.selectValueListWhere(["PDB_model_num", "label_asym_id", "label_comp_id", "label_alt_id"], instId, "id")
+                    [modelId, asymId, compId, altId] = [x if not (x in [".", "?"]) else None for x in fL]
+                    if asymId in instanceTypeD and instanceTypeD[asymId] == "non-polymer":
+                        clashId = vObj.getValueOrDefault("cid", ii, defaultValue=None)
+                        tClashD.setdefault((modelId, asymId, altId, compId), []).append(clashId)
+                    #
+                for ky, clashIdL in tClashD.items():
+                    cD = defaultdict(int)
+                    for clashId in clashIdL:
+                        cD[clashId] += 1
+                    for clashId, clashCount in cD.items():
+                        if clashCount == 1:
+                            npClashD[ky] += 1
+            #
+            logger.debug("%s npClashD %r", dataContainer.getName(), npClashD)
+            # ----
+            vObj = None
+            if dataContainer.exists("pdbx_vrpt_model_instance_map_fitting"):
+                vObj = dataContainer.getObj("pdbx_vrpt_model_instance_map_fitting")
+            elif dataContainer.exists("pdbx_vrpt_model_instance_density"):
+                vObj = dataContainer.getObj("pdbx_vrpt_model_instance_density")
+
+            gObj = None
+            if dataContainer.exists("pdbx_vrpt_model_instance_geometry"):
+                gObj = dataContainer.getObj("pdbx_vrpt_model_instance_geometry")
+
+            if gObj:
+                logger.debug("Row count for %s: %d", gObj.getName(), gObj.getRowCount())
+                for ii in range(gObj.getRowCount()):
+                    instId = gObj.getValueOrDefault("instance_id", ii, defaultValue=None)
+                    [fL] = iObj.selectValueListWhere(["PDB_model_num", "label_asym_id", "label_comp_id", "label_alt_id", "label_seq_id"], instId, "id")
+                    [modelId, asymId, compId, altId, seqId] = [x if not (x in [".", "?"]) else None for x in fL]
+                    #
+                    # Get the matching data
+                    rsr = None
+                    rsrZ = None
+                    rsrCc = None
+                    if vObj:
+                        iiL = vObj.selectIndices(instId, "instance_id")
+                        if len(iiL) == 1:
+                            rsr = vObj.getValueOrDefault("RSR", iiL[0], defaultValue=None)
+                            rsrZ = vObj.getValueOrDefault("RSRZ", iiL[0], defaultValue=None)
+                            rsrCc = vObj.getValueOrDefault("RSRCC", iiL[0], defaultValue=None)
+                    #
+                    rotamerClass = gObj.getValueOrDefault("rotamer_class", ii, defaultValue=None)
+                    ramaClass = gObj.getValueOrDefault("ramachandran_class", ii, defaultValue=None)
+                    # Only need mogul values here
+                    anglesRmsZ = None
+                    bondsRmsZ = None
+                    software = gObj.getValueOrDefault("program_for_bond_angle_geometry", ii, defaultValue=None)
+                    if str(software).lower() == "mogul":
+                        anglesRmsZ = gObj.getValueOrDefault("angles_RMSZ", ii, defaultValue=None)
+                        bondsRmsZ = gObj.getValueOrDefault("bonds_RMSZ", ii, defaultValue=None)
+                    # ---
+
+                    # ---
+                    if seqId:
+                        if rotamerClass and rotamerClass.upper() == "OUTLIER":
+                            instanceModelOutlierD.setdefault((modelId, asymId, altId, True), []).append(
+                                OutlierValue(
+                                    compId,
+                                    int(seqId),
+                                    "ROTAMER_OUTLIER",
+                                    None,
+                                )
+                            )
+                        if ramaClass and ramaClass.upper() == "OUTLIER":
+                            instanceModelOutlierD.setdefault((modelId, asymId, altId, True), []).append(
+                                OutlierValue(
+                                    compId,
+                                    int(seqId),
+                                    "RAMACHANDRAN_OUTLIER",
+                                    None,
+                                )
+                            )
+                        if rsrZ and float(rsrZ) > 2.0:
+                            tS = "%s > 2.0 (altId %s)" % (rsrZ, altId) if altId else "%s > 2.0 " % rsrZ
+                            instanceModelOutlierD.setdefault((modelId, asymId, altId, True), []).append(
+                                OutlierValue(
+                                    compId,
+                                    int(seqId),
+                                    "RSRZ_OUTLIER",
+                                    tS,
+                                )
+                            )
+                        if rsrCc and float(rsrCc) < 0.650:
+                            tS = "RSCC < 0.65 (altId %s)" % altId if altId else "RSCC < 0.65"
+                            instanceModelOutlierD.setdefault((modelId, asymId, altId, True), []).append(
+                                OutlierValue(
+                                    compId,
+                                    int(seqId),
+                                    "RSCC_OUTLIER",
+                                    tS,
+                                )
+                            )
+                    else:
+                        if rsrZ and float(rsrZ) > 2.0:
+                            tS = "%s > 2.0 (altId %s)" % (rsrZ, altId) if altId else "%s > 2.0" % rsrZ
+                            instanceModelOutlierD.setdefault((modelId, asymId, altId, False), []).append(OutlierValue(compId, None, "RSRZ_OUTLIER", tS, rsr, None, rsrZ, "Z-Score"))
+                        if rsrCc and float(rsrCc) < 0.650:
+                            tS = "RSCC < 0.65 (altId %s)" % altId if altId else "RSCC < 0.65"
+                            instanceModelOutlierD.setdefault((modelId, asymId, altId, False), []).append(OutlierValue(compId, None, "RSCC_OUTLIER", tS, rsrCc))
+                        if asymId in instanceTypeD and instanceTypeD[asymId] == "non-polymer":
+                            instanceModelValidationD[(modelId, asymId, altId, compId)] = NonpolymerValidationInstance(
+                                float(rsr) if rsr else None,
+                                float(rsrCc) if rsrCc else None,
+                                float(bondsRmsZ) if bondsRmsZ else None,
+                                float(anglesRmsZ) if anglesRmsZ else None,
+                                npClashD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npClashD else 0,
+                                npMogulBondOutlierD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npMogulBondOutlierD else 0,
+                                npMogulAngleOutlierD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npMogulAngleOutlierD else 0,
+                                npStereoOutlierD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npStereoOutlierD else 0,
+                            )
+            # --
+            logger.debug("instanceModelOutlierD %r", instanceModelOutlierD)
+            logger.debug("instanceModelValidationD %r", instanceModelValidationD)
+
+            rD = {"instanceModelOutlierD": instanceModelOutlierD, "instanceModelValidationD": instanceModelValidationD}
+        except Exception as e:
+            logger.exception("%s failing with %s", dataContainer.getName(), str(e))
+        return rD
+
     def getNearestNeighborList(self, dataContainer):
         """Return a list of nearest neighbors for ligands and targets referenced
         by the target and ligand indices.
@@ -4330,6 +4660,7 @@ class DictMethodCommonUtils(object):
                 tD = {}
                 sL = sorted(aL, key=lambda i: int(i[1]))
                 mL = [int(s[1]) for s in sL]
+                begCompId = ""
                 for ii in range(len(sL)):
                     compId = sL[ii][0]
                     seqId = sL[ii][1]
@@ -4337,8 +4668,10 @@ class DictMethodCommonUtils(object):
                     for tup in list(self.__toRangeList(mL)):
                         beg = tup[0]
                         end = tup[1]
+                        if int(beg) == int(seqId):
+                            begCompId = compId
                         if int(beg) <= int(seqId) <= int(end) and metricV is not None:
-                            tD.setdefault((compId, int(beg)), []).append(float(metricV))
+                            tD.setdefault((begCompId, int(beg)), []).append(float(metricV))
                 localDataD.setdefault((modelId, asymId, authAsymId, modelNum, attrId, hasSeq), []).append(tD)
 
         except Exception as e:
