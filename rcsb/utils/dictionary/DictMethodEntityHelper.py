@@ -12,6 +12,7 @@
 #   6-Mar-2023 dwp Stop loading CARD data to rcsb_polymer_entity_feature
 #  14-Mar-2023 dwp Load CARD data to rcsb_polymer_entity_annotation
 #  28-Mar-2023 dwp Populate 'rcsb_entity_source_organism.provenance_source' with transient value from 'entity_src_nat.rcsb_provenance_source' (applicable to CSMs only)
+#   2-May-2023 dwp Stop loading depth data for CARD lineage annotations
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
@@ -2661,7 +2662,6 @@ class DictMethodEntityHelper(object):
                             idLinL = fD["annotation_lineage"]
                             cObj.setValue(";".join([str(lD["id"]) for lD in idLinL]), "annotation_lineage_id", ii)
                             cObj.setValue(";".join([str(lD["name"]) for lD in idLinL]), "annotation_lineage_name", ii)
-                            cObj.setValue(";".join([str(lD["depth"]) for lD in idLinL]), "annotation_lineage_depth", ii)
                             #
                             ii += 1
                         # Now add "AMR Gene Family" annotation (applicable for all entities)
@@ -2685,7 +2685,6 @@ class DictMethodEntityHelper(object):
                         idLinL = fD["family_annotation_lineage"]
                         cObj.setValue(";".join([str(lD["id"]) for lD in idLinL]), "annotation_lineage_id", ii)
                         cObj.setValue(";".join([str(lD["name"]) for lD in idLinL]), "annotation_lineage_name", ii)
-                        cObj.setValue(";".join([str(lD["depth"]) for lD in idLinL]), "annotation_lineage_depth", ii)
                         #
                         ii += 1
                         #

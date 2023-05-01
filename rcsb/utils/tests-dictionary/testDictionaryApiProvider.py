@@ -5,7 +5,7 @@
 # Version: 0.001
 #
 # Update:
-
+#   2-May-2023 dwp Remove vrpt_mmcif_ext.dic from tests (temporarily, until re-added into master schema)
 ##
 """
 Tests for dictionary API provider and cache.
@@ -69,7 +69,8 @@ class DictionaryProviderTests(unittest.TestCase):
             self.assertTrue(ok)
             title = dApi.getDictionaryTitle()
             logger.debug("Title %r", title)
-            self.assertTrue(all([tD in title.split(",") for tD in ['mmcif_pdbx.dic', 'rcsb_mmcif_ext.dic', 'vrpt_mmcif_ext.dic']]))
+            self.assertTrue(all([tD in title.split(",") for tD in ['mmcif_pdbx.dic', 'rcsb_mmcif_ext.dic']]))
+            # self.assertTrue(all([tD in title.split(",") for tD in ['mmcif_pdbx.dic', 'rcsb_mmcif_ext.dic', 'vrpt_mmcif_ext.dic']]))
             # self.assertTrue(all([tD in title.split(",") for tD in ['mmcif_pdbx.dic', 'rcsb_mmcif_ext.dic', 'vrpt_mmcif_ext.dic', 'mmcif_ma.dic']]))
             # self.assertEqual(title, "mmcif_pdbx.dic,rcsb_mmcif_ext.dic,vrpt_mmcif_ext.dic,mmcif_ma.dic")
             # revL = dApi.getDictionaryHistory()
