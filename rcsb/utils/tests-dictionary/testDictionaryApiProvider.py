@@ -70,7 +70,6 @@ class DictionaryProviderTests(unittest.TestCase):
             title = dApi.getDictionaryTitle()
             logger.debug("Title %r", title)
             self.assertTrue(all([tD in title.split(",") for tD in ['mmcif_pdbx.dic', 'rcsb_mmcif_ext.dic']]))
-            # self.assertTrue(all([tD in title.split(",") for tD in ['mmcif_pdbx.dic', 'rcsb_mmcif_ext.dic', 'vrpt_mmcif_ext.dic']]))
             # self.assertTrue(all([tD in title.split(",") for tD in ['mmcif_pdbx.dic', 'rcsb_mmcif_ext.dic', 'vrpt_mmcif_ext.dic', 'mmcif_ma.dic']]))
             # self.assertEqual(title, "mmcif_pdbx.dic,rcsb_mmcif_ext.dic,vrpt_mmcif_ext.dic,mmcif_ma.dic")
             # revL = dApi.getDictionaryHistory()
