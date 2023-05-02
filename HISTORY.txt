@@ -110,3 +110,4 @@
  5-Apr-2023 - V1.08 Update population of provenance_source attributes for taxonomy/organism and gene categories;
                     Correct attribute name for rcsb_chem_comp_target provenance;
                     Stop loading rcsb_chem_comp_synonyms for type 'Brand Name'
+ 2-May-2023 - V1.09 Stop loading depth data for CARD lineage annotations
