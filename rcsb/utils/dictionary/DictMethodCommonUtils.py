@@ -4574,19 +4574,23 @@ class DictMethodCommonUtils(object):
     def __getValidationData(self, tObj, iObj, fields, idField, metricValD, dL):
         for ii in range(tObj.getRowCount()):
             instId = tObj.getValue(idField, ii)
-            [[entityId, asymId, compId, authAsymId, seqId, modelNum]] = iObj.selectValueListWhere(["entity_id", "label_asym_id", "label_comp_id", "auth_asym_id", "label_seq_id", "PDB_model_num"], instId, "id")
-            hasSeq = False
-            if seqId == ".":
-                seqId = "0"
-            else:
-                hasSeq = True
+            [[entityId, asymId, compId, authAsymId, seqId, modelNum]] = iObj.selectValueListWhere(
+                [
+                    "entity_id",
+                    "label_asym_id",
+                    "label_comp_id",
+                    "auth_asym_id",
+                    "label_seq_id",
+                    "PDB_model_num"
+                ], instId, "id"
+            )
             for iFd, iFdv in fields.items():
                 value = tObj.getValueOrDefault(iFdv, ii, None)
                 if value is not None:
                     tId = iFd + "_" + entityId + "_" + asymId + "_" + modelNum + "_" + seqId
                     if seqId and seqId not in [".", "?"]:  # Eliminates non-polymers and branched
                         if tId not in dL:
-                            metricValD.setdefault((entityId, asymId, authAsymId, modelNum, iFd, hasSeq), []).append((compId, seqId, value))
+                            metricValD.setdefault((entityId, asymId, authAsymId, modelNum, iFd, True), []).append((compId, seqId, value))
                             dL.append(tId)
 
     def getLocalValidationData(self, dataContainer):
