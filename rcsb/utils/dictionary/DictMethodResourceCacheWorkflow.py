@@ -79,7 +79,7 @@ class DictMethodResourceCacheWorkflow(object):
             restoreUseGit=True,
             providerTypeExclude=None,
         )
-        ok = rP.cacheResources(useCache=False, doBackup=True, useStash=True, useGit=True)
+        ok = rP.cacheResources(useCache=False, doBackup=True, useStash=True, useGit=False)
         logger.info("Cache rebuild status (%r)", ok)
         return ok
 

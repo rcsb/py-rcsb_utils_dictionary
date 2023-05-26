@@ -76,7 +76,7 @@ class NeighborInteractionWorkflow(object):
         return ok
 
     def backup(self):
-        ok = self.__tiP.backup(self.__cfgOb, self.__configName, remotePrefix=self.__stashRemotePrefix, useStash=True, useGit=True)
+        ok = self.__tiP.backup(self.__cfgOb, self.__configName, remotePrefix=self.__stashRemotePrefix, useStash=True, useGit=False)
         return ok
 
     def restore(self, minCount=0):
