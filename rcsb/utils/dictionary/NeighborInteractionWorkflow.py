@@ -5,6 +5,7 @@
 #
 # Update:
 #  16-Mar-2023 aae  Update configuration to use HERE and CACHE folder
+#   1-Jun-2023 aae  Don't back up resources to GitHub during cache update workflows
 #
 ##
 """
