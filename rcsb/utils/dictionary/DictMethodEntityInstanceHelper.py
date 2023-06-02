@@ -2106,7 +2106,7 @@ class DictMethodEntityInstanceHelper(object):
                     #
                     ii += 1
                     jj += 1
-            #
+            # ------------
             # Glycosylation features
             jj = 1
             for asymId, rTupL in npbD.items():
@@ -2140,6 +2140,50 @@ class DictMethodEntityInstanceHelper(object):
                     #
                     ii += 1
                     jj += 1
+            # ------------
+            # Add validation data for nonpolymer
+            instanceModelOutlierD = self.__commonU.getInstanceModelOutlierInfo(dataContainer)
+            annotationVrptD = {}
+            typeMapD = {
+                "IS_RSRZ_OUTLIER": "Real space R-value Z score > 2",
+                "IS_RSCC_OUTLIER": "Real space density correlation value < 0.65"
+            }
+            for (modelId, asymId, altId, hasSeq), pTupL in instanceModelOutlierD.items():
+                if instTypeD[asymId] not in ["non-polymer"]:
+                    continue
+                for pTup in pTupL:
+                    fType = "IS_" + pTup.outlierType
+                    if fType not in ["IS_RSCC_OUTLIER", "IS_RSRZ_OUTLIER"]:
+                        continue
+                    fId = fType
+
+                    # Only include one annotation for a given asymId, even if it has multiple conformations
+                    if annotationVrptD.get((modelId, asymId)) and fType in annotationVrptD.get((modelId, asymId)):
+                        continue
+                    annotationVrptD.setdefault((modelId, asymId), []).append(fType)
+
+                    entityId = asymIdD[asymId]
+                    authAsymId = asymAuthIdD[asymId]
+                    cObj.setValue(ii + 1, "ordinal", ii)
+                    cObj.setValue(entryId, "entry_id", ii)
+                    cObj.setValue(entityId, "entity_id", ii)
+                    cObj.setValue(asymId, "asym_id", ii)
+                    cObj.setValue(authAsymId, "auth_asym_id", ii)
+                    cObj.setValue(pTup.compId, "comp_id", ii)
+                    cObj.setValue(fId, "annotation_id", ii)
+                    cObj.setValue(fType, "type", ii)
+                    #
+                    tN = typeMapD[fType] if fType in typeMapD else fType
+                    cObj.setValue(
+                        tN,
+                        "description",
+                        ii,
+                        )
+                    cObj.setValue("PDB", "provenance_source", ii)
+                    cObj.setValue("V1.0", "assignment_version", ii)
+                    #
+                    ii += 1
+
             return True
         except Exception as e:
             logger.exception("%s %s failing with %s", dataContainer.getName(), catName, str(e))

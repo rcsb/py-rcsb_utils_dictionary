@@ -3382,7 +3382,7 @@ class DictMethodCommonUtils(object):
             self.__modelOutliersCache.set(dataContainer.getName(), wD)
         return wD
 
-    def __getInstanceModelOutliers(self, dataContainer):
+    def __getInstanceModelOutliersXML(self, dataContainer):
         """Internal method to assemble model outliers details.
 
         Args:
@@ -3743,7 +3743,7 @@ class DictMethodCommonUtils(object):
             logger.exception("%s failing with %s", dataContainer.getName(), str(e))
         return rD
 
-    def __getInstanceModelOutliersCIF(self, dataContainer):
+    def __getInstanceModelOutliers(self, dataContainer):
         """Internal method to assemble model outliers details.
 
         Args:
@@ -3769,8 +3769,6 @@ class DictMethodCommonUtils(object):
             ) or not dataContainer.exists("pdbx_vrpt_model_instance"):
                 return rD
             # ------- --------- ------- --------- ------- --------- ------- --------- ------- ---------
-            instanceTypeD = self.getInstanceTypes(dataContainer)
-            #
             instanceModelOutlierD = {}
             instanceModelValidationD = {}
             #
