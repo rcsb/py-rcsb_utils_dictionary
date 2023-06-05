@@ -7,6 +7,7 @@
 #   3-Mar-2023 aae  Use arguments to get the configuration
 #  14-Mar-2023 dwp  Replace CARDTargetFeatureProvider with CARDTargetAnnotationProvider
 #  16-Mar-2023 aae  Update configuration to use HERE and CACHE folder
+#   1-Jun-2023 aae  Don't back up resources to GitHub during cache update workflows
 ##
 """
 Workflow to rebuild and stash "buildable" cache resources.
@@ -79,7 +80,7 @@ class DictMethodResourceCacheWorkflow(object):
             restoreUseGit=True,
             providerTypeExclude=None,
         )
-        ok = rP.cacheResources(useCache=False, doBackup=True, useStash=True, useGit=True)
+        ok = rP.cacheResources(useCache=False, doBackup=True, useStash=True, useGit=False)
         logger.info("Cache rebuild status (%r)", ok)
         return ok
 
