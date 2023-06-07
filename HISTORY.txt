@@ -107,3 +107,7 @@
 14-Mar-2023 - V1.05 Load CARD annotation data to rcsb_polymer_entity_annotation
 16-Mar-2023 - V1.06 Update configuration of DictMethodResourceCacheWorkflow() and NeighborInteractionWorkflow() to use HERE and CACHE folder
 20-Mar-2023 - V1.07 Fix formula weight calculation of CSM polymer entities
+ 5-Apr-2023 - V1.08 Update population of provenance_source attributes for taxonomy/organism and gene categories;
+                    Correct attribute name for rcsb_chem_comp_target provenance;
+                    Stop loading rcsb_chem_comp_synonyms for type 'Brand Name'
+ 2-May-2023 - V1.09 Stop loading depth data for CARD lineage annotations
