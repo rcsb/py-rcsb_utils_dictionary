@@ -1384,7 +1384,6 @@ class DictMethodEntityInstanceHelper(object):
         fTypeL = sorted(set(vTypeL).intersection(iTypeL))
         return fTypeL
 
-    # --- JDW
     def buildEntityInstanceFeatureSummary(self, dataContainer, catName, **kwargs):
         """Build category rcsb_entity_instance_feature_summary (UPDATED)
 
@@ -1653,7 +1652,9 @@ class DictMethodEntityInstanceHelper(object):
                     sObj.setValue(entryId, "entry_id", ii)
                     sObj.setValue(entityId, "entity_id", ii)
                     sObj.setValue(asymId, "asym_id", ii)
+                    compId = None
                     if asymId in instIdMapD and "comp_id" in instIdMapD[asymId] and instIdMapD[asymId]["comp_id"]:
+                        compId = instIdMapD[asymId]["comp_id"]
                         sObj.setValue(instIdMapD[asymId]["comp_id"], "comp_id", ii)
                     sObj.setValue(authAsymId, "auth_asym_id", ii)
                     sObj.setValue(fType, "type", ii)
@@ -1667,8 +1668,47 @@ class DictMethodEntityInstanceHelper(object):
                             fracC = float(sum(fMonomerCountD[asymId][fType])) / float(entityPolymerLengthD[entityId])
                     elif asymId in fInstanceCountD and fType in fInstanceCountD[asymId] and fInstanceCountD[asymId][fType]:
                         fCount = sum(fInstanceCountD[asymId][fType])
+                        if compId is not None:
+                            if fType == "COUNT_MOGUL_BOND_OUTLIERS" and self.__ccP.getBondCount(compId) > 0:
+                                fracC = float(fCount / self.__ccP.getBondCount(compId))
+                            if fType in ["STEREO_OUTLIER", "COUNT_CHIRAL_OUTLIERS"] and self.__ccP.getAtomCountChiral(compId) > 0:
+                                fracC = float(fCount / self.__ccP.getAtomCountChiral(compId))
                     elif asymId in fCountD and fType in fCountD[asymId] and fCountD[asymId][fType]:
                         fCount = len(fCountD[asymId][fType])
+                    elif fType == "MODELLED_ATOMS":
+                        # Get experimental method
+                        xObj = dataContainer.getObj("exptl")
+                        methodL = xObj.getAttributeValueList("method")
+                        _, expMethod = self.__commonU.filterExperimentalMethod(methodL)
+                        # -- Get existing interactions or calculate on the fly
+                        if self.__niP.hasEntry(entryId):
+                            ligandAtomCountD = self.__niP.getAtomCounts(entryId)
+                            ligandHydrogenAtomCountD = self.__niP.getHydrogenAtomCounts(entryId)
+                            intIsBoundD = self.__niP.getLigandNeighborBoundState(entryId)
+                        else:
+                            ligandAtomCountD = self.__commonU.getLigandAtomCountD(dataContainer)
+                            ligandHydrogenAtomCountD = self.__commonU.getLigandHydrogenAtomCountD(dataContainer)
+                            intIsBoundD = self.__commonU.getLigandNeighborBoundState(dataContainer)
+                        isBound = intIsBoundD[asymId] if asymId in intIsBoundD else False
+                        numHeavyAtoms = self.__ccP.getAtomCountHeavy(compId)
+                        numAtoms = self.__ccP.getAtomCount(compId)
+                        numReportedAtoms = 0
+                        numReportedHydrogenAtoms = 0
+                        if not numHeavyAtoms:
+                            continue
+                        try:
+                            numReportedAtoms = ligandAtomCountD[asymId]["FL"]
+                        except KeyError as e:
+                            logger.warning("Missing ligand atom count for entry %s asymId %s with %s", entryId, asymId, str(e))
+
+                        try:
+                            numReportedHydrogenAtoms = ligandHydrogenAtomCountD[asymId]["FL"]
+                        except KeyError:
+                            pass
+                        fCount = numReportedAtoms if numReportedAtoms > numHeavyAtoms and expMethod != "X-ray" else numReportedAtoms - numReportedHydrogenAtoms
+                        fracC = self.__calculateModeledCompleteness(
+                            entryId, asymId, compId, "", isBound, ligandAtomCountD, numReportedAtoms, numReportedHydrogenAtoms, numHeavyAtoms, numAtoms, expMethod
+                        )
                     else:
                         # default zero value
                         fCount = 0
