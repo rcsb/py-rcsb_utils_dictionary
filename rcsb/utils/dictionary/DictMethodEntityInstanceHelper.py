@@ -2132,7 +2132,7 @@ class DictMethodEntityInstanceHelper(object):
                 "IS_RSRZ_OUTLIER": "Real space R-value Z score > 2",
                 "IS_RSCC_OUTLIER": "Real space density correlation value < 0.65"
             }
-            for (modelId, asymId, altId, hasSeq), pTupL in instanceModelOutlierD.items():
+            for (modelId, asymId, _, _), pTupL in instanceModelOutlierD.items():
                 if instTypeD[asymId] not in ["non-polymer"]:
                     continue
                 for pTup in pTupL:
@@ -2162,7 +2162,7 @@ class DictMethodEntityInstanceHelper(object):
                         tN,
                         "description",
                         ii,
-                        )
+                    )
                     cObj.setValue("PDB", "provenance_source", ii)
                     cObj.setValue("V1.0", "assignment_version", ii)
                     #
