@@ -921,41 +921,6 @@ class DictMethodEntityInstanceHelper(object):
                     ii += 1
                 logger.debug("Completed populating local QA scores for computed model %r", dataContainer.getName())
 
-            # Populate local validation report data values
-            if dataContainer.exists("pdbx_vrpt_model_instance"):
-                localDataD = self.__commonU.getLocalValidationData(dataContainer)
-                if localDataD:  # No validation data at residue level
-                    for (modelId, asymId, authAsymId, pdbModelNum, metricId, hasSeq), aD in localDataD.items():
-                        entityId = asymIdD[asymId]
-                        cObj.setValue(ii + 1, "ordinal", ii)
-                        cObj.setValue(entryId, "entry_id", ii)
-                        cObj.setValue(entityId, "entity_id", ii)
-                        cObj.setValue(asymId, "asym_id", ii)
-                        cObj.setValue(authAsymId, "auth_asym_id", ii)
-                        cObj.setValue("PDB", "provenance_source", ii)
-                        cObj.setValue(metricId, "type", ii)
-                        cObj.setValue(metricId, "name", ii)
-                        cObj.setValue(metricId, "feature_id", ii)
-                        addPropTupL = [("MODEL_NUM", pdbModelNum)]
-                        cObj.setValue(";".join([str(tup1[0]) for tup1 in addPropTupL]), "additional_properties_name", ii)
-                        cObj.setValue(";".join([str(tup1[1]) for tup1 in addPropTupL]), "additional_properties_values", ii)
-                        fValL = []
-                        if hasSeq:
-                            sId = ""
-                            cId = ""
-                            for _, vD in enumerate(aD):
-                                for k1, vL in vD.items():
-                                    fVal = ",".join([str(v) for v in vL])
-                                    fValL.append(fVal)
-                                cId = ";".join([str(k1[0]) for k1, vL in vD.items()])
-                                sId = ";".join([str(k1[1]) for k1, vL in vD.items()])
-                            cObj.setValue(";".join([str(tup) for tup in fValL]), "feature_positions_values", ii)
-                            cObj.setValue(sId, "feature_positions_beg_seq_id", ii)
-                            cObj.setValue(cId, "feature_positions_beg_comp_id", ii)
-
-                        ii += 1
-                    logger.debug("Completed populating local validation report data for %r", dataContainer.getName())
-
             npbD = self.__commonU.getBoundNonpolymersByInstance(dataContainer)
             jj = 1
             for asymId, rTupL in npbD.items():
@@ -1318,6 +1283,40 @@ class DictMethodEntityInstanceHelper(object):
                     jj += 1
                     ii += 1
             #
+            # Populate local (residue-level) validation report data values
+            if dataContainer.exists("pdbx_vrpt_model_instance"):
+                localDataD = self.__commonU.getLocalValidationData(dataContainer)
+                if localDataD:  # No validation data at residue level
+                    for (entityId, asymId, authAsymId, modelId, metricId, hasSeq), aD in localDataD.items():
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        cObj.setValue(asymId, "asym_id", ii)
+                        cObj.setValue(authAsymId, "auth_asym_id", ii)
+                        cObj.setValue("PDB", "provenance_source", ii)
+                        cObj.setValue(metricId, "type", ii)
+                        cObj.setValue(metricId, "name", ii)
+                        cObj.setValue(metricId, "feature_id", ii)
+                        addPropTupL = [("MODEL_NUM", modelId)]
+                        cObj.setValue(";".join([str(tup1[0]) for tup1 in addPropTupL]), "additional_properties_name", ii)
+                        cObj.setValue(";".join([str(tup1[1]) for tup1 in addPropTupL]), "additional_properties_values", ii)
+                        fValL = []
+                        sId = ""
+                        cId = ""
+                        for _, vD in enumerate(aD):
+                            for k1, vL in vD.items():
+                                fVal = ",".join([str(v) for v in vL])
+                                fValL.append(fVal)
+                            cId = ";".join([str(k1[0]) for k1, vL in vD.items()])
+                            sId = ";".join([str(k1[1]) for k1, vL in vD.items()])
+                        cObj.setValue(";".join([str(tup) for tup in fValL]), "feature_positions_values", ii)
+                        cObj.setValue(sId, "feature_positions_beg_seq_id", ii)
+                        cObj.setValue(cId, "feature_positions_beg_comp_id", ii)
+
+                        ii += 1
+                    logger.debug("Completed populating local validation report data for %r", dataContainer.getName())
+
+            #
             return True
         except Exception as e:
             logger.exception("For %s %r failing with %s", dataContainer.getName(), catName, str(e))
@@ -1601,6 +1600,7 @@ class DictMethodEntityInstanceHelper(object):
             instTypeD = self.__commonU.getInstanceTypes(dataContainer)
 
             fCountD = OrderedDict()
+            fValuesD = OrderedDict()
             fMonomerCountD = OrderedDict()
             fInstanceCountD = OrderedDict()
             for ii in range(fObj.getRowCount()):
@@ -1634,11 +1634,51 @@ class DictMethodEntityInstanceHelper(object):
                     seqIdL = str(fObj.getValue("feature_positions_beg_seq_id", ii)).split(";")
                     fMonomerCountD.setdefault(asymId, {}).setdefault(fType, []).append(len(seqIdL))
 
+                elif fObj.hasAttribute("feature_value_reported"):
+                    tValue = fObj.getValueOrDefault("feature_value_reported", ii, defaultValue=None)
+                    if tValue:
+                        try:
+                            tvL = [float(t) for t in tValue.split(";")]
+                            fValuesD.setdefault(asymId, {}).setdefault(fType, []).extend(tvL)
+                        except Exception:
+                            pass
+                if fObj.hasAttribute("feature_positions_values"):
+                    tValue = fObj.getValueOrDefault("feature_positions_values", ii, defaultValue=None)
+                    if tValue:
+                        try:
+                            for a in tValue.split(";"):
+                                tvL = [float(t) for t in a.split(",")]
+                                fValuesD.setdefault(asymId, {}).setdefault(fType, []).extend(tvL)
+                        except Exception:
+                            pass
+
                 tS = fObj.getValueOrDefault("feature_value_details", ii, defaultValue=None)
                 if fObj.hasAttribute("feature_value_details") and tS is not None:
                     dL = str(fObj.getValue("feature_value_details", ii)).split(";")
                     fInstanceCountD.setdefault(asymId, {}).setdefault(fType, []).append(len(dL))
+
             #
+            # These have the count in the feature value already.
+            validationCountTypes = [
+                "BOND_OUTLIERS",
+                "ANGLE_OUTLIERS",
+                "CHIRAL_OUTLIERS",
+                "PLANE_OUTLIERS",
+                "CLASHES",
+                "SYMM_CLASHES",
+                "MOGUL_BOND_OUTLIERS",
+                "MOGUL_ANGLE_OUTLIERS",
+                "MOGUL_TORSION_OUTLIERS",
+                "MOGUL_RING_OUTLIERS"
+            ]
+            validationValueTypes = [
+                "RSR",
+                "RSRZ",
+                "RSCC",
+                "OWAB",
+                "Q_SCORE"
+            ]
+
             ii = 0
             # Summarize all instances -
             for asymId, entityId in instEntityD.items():
@@ -1662,20 +1702,29 @@ class DictMethodEntityInstanceHelper(object):
                     # Sum features with different granularity
                     #
                     fracC = 0.0
-                    if asymId in fMonomerCountD and fType in fMonomerCountD[asymId] and fMonomerCountD[asymId][fType]:
+                    if asymId in fValuesD and fType in validationCountTypes and fType in fValuesD[asymId] and fValuesD[asymId][fType]:
+                        fCount = sum(fValuesD[asymId][fType])
+                        if asymId in fMonomerCountD and fType in fMonomerCountD[asymId] and entityId in entityPolymerLengthD:
+                            fracC = float(fCount) / float(entityPolymerLengthD[entityId])
+                        # This needs to be changed to use the correct source for all outlier types.
+                        # elif compId is not None:
+                        #     if fType == "MOGUL_BOND_OUTLIERS" and self.__ccP.getBondCount(compId) > 0:
+                        #         fracC = float(fCount / self.__ccP.getBondCount(compId))
+                        #     if fType in ["STEREO_OUTLIERS", "CHIRAL_OUTLIERS"] and self.__ccP.getAtomCountChiral(compId) > 0:
+                        #         fracC = float(fCount / self.__ccP.getAtomCountChiral(compId))
+                    elif asymId in fValuesD and fType in validationValueTypes and fType in fValuesD[asymId] and fValuesD[asymId][fType]:
+                        fCount = len(fValuesD[asymId][fType])
+                        if asymId in fMonomerCountD and fType in fMonomerCountD[asymId] and entityId in entityPolymerLengthD:
+                            fracC = float(fCount) / float(entityPolymerLengthD[entityId])
+                    elif asymId in fMonomerCountD and fType in fMonomerCountD[asymId] and fMonomerCountD[asymId][fType]:
                         fCount = sum(fMonomerCountD[asymId][fType])
                         if asymId in fMonomerCountD and fType in fMonomerCountD[asymId] and entityId in entityPolymerLengthD:
                             fracC = float(sum(fMonomerCountD[asymId][fType])) / float(entityPolymerLengthD[entityId])
                     elif asymId in fInstanceCountD and fType in fInstanceCountD[asymId] and fInstanceCountD[asymId][fType]:
                         fCount = sum(fInstanceCountD[asymId][fType])
-                        if compId is not None:
-                            if fType == "COUNT_MOGUL_BOND_OUTLIERS" and self.__ccP.getBondCount(compId) > 0:
-                                fracC = float(fCount / self.__ccP.getBondCount(compId))
-                            if fType in ["STEREO_OUTLIER", "COUNT_CHIRAL_OUTLIERS"] and self.__ccP.getAtomCountChiral(compId) > 0:
-                                fracC = float(fCount / self.__ccP.getAtomCountChiral(compId))
                     elif asymId in fCountD and fType in fCountD[asymId] and fCountD[asymId][fType]:
                         fCount = len(fCountD[asymId][fType])
-                    elif fType == "MODELLED_ATOMS":
+                    elif fType == "MODELED_ATOMS":
                         # Get experimental method
                         xObj = dataContainer.getObj("exptl")
                         methodL = xObj.getAttributeValueList("method")
@@ -1713,8 +1762,22 @@ class DictMethodEntityInstanceHelper(object):
                         # default zero value
                         fCount = 0
                     #
+                    # Min/max need to be added to the
+                    # dictionary for rcsb_entity_instance_validation_feature_summary
+                    # minV = maxV = 0
+                    # if asymId in fValuesD and fType in fValuesD[asymId]:
+                    #     if fType in validationValueTypes:
+                    #         try:
+                    #             minV = min(fValuesD[asymId][fType])
+                    #             maxV = max(fValuesD[asymId][fType])
+                    #         except Exception:
+                    #             pass
+
                     sObj.setValue(fCount, "count", ii)
                     sObj.setValue(round(fracC, 5), "coverage", ii)
+                    # if minV is not None:
+                    #     sObj.setValue(minV, "minimum_value", ii)
+                    #     sObj.setValue(maxV, "maximum_value", ii)
                     #
                     ii += 1
 

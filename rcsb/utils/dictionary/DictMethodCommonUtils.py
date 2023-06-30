@@ -4586,10 +4586,9 @@ class DictMethodCommonUtils(object):
                 value = tObj.getValueOrDefault(iFdv, ii, None)
                 if value is not None:
                     tId = iFd + "_" + entityId + "_" + asymId + "_" + modelNum + "_" + seqId
-                    if seqId and seqId not in [".", "?"]:  # Eliminates non-polymers and branched
-                        if tId not in dL:
-                            metricValD.setdefault((entityId, asymId, authAsymId, modelNum, iFd, True), []).append((compId, seqId, value))
-                            dL.append(tId)
+                    if tId not in dL:
+                        metricValD.setdefault((entityId, asymId, authAsymId, modelNum, iFd, seqId and seqId not in [".", "?"]), []).append((compId, seqId, value))
+                        dL.append(tId)
 
     def getLocalValidationData(self, dataContainer):
         """ Get Local validation data from the Validation report
@@ -4619,16 +4618,16 @@ class DictMethodCommonUtils(object):
             "Q_SCORE": "Q_score"
         }
         OutlierCountFields = {
-            "COUNT_BOND_OUTLIERS": "count_bond_outliers",
-            "COUNT_ANGLE_OUTLIERS": "count_angle_outliers",
-            "COUNT_CLASHES": "count_clashes",
-            "COUNT_SYMM_CLASHES": "count_symm_clashes",
-            "COUNT_CHIRAL_OUTLIERS": "count_chiral_outliers",
-            "COUNT_PLANE_OUTLIERS": "count_plane_outliers",
-            "COUNT_MOGUL_BOND_OUTLIERS": "count_mogul_bond_outliers",
-            "COUNT_MOGUL_ANGLE_OUTLIERS": "count_mogul_angle_outliers",
-            "COUNT_MOGUL_TORSION_OUTLIERS": "count_mogul_torsion_outliers",
-            "COUNT_MOGUL_RING_OUTLIERS": "count_mogul_ring_outliers"
+            "BOND_OUTLIERS": "count_bond_outliers",
+            "ANGLE_OUTLIERS": "count_angle_outliers",
+            "CLASHES": "count_clashes",
+            "SYMM_CLASHES": "count_symm_clashes",
+            "CHIRAL_OUTLIERS": "count_chiral_outliers",
+            "PLANE_OUTLIERS": "count_plane_outliers",
+            "MOGUL_BOND_OUTLIERS": "count_mogul_bond_outliers",
+            "MOGUL_ANGLE_OUTLIERS": "count_mogul_angle_outliers",
+            "MOGUL_TORSION_OUTLIERS": "count_mogul_torsion_outliers",
+            "MOGUL_RING_OUTLIERS": "count_mogul_ring_outliers"
         }
 
         try:
@@ -4658,23 +4657,29 @@ class DictMethodCommonUtils(object):
                 tObj = dataContainer.getObj("pdbx_vrpt_model_instance")
                 self.__getValidationData(tObj, iObj, OutlierCountFields, "id", metricValD, dL)
 
-            for (modelId, asymId, authAsymId, modelNum, attrId, hasSeq), aL in metricValD.items():
+            for (entityId, asymId, authAsymId, modelId, attrId, hasSeq), aL in metricValD.items():
                 tD = {}
-                sL = sorted(aL, key=lambda i: int(i[1]))
-                mL = [int(s[1]) for s in sL]
-                begCompId = ""
-                for ii in range(len(sL)):
-                    compId = sL[ii][0]
-                    seqId = sL[ii][1]
-                    metricV = sL[ii][2]
-                    for tup in list(self.__toRangeList(mL)):
-                        beg = tup[0]
-                        end = tup[1]
-                        if int(beg) == int(seqId):
-                            begCompId = compId
-                        if int(beg) <= int(seqId) <= int(end) and metricV is not None:
-                            tD.setdefault((begCompId, int(beg)), []).append(float(metricV))
-                localDataD.setdefault((modelId, asymId, authAsymId, modelNum, attrId, hasSeq), []).append(tD)
+                if hasSeq:
+                    sL = sorted(aL, key=lambda i: int(i[1]))
+                    mL = [int(s[1]) for s in sL]
+                    begCompId = ""
+                    for ii in range(len(sL)):
+                        compId = sL[ii][0]
+                        seqId = sL[ii][1]
+                        metricV = sL[ii][2]
+                        for tup in list(self.__toRangeList(mL)):
+                            beg = tup[0]
+                            end = tup[1]
+                            if int(beg) == int(seqId):
+                                begCompId = compId
+                            if int(beg) <= int(seqId) <= int(end) and metricV is not None:
+                                tD.setdefault((begCompId, int(beg)), []).append(float(metricV))
+                elif len(aL) > 0:
+                    ii = 0
+                    compId = aL[ii][0]
+                    metricV = aL[ii][2]
+                    tD.setdefault((compId, 0), []).append(float(metricV))
+                localDataD.setdefault((entityId, asymId, authAsymId, modelId, attrId, hasSeq), []).append(tD)
 
         except Exception as e:
             logger.exception("Failing for %s with %s", dataContainer.getName(), str(e))
