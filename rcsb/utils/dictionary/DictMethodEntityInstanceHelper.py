@@ -11,7 +11,8 @@
 #                  (rcsb_nonpolymer_instance_validation_score.is_subject_of_investigation_provenance)
 #   2-Apr-2022  bv Update buildEntityInstanceFeatures to populate ma_qa_metric_local scores for computed models
 #  21-Apr-2022  bv Update buildEntityInstanceFeatureSummary for handling ma_qa_metric_local scores
-#  13-Jan-2023 aae  Update buildEntityInstanceFeatures to handle local q-score for EM
+#   3-Jul-2023 aae Update buildInstanceValidationFeatures, buildEntityInstanceAnnotations, and buildInstanceValidationFeatureSummary
+#                  for mmcif validation data, remove unused buildInstanceValidationFeatureSummaryPrev
 #
 ##
 """

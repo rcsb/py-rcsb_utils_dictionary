@@ -22,7 +22,8 @@
 #  3-May-2022 dwp Use internal computed-model identifiers for 'entry_id' in containter_identifiers
 # 27-Jun-2022 bv  Update _rcsb_ma_qa_metric_global.ma_qa_metric_global_type to 'pLDDT' for AF models
 # 29-Jun-2022 dwp Use internal computed-model identifiers everywhere (in same manner as experimental models)
-# 13-Jan-2023 aae add method getLocalEMQScores for residue-level Q-scores
+#  3-Jul-2023 aae Update __getInstanceModelOutliers (old version is backed up as __getInstanceModelOutliersXML),
+#                 add method __getValidationData to get data from validation mmcif files
 #
 ##
 """
