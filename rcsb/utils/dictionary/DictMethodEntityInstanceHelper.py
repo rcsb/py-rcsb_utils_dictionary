@@ -1762,23 +1762,21 @@ class DictMethodEntityInstanceHelper(object):
                         # default zero value
                         fCount = 0
                     #
-                    # Min/max need to be added to the
-                    # dictionary for rcsb_entity_instance_validation_feature_summary
-                    # minV = maxV = 0
-                    # if asymId in fValuesD and fType in fValuesD[asymId]:
-                    #     if fType in validationValueTypes:
-                    #         try:
-                    #             minV = min(fValuesD[asymId][fType])
-                    #             maxV = max(fValuesD[asymId][fType])
-                    #         except Exception:
-                    #             pass
+                    minV = maxV = 0
+                    if asymId in fValuesD and fType in fValuesD[asymId]:
+                        if fType in validationValueTypes:
+                            try:
+                                minV = min(fValuesD[asymId][fType])
+                                maxV = max(fValuesD[asymId][fType])
+                            except Exception:
+                                pass
 
                     sObj.setValue(fCount, "count", ii)
                     sObj.setValue(round(fracC, 5), "coverage", ii)
-                    # if minV is not None:
-                    #     sObj.setValue(minV, "minimum_value", ii)
-                    #     sObj.setValue(maxV, "maximum_value", ii)
-                    #
+                    if minV is not None:
+                        sObj.setValue(minV, "minimum_value", ii)
+                        sObj.setValue(maxV, "maximum_value", ii)
+
                     ii += 1
 
         except Exception as e:
