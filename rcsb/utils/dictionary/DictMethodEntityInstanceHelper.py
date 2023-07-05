@@ -1298,7 +1298,7 @@ class DictMethodEntityInstanceHelper(object):
                         cObj.setValue(metricId, "type", ii)
                         cObj.setValue(metricId, "name", ii)
                         cObj.setValue(metricId, "feature_id", ii)
-                        addPropTupL = [("MODEL_NUM", modelId)]
+                        addPropTupL = [("PDB_MODEL_NUM", modelId)]
                         cObj.setValue(";".join([str(tup1[0]) for tup1 in addPropTupL]), "additional_properties_name", ii)
                         cObj.setValue(";".join([str(tup1[1]) for tup1 in addPropTupL]), "additional_properties_values", ii)
                         fValL = []
