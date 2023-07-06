@@ -11,6 +11,8 @@
 #                  (rcsb_nonpolymer_instance_validation_score.is_subject_of_investigation_provenance)
 #   2-Apr-2022  bv Update buildEntityInstanceFeatures to populate ma_qa_metric_local scores for computed models
 #  21-Apr-2022  bv Update buildEntityInstanceFeatureSummary for handling ma_qa_metric_local scores
+#   3-Jul-2023 aae Update buildInstanceValidationFeatures, buildEntityInstanceAnnotations, and buildInstanceValidationFeatureSummary
+#                  for mmcif validation data, remove unused buildInstanceValidationFeatureSummaryPrev
 #
 ##
 """
@@ -1282,129 +1284,44 @@ class DictMethodEntityInstanceHelper(object):
                     jj += 1
                     ii += 1
             #
+            # Populate local (residue-level) validation report data values
+            if dataContainer.exists("pdbx_vrpt_model_instance"):
+                localDataD = self.__commonU.getLocalValidationData(dataContainer)
+                if localDataD:  # No validation data at residue level
+                    for (entityId, asymId, authAsymId, modelId, metricId, hasSeq), aD in localDataD.items():
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        cObj.setValue(asymId, "asym_id", ii)
+                        cObj.setValue(authAsymId, "auth_asym_id", ii)
+                        cObj.setValue("PDB", "provenance_source", ii)
+                        cObj.setValue(metricId, "type", ii)
+                        cObj.setValue(metricId, "name", ii)
+                        cObj.setValue(metricId, "feature_id", ii)
+                        addPropTupL = [("PDB_MODEL_NUM", modelId)]
+                        cObj.setValue(";".join([str(tup1[0]) for tup1 in addPropTupL]), "additional_properties_name", ii)
+                        cObj.setValue(";".join([str(tup1[1]) for tup1 in addPropTupL]), "additional_properties_values", ii)
+                        fValL = []
+                        sId = ""
+                        cId = ""
+                        for _, vD in enumerate(aD):
+                            for k1, vL in vD.items():
+                                fVal = ",".join([str(v) for v in vL])
+                                fValL.append(fVal)
+                            cId = ";".join([str(k1[0]) for k1, vL in vD.items()])
+                            sId = ";".join([str(k1[1]) for k1, vL in vD.items()])
+                        cObj.setValue(";".join([str(tup) for tup in fValL]), "feature_positions_values", ii)
+                        cObj.setValue(sId, "feature_positions_beg_seq_id", ii)
+                        cObj.setValue(cId, "feature_positions_beg_comp_id", ii)
+
+                        ii += 1
+                    logger.debug("Completed populating local validation report data for %r", dataContainer.getName())
+
+            #
             return True
         except Exception as e:
             logger.exception("For %s %r failing with %s", dataContainer.getName(), catName, str(e))
         return False
-
-    # --- JDW
-    def buildInstanceValidationFeatureSummaryPrev(self, dataContainer, catName, **kwargs):
-        """Build category rcsb_entity_instance_validation_feature_summary
-
-        Example:
-
-            loop_
-            _rcsb_entity_instance_validation_feature_summary.ordinal
-            _rcsb_entity_instance_validation_feature_summary.entry_id
-            _rcsb_entity_instance_validation_feature_summary.entity_id
-            _rcsb_entity_instance_validation_feature_summary.asym_id
-            _rcsb_entity_instance_validation_feature_summary.auth_asym_id
-            #validation_
-            _rcsb_entity_instance_validation_feature_summary.type
-            _rcsb_entity_instance_validation_feature_summary.count
-            _rcsb_entity_instance_validation_feature_summary.coverage
-            # ...
-        """
-        logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
-        try:
-            if catName != "rcsb_entity_instance_validation_feature_summary":
-                return False
-            if not dataContainer.exists("rcsb_entity_instance_validation_feature") and not dataContainer.exists("entry"):
-                return False
-
-            if not dataContainer.exists(catName):
-                dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
-            #
-            eObj = dataContainer.getObj("entry")
-            entryId = eObj.getValue("id", 0)
-            #
-            sObj = dataContainer.getObj(catName)
-            fObj = dataContainer.getObj("rcsb_entity_instance_validation_feature")
-            #
-            instIdMapD = self.__commonU.getInstanceIdMap(dataContainer)
-            instEntityD = self.__commonU.getInstanceEntityMap(dataContainer)
-            entityPolymerLengthD = self.__commonU.getPolymerEntityLengthsEnumerated(dataContainer)
-            asymAuthD = self.__commonU.getAsymAuthIdMap(dataContainer)
-
-            fCountD = OrderedDict()
-            fMonomerCountD = OrderedDict()
-            fInstanceCountD = OrderedDict()
-            for ii in range(fObj.getRowCount()):
-                asymId = fObj.getValue("asym_id", ii)
-                # ---- initialize counts
-                # fCountD = self.__initializeInstanceValidationFeatureType(dataContainer, asymId, fCountD, countType="set")
-                # fMonomerCountD = self.__initializeInstanceValidationFeatureType(dataContainer, asymId, fMonomerCountD, countType="list")
-                # fInstanceCountD = self.__initializeInstanceValidationFeatureType(dataContainer, asymId, fInstanceCountD, countType="list")
-                # ----
-                fType = fObj.getValue("type", ii)
-                fId = fObj.getValue("feature_id", ii)
-                fCountD.setdefault(asymId, {}).setdefault(fType, set()).add(fId)
-                #
-                tbegS = fObj.getValueOrDefault("feature_positions_beg_seq_id", ii, defaultValue=None)
-                tendS = fObj.getValueOrDefault("feature_positions_end_seq_id", ii, defaultValue=None)
-                if fObj.hasAttribute("feature_positions_beg_seq_id") and tbegS is not None and fObj.hasAttribute("feature_positions_end_seq_id") and tendS is not None:
-                    begSeqIdL = str(fObj.getValue("feature_positions_beg_seq_id", ii)).split(";")
-                    endSeqIdL = str(fObj.getValue("feature_positions_end_seq_id", ii)).split(";")
-                    monCount = 0
-                    for begSeqId, endSeqId in zip(begSeqIdL, endSeqIdL):
-                        try:
-                            monCount += abs(int(endSeqId) - int(begSeqId) + 1)
-                        except Exception:
-                            logger.warning(
-                                "In %s fType %r fId %r bad sequence range begSeqIdL %r endSeqIdL %r tbegS %r tendS %r",
-                                dataContainer.getName(),
-                                fType,
-                                fId,
-                                begSeqIdL,
-                                endSeqIdL,
-                                tbegS,
-                                tendS,
-                            )
-                    fMonomerCountD.setdefault(asymId, {}).setdefault(fType, []).append(monCount)
-                elif fObj.hasAttribute("feature_positions_beg_seq_id") and tbegS:
-                    seqIdL = str(fObj.getValue("feature_positions_beg_seq_id", ii)).split(";")
-                    fMonomerCountD.setdefault(asymId, {}).setdefault(fType, []).append(len(seqIdL))
-
-                tS = fObj.getValueOrDefault("feature_value_details", ii, defaultValue=None)
-                if fObj.hasAttribute("feature_value_details") and tS is not None:
-                    dL = str(fObj.getValue("feature_value_details", ii)).split(";")
-                    fInstanceCountD.setdefault(asymId, {}).setdefault(fType, []).append(len(dL))
-            #
-            # logger.debug("%s fCountD %r", entryId, fCountD)
-            #
-            ii = 0
-            for asymId, fTypeD in fCountD.items():
-                entityId = instEntityD[asymId]
-                authAsymId = asymAuthD[asymId]
-                for fType, fS in fTypeD.items():
-                    #
-                    sObj.setValue(ii + 1, "ordinal", ii)
-                    sObj.setValue(entryId, "entry_id", ii)
-                    sObj.setValue(entityId, "entity_id", ii)
-                    sObj.setValue(asymId, "asym_id", ii)
-                    if asymId in instIdMapD and "comp_id" in instIdMapD[asymId] and instIdMapD[asymId]["comp_id"]:
-                        sObj.setValue(instIdMapD[asymId]["comp_id"], "comp_id", ii)
-                    sObj.setValue(authAsymId, "auth_asym_id", ii)
-                    sObj.setValue(fType, "type", ii)
-                    fracC = 0.0
-                    #
-                    if asymId in fMonomerCountD and fType in fMonomerCountD[asymId] and fMonomerCountD[asymId][fType]:
-                        fCount = sum(fMonomerCountD[asymId][fType])
-                        if asymId in fMonomerCountD and fType in fMonomerCountD[asymId] and entityId in entityPolymerLengthD:
-                            fracC = float(sum(fMonomerCountD[asymId][fType])) / float(entityPolymerLengthD[entityId])
-                    elif asymId in fInstanceCountD and fType in fInstanceCountD[asymId] and fInstanceCountD[asymId][fType]:
-                        fCount = sum(fInstanceCountD[asymId][fType])
-                    else:
-                        fCount = len(fS)
-                    #
-                    sObj.setValue(fCount, "count", ii)
-                    sObj.setValue(round(fracC, 5), "coverage", ii)
-                    #
-                    ii += 1
-
-        except Exception as e:
-            logger.exception("Failing with %s", str(e))
-        return True
 
     def __initializeInstanceValidationFeatureType(self, dataContainer, asymId, fCountD, countType="set"):
         instTypeD = self.__commonU.getInstanceTypes(dataContainer)
@@ -1467,7 +1384,6 @@ class DictMethodEntityInstanceHelper(object):
         fTypeL = sorted(set(vTypeL).intersection(iTypeL))
         return fTypeL
 
-    # --- JDW
     def buildEntityInstanceFeatureSummary(self, dataContainer, catName, **kwargs):
         """Build category rcsb_entity_instance_feature_summary (UPDATED)
 
@@ -1685,6 +1601,7 @@ class DictMethodEntityInstanceHelper(object):
             instTypeD = self.__commonU.getInstanceTypes(dataContainer)
 
             fCountD = OrderedDict()
+            fValuesD = OrderedDict()
             fMonomerCountD = OrderedDict()
             fInstanceCountD = OrderedDict()
             for ii in range(fObj.getRowCount()):
@@ -1718,11 +1635,51 @@ class DictMethodEntityInstanceHelper(object):
                     seqIdL = str(fObj.getValue("feature_positions_beg_seq_id", ii)).split(";")
                     fMonomerCountD.setdefault(asymId, {}).setdefault(fType, []).append(len(seqIdL))
 
+                elif fObj.hasAttribute("feature_value_reported"):
+                    tValue = fObj.getValueOrDefault("feature_value_reported", ii, defaultValue=None)
+                    if tValue:
+                        try:
+                            tvL = [float(t) for t in tValue.split(";")]
+                            fValuesD.setdefault(asymId, {}).setdefault(fType, []).extend(tvL)
+                        except Exception:
+                            pass
+                if fObj.hasAttribute("feature_positions_values"):
+                    tValue = fObj.getValueOrDefault("feature_positions_values", ii, defaultValue=None)
+                    if tValue:
+                        try:
+                            for a in tValue.split(";"):
+                                tvL = [float(t) for t in a.split(",")]
+                                fValuesD.setdefault(asymId, {}).setdefault(fType, []).extend(tvL)
+                        except Exception:
+                            pass
+
                 tS = fObj.getValueOrDefault("feature_value_details", ii, defaultValue=None)
                 if fObj.hasAttribute("feature_value_details") and tS is not None:
                     dL = str(fObj.getValue("feature_value_details", ii)).split(";")
                     fInstanceCountD.setdefault(asymId, {}).setdefault(fType, []).append(len(dL))
+
             #
+            # These have the count in the feature value already.
+            validationCountTypes = [
+                "BOND_OUTLIERS",
+                "ANGLE_OUTLIERS",
+                "CHIRAL_OUTLIERS",
+                "PLANE_OUTLIERS",
+                "CLASHES",
+                "SYMM_CLASHES",
+                "MOGUL_BOND_OUTLIERS",
+                "MOGUL_ANGLE_OUTLIERS",
+                "MOGUL_TORSION_OUTLIERS",
+                "MOGUL_RING_OUTLIERS"
+            ]
+            validationValueTypes = [
+                "RSR",
+                "RSRZ",
+                "RSCC",
+                "OWAB",
+                "Q_SCORE"
+            ]
+
             ii = 0
             # Summarize all instances -
             for asymId, entityId in instEntityD.items():
@@ -1736,7 +1693,9 @@ class DictMethodEntityInstanceHelper(object):
                     sObj.setValue(entryId, "entry_id", ii)
                     sObj.setValue(entityId, "entity_id", ii)
                     sObj.setValue(asymId, "asym_id", ii)
+                    compId = None
                     if asymId in instIdMapD and "comp_id" in instIdMapD[asymId] and instIdMapD[asymId]["comp_id"]:
+                        compId = instIdMapD[asymId]["comp_id"]
                         sObj.setValue(instIdMapD[asymId]["comp_id"], "comp_id", ii)
                     sObj.setValue(authAsymId, "auth_asym_id", ii)
                     sObj.setValue(fType, "type", ii)
@@ -1744,7 +1703,21 @@ class DictMethodEntityInstanceHelper(object):
                     # Sum features with different granularity
                     #
                     fracC = 0.0
-                    if asymId in fMonomerCountD and fType in fMonomerCountD[asymId] and fMonomerCountD[asymId][fType]:
+                    if asymId in fValuesD and fType in validationCountTypes and fType in fValuesD[asymId] and fValuesD[asymId][fType]:
+                        fCount = sum(fValuesD[asymId][fType])
+                        if asymId in fMonomerCountD and fType in fMonomerCountD[asymId] and entityId in entityPolymerLengthD:
+                            fracC = float(fCount) / float(entityPolymerLengthD[entityId])
+                        # This needs to be changed to use the correct source for all outlier types.
+                        # elif compId is not None:
+                        #     if fType == "MOGUL_BOND_OUTLIERS" and self.__ccP.getBondCount(compId) > 0:
+                        #         fracC = float(fCount / self.__ccP.getBondCount(compId))
+                        #     if fType in ["STEREO_OUTLIERS", "CHIRAL_OUTLIERS"] and self.__ccP.getAtomCountChiral(compId) > 0:
+                        #         fracC = float(fCount / self.__ccP.getAtomCountChiral(compId))
+                    elif asymId in fValuesD and fType in validationValueTypes and fType in fValuesD[asymId] and fValuesD[asymId][fType]:
+                        fCount = len(fValuesD[asymId][fType])
+                        if asymId in fMonomerCountD and fType in fMonomerCountD[asymId] and entityId in entityPolymerLengthD:
+                            fracC = float(fCount) / float(entityPolymerLengthD[entityId])
+                    elif asymId in fMonomerCountD and fType in fMonomerCountD[asymId] and fMonomerCountD[asymId][fType]:
                         fCount = sum(fMonomerCountD[asymId][fType])
                         if asymId in fMonomerCountD and fType in fMonomerCountD[asymId] and entityId in entityPolymerLengthD:
                             fracC = float(sum(fMonomerCountD[asymId][fType])) / float(entityPolymerLengthD[entityId])
@@ -1752,13 +1725,59 @@ class DictMethodEntityInstanceHelper(object):
                         fCount = sum(fInstanceCountD[asymId][fType])
                     elif asymId in fCountD and fType in fCountD[asymId] and fCountD[asymId][fType]:
                         fCount = len(fCountD[asymId][fType])
+                    elif fType == "MODELED_ATOMS":
+                        # Get experimental method
+                        xObj = dataContainer.getObj("exptl")
+                        methodL = xObj.getAttributeValueList("method")
+                        _, expMethod = self.__commonU.filterExperimentalMethod(methodL)
+                        # -- Get existing interactions or calculate on the fly
+                        if self.__niP.hasEntry(entryId):
+                            ligandAtomCountD = self.__niP.getAtomCounts(entryId)
+                            ligandHydrogenAtomCountD = self.__niP.getHydrogenAtomCounts(entryId)
+                            intIsBoundD = self.__niP.getLigandNeighborBoundState(entryId)
+                        else:
+                            ligandAtomCountD = self.__commonU.getLigandAtomCountD(dataContainer)
+                            ligandHydrogenAtomCountD = self.__commonU.getLigandHydrogenAtomCountD(dataContainer)
+                            intIsBoundD = self.__commonU.getLigandNeighborBoundState(dataContainer)
+                        isBound = intIsBoundD[asymId] if asymId in intIsBoundD else False
+                        numHeavyAtoms = self.__ccP.getAtomCountHeavy(compId)
+                        numAtoms = self.__ccP.getAtomCount(compId)
+                        numReportedAtoms = 0
+                        numReportedHydrogenAtoms = 0
+                        if not numHeavyAtoms:
+                            continue
+                        try:
+                            numReportedAtoms = ligandAtomCountD[asymId]["FL"]
+                        except KeyError as e:
+                            logger.warning("Missing ligand atom count for entry %s asymId %s with %s", entryId, asymId, str(e))
+
+                        try:
+                            numReportedHydrogenAtoms = ligandHydrogenAtomCountD[asymId]["FL"]
+                        except KeyError:
+                            pass
+                        fCount = numReportedAtoms if numReportedAtoms > numHeavyAtoms and expMethod != "X-ray" else numReportedAtoms - numReportedHydrogenAtoms
+                        fracC = self.__calculateModeledCompleteness(
+                            entryId, asymId, compId, "", isBound, ligandAtomCountD, numReportedAtoms, numReportedHydrogenAtoms, numHeavyAtoms, numAtoms, expMethod
+                        )
                     else:
                         # default zero value
                         fCount = 0
                     #
+                    minV = maxV = 0
+                    if asymId in fValuesD and fType in fValuesD[asymId]:
+                        if fType in validationValueTypes:
+                            try:
+                                minV = min(fValuesD[asymId][fType])
+                                maxV = max(fValuesD[asymId][fType])
+                            except Exception:
+                                pass
+
                     sObj.setValue(fCount, "count", ii)
                     sObj.setValue(round(fracC, 5), "coverage", ii)
-                    #
+                    if minV is not None:
+                        sObj.setValue(minV, "minimum_value", ii)
+                        sObj.setValue(maxV, "maximum_value", ii)
+
                     ii += 1
 
         except Exception as e:
@@ -2070,7 +2089,7 @@ class DictMethodEntityInstanceHelper(object):
                     #
                     ii += 1
                     jj += 1
-            #
+            # ------------
             # Glycosylation features
             jj = 1
             for asymId, rTupL in npbD.items():
@@ -2104,6 +2123,50 @@ class DictMethodEntityInstanceHelper(object):
                     #
                     ii += 1
                     jj += 1
+            # ------------
+            # Add validation data for nonpolymer
+            instanceModelOutlierD = self.__commonU.getInstanceModelOutlierInfo(dataContainer)
+            annotationVrptD = {}
+            typeMapD = {
+                "IS_RSRZ_OUTLIER": "Real space R-value Z score > 2",
+                "IS_RSCC_OUTLIER": "Real space density correlation value < 0.65"
+            }
+            for (modelId, asymId, _, _), pTupL in instanceModelOutlierD.items():
+                if instTypeD[asymId] not in ["non-polymer"]:
+                    continue
+                for pTup in pTupL:
+                    fType = "IS_" + pTup.outlierType
+                    if fType not in ["IS_RSCC_OUTLIER", "IS_RSRZ_OUTLIER"]:
+                        continue
+                    fId = fType
+
+                    # Only include one annotation for a given asymId, even if it has multiple conformations
+                    if annotationVrptD.get((modelId, asymId)) and fType in annotationVrptD.get((modelId, asymId)):
+                        continue
+                    annotationVrptD.setdefault((modelId, asymId), []).append(fType)
+
+                    entityId = asymIdD[asymId]
+                    authAsymId = asymAuthIdD[asymId]
+                    cObj.setValue(ii + 1, "ordinal", ii)
+                    cObj.setValue(entryId, "entry_id", ii)
+                    cObj.setValue(entityId, "entity_id", ii)
+                    cObj.setValue(asymId, "asym_id", ii)
+                    cObj.setValue(authAsymId, "auth_asym_id", ii)
+                    cObj.setValue(pTup.compId, "comp_id", ii)
+                    cObj.setValue(fId, "annotation_id", ii)
+                    cObj.setValue(fType, "type", ii)
+                    #
+                    tN = typeMapD[fType] if fType in typeMapD else fType
+                    cObj.setValue(
+                        tN,
+                        "description",
+                        ii,
+                    )
+                    cObj.setValue("PDB", "provenance_source", ii)
+                    cObj.setValue("V1.0", "assignment_version", ii)
+                    #
+                    ii += 1
+
             return True
         except Exception as e:
             logger.exception("%s %s failing with %s", dataContainer.getName(), catName, str(e))

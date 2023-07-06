@@ -13,6 +13,7 @@
 #  14-Mar-2023 dwp Load CARD data to rcsb_polymer_entity_annotation
 #  28-Mar-2023 dwp Populate 'rcsb_entity_source_organism.provenance_source' with transient value from 'entity_src_nat.rcsb_provenance_source' (applicable to CSMs only)
 #   2-May-2023 dwp Stop loading depth data for CARD lineage annotations
+#   3-Jul-2023 aae Stop populating 'rcsb_nonpolymer_instance_feature' from 'rcsb_entity_instance_validation_feature'
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
@@ -2459,7 +2460,6 @@ class DictMethodEntityHelper(object):
                     ("rcsb_entity_feature_summary", "rcsb_nonpolymer_entity_feature_summary", "entity_id"),
                     ("rcsb_entity_instance_feature", "rcsb_nonpolymer_instance_feature", "entity_id"),
                     ("rcsb_entity_instance_feature_summary", "rcsb_nonpolymer_instance_feature_summary", "entity_id"),
-                    ("rcsb_entity_instance_validation_feature", "rcsb_nonpolymer_instance_feature", "entity_id"),
                     ("rcsb_entity_instance_validation_feature_summary", "rcsb_nonpolymer_instance_feature_summary", "entity_id"),
                     ("rcsb_struct_conn", "rcsb_nonpolymer_struct_conn", "entity_id"),
                     ("rcsb_entity_annotation", "rcsb_nonpolymer_entity_annotation", "entity_id"),
