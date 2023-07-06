@@ -4570,7 +4570,7 @@ class DictMethodCommonUtils(object):
 
         return repModelL
 
-    def __getValidationData(self, tObj, iObj, fields, idField, metricValD, dL):
+    def __getValidationData(self, dataContainer, tObj, iObj, fields, idField, metricValD, dL):
         for ii in range(tObj.getRowCount()):
             instId = tObj.getValue(idField, ii)
             [[entityId, asymId, compId, authAsymId, seqId, modelNum]] = iObj.selectValueListWhere(
@@ -4583,6 +4583,9 @@ class DictMethodCommonUtils(object):
                     "PDB_model_num"
                 ], instId, "id"
             )
+            instTypeD = self.getInstanceTypes(dataContainer)
+            if instTypeD[asymId] not in ["polymer", "non-polymer"]:
+                continue
             for iFd, iFdv in fields.items():
                 value = tObj.getValueOrDefault(iFdv, ii, None)
                 if value is not None:
@@ -4641,22 +4644,22 @@ class DictMethodCommonUtils(object):
             # pdbx_vrpt_model_instance_map_fitting
             if dataContainer.exists("pdbx_vrpt_model_instance_map_fitting"):
                 tObj = dataContainer.getObj("pdbx_vrpt_model_instance_map_fitting")
-                self.__getValidationData(tObj, iObj, ValidationFields, "instance_id", metricValD, dL)
+                self.__getValidationData(dataContainer, tObj, iObj, ValidationFields, "instance_id", metricValD, dL)
 
             # pdbx_vrpt_model_instance_density
             if dataContainer.exists("pdbx_vrpt_model_instance_density"):
                 tObj = dataContainer.getObj("pdbx_vrpt_model_instance_density")
-                self.__getValidationData(tObj, iObj, ValidationFields, "instance_id", metricValD, dL)
+                self.__getValidationData(dataContainer, tObj, iObj, ValidationFields, "instance_id", metricValD, dL)
 
             # pdbx_vrpt_model_instance_geometry
             if dataContainer.exists("pdbx_vrpt_model_instance_geometry"):
                 tObj = dataContainer.getObj("pdbx_vrpt_model_instance_geometry")
-                self.__getValidationData(tObj, iObj, {"OWAB": "OWAB"}, "instance_id", metricValD, dL)
+                self.__getValidationData(dataContainer, tObj, iObj, {"OWAB": "OWAB"}, "instance_id", metricValD, dL)
 
             # pdbx_vrpt_model_instance
             if dataContainer.exists("pdbx_vrpt_model_instance"):
                 tObj = dataContainer.getObj("pdbx_vrpt_model_instance")
-                self.__getValidationData(tObj, iObj, OutlierCountFields, "id", metricValD, dL)
+                self.__getValidationData(dataContainer, tObj, iObj, OutlierCountFields, "id", metricValD, dL)
 
             for (entityId, asymId, authAsymId, modelId, attrId, hasSeq), aL in metricValD.items():
                 tD = {}
