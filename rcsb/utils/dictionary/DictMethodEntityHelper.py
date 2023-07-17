@@ -13,6 +13,7 @@
 #  14-Mar-2023 dwp Load CARD data to rcsb_polymer_entity_annotation
 #  28-Mar-2023 dwp Populate 'rcsb_entity_source_organism.provenance_source' with transient value from 'entity_src_nat.rcsb_provenance_source' (applicable to CSMs only)
 #   2-May-2023 dwp Stop loading depth data for CARD lineage annotations
+#  17-Jul-2023 dwp RO-170: Stop populating ordinal, reference_scheme, and feature_positions_beg_comp_id for all feature objects
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
@@ -1650,19 +1651,16 @@ class DictMethodEntityHelper(object):
 
         Example:
             loop_
-            _rcsb_entity_feature.ordinal
             _rcsb_entity_feature.entry_id
             _rcsb_entity_feature.entity_id
             _rcsb_entity_feature.feature_id
             _rcsb_entity_feature.type
             _rcsb_entity_feature.name
             _rcsb_entity_feature.description
-            _rcsb_entity_feature.reference_scheme
             _rcsb_entity_feature.provenance_source
             _rcsb_entity_feature.assignment_version
             _rcsb_entity_feature.feature_positions_beg_seq_id
             _rcsb_entity_feature.feature_positions_end_seq_id
-            _rcsb_entity_feature.feature_positions_value
 
         """
         logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
@@ -1694,7 +1692,6 @@ class DictMethodEntityHelper(object):
             #
             targetFeatureD = self.__getTargetComponentFeatures(dataContainer)
             for (entityId, compId, filteredFeature) in targetFeatureD:
-                cObj.setValue(ii + 1, "ordinal", ii)
                 cObj.setValue(entryId, "entry_id", ii)
                 cObj.setValue(entityId, "entity_id", ii)
                 cObj.setValue(compId, "comp_id", ii)
@@ -1741,7 +1738,6 @@ class DictMethodEntityHelper(object):
                             begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
                             endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
                         #
-                        cObj.setValue(ii + 1, "ordinal", ii)
                         cObj.setValue(entryId, "entry_id", ii)
                         cObj.setValue(entityId, "entity_id", ii)
                         cObj.setValue(fD["type"], "type", ii)
@@ -1771,7 +1767,6 @@ class DictMethodEntityHelper(object):
                         begSeqId = ";".join([str(tD["beg_seq_id"]) for tD in fD["feature_positions"]])
                         endSeqId = ";".join([str(tD["end_seq_id"]) for tD in fD["feature_positions"]])
                         #
-                        cObj.setValue(ii + 1, "ordinal", ii)
                         cObj.setValue(entryId, "entry_id", ii)
                         cObj.setValue(entityId, "entity_id", ii)
                         cObj.setValue(fD["type"].upper(), "type", ii)
@@ -1796,7 +1791,6 @@ class DictMethodEntityHelper(object):
                         # Full sequence feature
                         begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
                         endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
-                        cObj.setValue(ii + 1, "ordinal", ii)
                         cObj.setValue(entryId, "entry_id", ii)
                         cObj.setValue(entityId, "entity_id", ii)
                         cObj.setValue(fType, "type", ii)
@@ -1831,7 +1825,6 @@ class DictMethodEntityHelper(object):
                     for pfamId, begSeqId, endSeqId in pfamTupS:
                         details = self.__pfP.getDescription(pfamId)
                         if details:
-                            cObj.setValue(ii + 1, "ordinal", ii)
                             cObj.setValue(entryId, "entry_id", ii)
                             cObj.setValue(entityId, "entity_id", ii)
                             cObj.setValue("Pfam", "type", ii)
@@ -1850,7 +1843,6 @@ class DictMethodEntityHelper(object):
                 birdFeatureD = self.__getBirdFeatures(dataContainer)
                 for (entityId, compId, prdId, filteredFeature), fName in birdFeatureD.items():
                     addPropTupL = []
-                    cObj.setValue(ii + 1, "ordinal", ii)
                     cObj.setValue(entryId, "entry_id", ii)
                     cObj.setValue(entityId, "entity_id", ii)
                     cObj.setValue(compId, "comp_id", ii)
@@ -1880,7 +1872,6 @@ class DictMethodEntityHelper(object):
             for (entityId, seqId, compId, filteredFeature) in modMonomerFeatures:
                 addPropTupL = []
                 parentCompId = self.__ccP.getParentComponent(compId)
-                cObj.setValue(ii + 1, "ordinal", ii)
                 cObj.setValue(entryId, "entry_id", ii)
                 cObj.setValue(entityId, "entity_id", ii)
                 cObj.setValue(filteredFeature, "type", ii)
@@ -1893,10 +1884,9 @@ class DictMethodEntityHelper(object):
                     cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
                     cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
 
-                cObj.setValue(compId, "feature_positions_beg_comp_id", ii)
+                # cObj.setValue(compId, "feature_positions_beg_comp_id", ii)
                 cObj.setValue(seqId, "feature_positions_beg_seq_id", ii)
                 #
-                cObj.setValue("PDB entity", "reference_scheme", ii)
                 cObj.setValue("PDB", "provenance_source", ii)
                 cObj.setValue("V1.0", "assignment_version", ii)
                 #
@@ -1908,7 +1898,6 @@ class DictMethodEntityHelper(object):
             for (entityId, seqId, compId, filteredFeature), sDetails in seqMonomerFeatures.items():
                 if filteredFeature not in ["mutation"]:
                     continue
-                cObj.setValue(ii + 1, "ordinal", ii)
                 cObj.setValue(entryId, "entry_id", ii)
                 cObj.setValue(entityId, "entity_id", ii)
                 cObj.setValue(filteredFeature, "type", ii)
@@ -1916,10 +1905,9 @@ class DictMethodEntityHelper(object):
                 details = ",".join(list(sDetails))
                 cObj.setValue(details, "name", ii)
                 #
-                cObj.setValue(compId, "feature_positions_beg_comp_id", ii)
+                # cObj.setValue(compId, "feature_positions_beg_comp_id", ii)
                 cObj.setValue(seqId, "feature_positions_beg_seq_id", ii)
                 #
-                cObj.setValue("PDB entity", "reference_scheme", ii)
                 cObj.setValue("PDB", "provenance_source", ii)
                 cObj.setValue("V1.0", "assignment_version", ii)
                 #
@@ -1931,7 +1919,6 @@ class DictMethodEntityHelper(object):
             for (entityId, begSeqId, endSeqId, filteredFeature), sDetails in seqRangeFeatures.items():
                 if filteredFeature not in ["artifact"]:
                     continue
-                cObj.setValue(ii + 1, "ordinal", ii)
                 cObj.setValue(entryId, "entry_id", ii)
                 cObj.setValue(entityId, "entity_id", ii)
                 cObj.setValue(filteredFeature, "type", ii)
@@ -1942,7 +1929,6 @@ class DictMethodEntityHelper(object):
                 cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
                 cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
                 #
-                cObj.setValue("PDB entity", "reference_scheme", ii)
                 cObj.setValue("PDB", "provenance_source", ii)
                 cObj.setValue("V1.0", "assignment_version", ii)
                 #

@@ -112,3 +112,4 @@
                     Stop loading rcsb_chem_comp_synonyms for type 'Brand Name'
  2-May-2023 - V1.09 Stop loading depth data for CARD lineage annotations
  1-Jun-2023 - V1.10 Don't back up resources to GitHub during cache update workflows
+17-Jul-2023 - V1.11 RO-170: Stop populating ordinal, reference_scheme, and feature_positions_beg_comp_id for all feature objects
