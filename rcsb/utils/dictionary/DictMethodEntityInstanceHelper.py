@@ -11,7 +11,8 @@
 #                  (rcsb_nonpolymer_instance_validation_score.is_subject_of_investigation_provenance)
 #   2-Apr-2022  bv Update buildEntityInstanceFeatures to populate ma_qa_metric_local scores for computed models
 #  21-Apr-2022  bv Update buildEntityInstanceFeatureSummary for handling ma_qa_metric_local scores
-#  17-Jul-2023 dwp RO-170: Stop populating ordinal, reference_scheme, and feature_positions_beg_comp_id for all feature objects
+#  17-Jul-2023 dwp RO-170: Stop populating ordinal, reference_scheme, and feature_positions_beg_comp_id for all feature objects;
+#                  Remove duplicate rows after populating features (which may occur now that ordinal is no longer populated)
 #
 ##
 """
@@ -297,6 +298,8 @@ class DictMethodEntityInstanceHelper(object):
                         endSeqId = pAuthAsymD[(authAsymId, str(authSeqEnd), None)]["seq_id"] if (authAsymId, str(authSeqEnd), None) in pAuthAsymD else None
                         if not (begSeqId and endSeqId):
                             # take the full chain
+                            # note: this can incidentally lead to duplicate rows being added (e.g., if begSeqId is empty for multiple features of the same chain);
+                            #       although, if this does occur, duplicates are deleted further below by cObj.removeDuplicateRows()
                             begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
                             endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
                             if not (begSeqId and endSeqId):
@@ -992,7 +995,11 @@ class DictMethodEntityInstanceHelper(object):
                     ii += 1
                     jj += 1
 
+            # Last, remove any duplicate rows that may have occurred
+            cObj.removeDuplicateRows()
+
             return True
+
         except Exception as e:
             logger.exception("%s %s failing with %s", dataContainer.getName(), catName, str(e))
         return False
