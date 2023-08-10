@@ -11,6 +11,8 @@
 #                  (rcsb_nonpolymer_instance_validation_score.is_subject_of_investigation_provenance)
 #   2-Apr-2022  bv Update buildEntityInstanceFeatures to populate ma_qa_metric_local scores for computed models
 #  21-Apr-2022  bv Update buildEntityInstanceFeatureSummary for handling ma_qa_metric_local scores
+#  17-Jul-2023 dwp RO-170: Stop populating ordinal, reference_scheme, and feature_positions_beg_comp_id for all feature objects;
+#                  Remove duplicate rows after populating features (which may occur now that ordinal is no longer populated)
 #
 ##
 """
@@ -239,7 +241,6 @@ class DictMethodEntityInstanceHelper(object):
 
         Example:
             loop_
-            _rcsb_entity_instance_feature.ordinal
             _rcsb_entity_instance_feature.entry_id
             _rcsb_entity_instance_feature.entity_id
             _rcsb_entity_instance_feature.asym_id
@@ -248,12 +249,11 @@ class DictMethodEntityInstanceHelper(object):
             _rcsb_entity_instance_feature.type
             _rcsb_entity_instance_feature.name
             _rcsb_entity_instance_feature.description
-            _rcsb_entity_instance_feature.reference_scheme
             _rcsb_entity_instance_feature.provenance_source
             _rcsb_entity_instance_feature.assignment_version
             _rcsb_entity_instance_feature.feature_positions_beg_seq_id
             _rcsb_entity_instance_feature.feature_positions_end_seq_id
-            _rcsb_entity_instance_feature.feature_positions_value
+            _rcsb_entity_instance_feature.feature_positions_values
 
         """
         doLineage = False
@@ -298,6 +298,8 @@ class DictMethodEntityInstanceHelper(object):
                         endSeqId = pAuthAsymD[(authAsymId, str(authSeqEnd), None)]["seq_id"] if (authAsymId, str(authSeqEnd), None) in pAuthAsymD else None
                         if not (begSeqId and endSeqId):
                             # take the full chain
+                            # note: this can incidentally lead to duplicate rows being added (e.g., if begSeqId is empty for multiple features of the same chain);
+                            #       although, if this does occur, duplicates are deleted further below by cObj.removeDuplicateRows()
                             begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
                             endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
                             if not (begSeqId and endSeqId):
@@ -314,7 +316,6 @@ class DictMethodEntityInstanceHelper(object):
                                 )
                                 continue
 
-                        cObj.setValue(ii + 1, "ordinal", ii)
                         cObj.setValue(entryId, "entry_id", ii)
                         cObj.setValue(entityId, "entity_id", ii)
                         cObj.setValue(asymId, "asym_id", ii)
@@ -340,7 +341,6 @@ class DictMethodEntityInstanceHelper(object):
                         cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
                         cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
                         #
-                        cObj.setValue("PDB entity", "reference_scheme", ii)
                         cObj.setValue("CATH", "provenance_source", ii)
                         cObj.setValue(vL[0], "assignment_version", ii)
                         #
@@ -382,7 +382,6 @@ class DictMethodEntityInstanceHelper(object):
                                 )
                                 continue
 
-                        cObj.setValue(ii + 1, "ordinal", ii)
                         cObj.setValue(entryId, "entry_id", ii)
                         cObj.setValue(entityId, "entity_id", ii)
                         cObj.setValue(asymId, "asym_id", ii)
@@ -421,7 +420,6 @@ class DictMethodEntityInstanceHelper(object):
                                 tSeqEnd = asymIdRangesD[asymId]["endAuthSeqId"] if asymId in asymIdRangesD and "endAuthSeqId" in asymIdRangesD[asymId] else None
                                 cObj.setValue(tSeqEnd, "feature_positions_end_seq_id", ii)
                             #
-                        cObj.setValue("PDB entity", "reference_scheme", ii)
                         cObj.setValue("SCOPe", "provenance_source", ii)
                         cObj.setValue(version, "assignment_version", ii)
                         #
@@ -448,7 +446,6 @@ class DictMethodEntityInstanceHelper(object):
                             begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
                             endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
 
-                        cObj.setValue(ii + 1, "ordinal", ii)
                         cObj.setValue(entryId, "entry_id", ii)
                         cObj.setValue(entityId, "entity_id", ii)
                         cObj.setValue(asymId, "asym_id", ii)
@@ -474,7 +471,6 @@ class DictMethodEntityInstanceHelper(object):
                         cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
                         cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
 
-                        cObj.setValue("PDB entity", "reference_scheme", ii)
                         cObj.setValue("SCOP2", "provenance_source", ii)
                         cObj.setValue(version, "assignment_version", ii)
                         #
@@ -497,7 +493,6 @@ class DictMethodEntityInstanceHelper(object):
                             begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
                             endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
 
-                        cObj.setValue(ii + 1, "ordinal", ii)
                         cObj.setValue(entryId, "entry_id", ii)
                         cObj.setValue(entityId, "entity_id", ii)
                         cObj.setValue(asymId, "asym_id", ii)
@@ -523,7 +518,6 @@ class DictMethodEntityInstanceHelper(object):
                         cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
                         cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
 
-                        cObj.setValue("PDB entity", "reference_scheme", ii)
                         cObj.setValue("SCOP2", "provenance_source", ii)
                         cObj.setValue(version, "assignment_version", ii)
                         #
@@ -546,7 +540,6 @@ class DictMethodEntityInstanceHelper(object):
                             begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
                             endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
 
-                        cObj.setValue(ii + 1, "ordinal", ii)
                         cObj.setValue(entryId, "entry_id", ii)
                         cObj.setValue(entityId, "entity_id", ii)
                         cObj.setValue(asymId, "asym_id", ii)
@@ -572,7 +565,6 @@ class DictMethodEntityInstanceHelper(object):
                         cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
                         cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
 
-                        cObj.setValue("PDB entity", "reference_scheme", ii)
                         cObj.setValue("SCOP2B", "provenance_source", ii)
                         cObj.setValue(version, "assignment_version", ii)
                         #
@@ -598,7 +590,6 @@ class DictMethodEntityInstanceHelper(object):
                             begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
                             endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
 
-                        cObj.setValue(ii + 1, "ordinal", ii)
                         cObj.setValue(entryId, "entry_id", ii)
                         cObj.setValue(entityId, "entity_id", ii)
                         cObj.setValue(asymId, "asym_id", ii)
@@ -624,7 +615,6 @@ class DictMethodEntityInstanceHelper(object):
                         cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
                         cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
 
-                        cObj.setValue("PDB entity", "reference_scheme", ii)
                         cObj.setValue("ECOD", "provenance_source", ii)
                         cObj.setValue(version, "assignment_version", ii)
                         #
@@ -651,7 +641,6 @@ class DictMethodEntityInstanceHelper(object):
                         # Full sequence feature
                         begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
                         endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
-                        cObj.setValue(ii + 1, "ordinal", ii)
                         cObj.setValue(entryId, "entry_id", ii)
                         cObj.setValue(entityId, "entity_id", ii)
                         cObj.setValue(asymId, "asym_id", ii)
@@ -663,7 +652,6 @@ class DictMethodEntityInstanceHelper(object):
                         cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
                         cObj.setValue("SAbDab", "provenance_source", ii)
                         cObj.setValue(sabdabVersion, "assignment_version", ii)
-                        cObj.setValue("PDB entity", "reference_scheme", ii)
                         #
                         ii += 1
             # ------------
@@ -675,7 +663,6 @@ class DictMethodEntityInstanceHelper(object):
                     addPropTupL = []
                     entityId = asymIdD[asymId]
                     authAsymId = asymAuthIdD[asymId]
-                    cObj.setValue(ii + 1, "ordinal", ii)
                     cObj.setValue(entryId, "entry_id", ii)
                     cObj.setValue(entityId, "entity_id", ii)
                     cObj.setValue(asymId, "asym_id", ii)
@@ -696,7 +683,6 @@ class DictMethodEntityInstanceHelper(object):
                     tSeqId = ";".join([str(rTup[1]) for rTup in rTupL])
                     cObj.setValue(tSeqId, "feature_positions_end_seq_id", ii)
                     #
-                    cObj.setValue("PDB entity", "reference_scheme", ii)
                     cObj.setValue(rTupL[0][3], "provenance_source", ii)
                     cObj.setValue(rTupL[0][4], "assignment_version", ii)
                     #
@@ -710,7 +696,6 @@ class DictMethodEntityInstanceHelper(object):
                     for (asymId, begSeqId, endSeqId, confType, provCode, provVer) in hL:
                         entityId = asymIdD[asymId]
                         authAsymId = asymAuthIdD[asymId]
-                        cObj.setValue(ii + 1, "ordinal", ii)
                         cObj.setValue(entryId, "entry_id", ii)
                         cObj.setValue(entityId, "entity_id", ii)
                         cObj.setValue(asymId, "asym_id", ii)
@@ -723,7 +708,6 @@ class DictMethodEntityInstanceHelper(object):
                         cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
                         cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
                         #
-                        cObj.setValue("PDB entity", "reference_scheme", ii)
                         cObj.setValue(provCode, "provenance_source", ii)
                         cObj.setValue(provVer, "assignment_version", ii)
                         #
@@ -738,7 +722,6 @@ class DictMethodEntityInstanceHelper(object):
                     continue
                 entityId = asymIdD[asymId]
                 authAsymId = asymAuthIdD[asymId]
-                cObj.setValue(ii + 1, "ordinal", ii)
                 cObj.setValue(entryId, "entry_id", ii)
                 cObj.setValue(entityId, "entity_id", ii)
                 cObj.setValue(asymId, "asym_id", ii)
@@ -751,7 +734,6 @@ class DictMethodEntityInstanceHelper(object):
                 cObj.setValue(";".join([str(rTup[0]) for rTup in rTupL]), "feature_positions_beg_seq_id", ii)
                 cObj.setValue(";".join([str(rTup[1]) for rTup in rTupL]), "feature_positions_end_seq_id", ii)
                 #
-                cObj.setValue("PDB entity", "reference_scheme", ii)
                 cObj.setValue(unassignedProvD["provenance"], "provenance_source", ii)
                 cObj.setValue(unassignedProvD["version"], "assignment_version", ii)
                 #
@@ -763,7 +745,6 @@ class DictMethodEntityInstanceHelper(object):
                     addPropTupL = []
                     entityId = asymIdD[asymId]
                     authAsymId = asymAuthIdD[asymId]
-                    cObj.setValue(ii + 1, "ordinal", ii)
                     cObj.setValue(entryId, "entry_id", ii)
                     cObj.setValue(entityId, "entity_id", ii)
                     cObj.setValue(asymId, "asym_id", ii)
@@ -775,7 +756,6 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
                     cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
                     #
-                    cObj.setValue("PDB entity", "reference_scheme", ii)
                     cObj.setValue("PDB", "provenance_source", ii)
                     cObj.setValue("V1.0", "assignment_version", ii)
                     tS = "cis-peptide bond in model %d with omega angle %.2f" % (modelId, omegaAngle)
@@ -797,7 +777,6 @@ class DictMethodEntityInstanceHelper(object):
                 for asymId, aL in aD.items():
                     entityId = asymIdD[asymId]
                     authAsymId = asymAuthIdD[asymId]
-                    cObj.setValue(ii + 1, "ordinal", ii)
                     cObj.setValue(entryId, "entry_id", ii)
                     cObj.setValue(entityId, "entity_id", ii)
                     cObj.setValue(asymId, "asym_id", ii)
@@ -806,10 +785,9 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue(str(tId), "feature_id", ii)
                     cObj.setValue("binding_site", "name", ii)
                     #
-                    cObj.setValue(";".join([tup[0] for tup in aL]), "feature_positions_beg_comp_id", ii)
+                    # cObj.setValue(";".join([tup[0] for tup in aL]), "feature_positions_beg_comp_id", ii)
                     cObj.setValue(";".join([tup[1] for tup in aL]), "feature_positions_beg_seq_id", ii)
                     #
-                    cObj.setValue("PDB entity", "reference_scheme", ii)
                     cObj.setValue("PDB", "provenance_source", ii)
                     cObj.setValue("V1.0", "assignment_version", ii)
                     if tId in ligandSiteD:
@@ -823,7 +801,6 @@ class DictMethodEntityInstanceHelper(object):
             for (modelId, asymId, zeroOccFlag), rTupL in unObsPolyResRngD.items():
                 entityId = asymIdD[asymId]
                 authAsymId = asymAuthIdD[asymId]
-                cObj.setValue(ii + 1, "ordinal", ii)
                 cObj.setValue(entryId, "entry_id", ii)
                 cObj.setValue(entityId, "entity_id", ii)
                 cObj.setValue(asymId, "asym_id", ii)
@@ -845,7 +822,6 @@ class DictMethodEntityInstanceHelper(object):
                 cObj.setValue(";".join([str(rTup[0]) for rTup in rTupL]), "feature_positions_beg_seq_id", ii)
                 cObj.setValue(";".join([str(rTup[1]) for rTup in rTupL]), "feature_positions_end_seq_id", ii)
                 #
-                cObj.setValue("PDB entity", "reference_scheme", ii)
                 cObj.setValue("PDB", "provenance_source", ii)
                 cObj.setValue("V1.0", "assignment_version", ii)
                 #
@@ -855,7 +831,6 @@ class DictMethodEntityInstanceHelper(object):
             for (modelId, asymId, zeroOccFlag), rTupL in unObsPolyAtomRngD.items():
                 entityId = asymIdD[asymId]
                 authAsymId = asymAuthIdD[asymId]
-                cObj.setValue(ii + 1, "ordinal", ii)
                 cObj.setValue(entryId, "entry_id", ii)
                 cObj.setValue(entityId, "entity_id", ii)
                 cObj.setValue(asymId, "asym_id", ii)
@@ -877,7 +852,6 @@ class DictMethodEntityInstanceHelper(object):
                 cObj.setValue(";".join([str(rTup[0]) for rTup in rTupL]), "feature_positions_beg_seq_id", ii)
                 cObj.setValue(";".join([str(rTup[1]) for rTup in rTupL]), "feature_positions_end_seq_id", ii)
                 #
-                cObj.setValue("PDB entity", "reference_scheme", ii)
                 cObj.setValue("PDB", "provenance_source", ii)
                 cObj.setValue("V1.0", "assignment_version", ii)
                 #
@@ -898,7 +872,6 @@ class DictMethodEntityInstanceHelper(object):
                     entityId = asymIdD[asymId]
                     metricT = maQaMetricLocalTypeD[metricId]["type"]
                     metricN = maQaMetricLocalTypeD[metricId]["name"]
-                    cObj.setValue(ii + 1, "ordinal", ii)
                     cObj.setValue(entryId, "entry_id", ii)
                     cObj.setValue(entityId, "entity_id", ii)
                     cObj.setValue(asymId, "asym_id", ii)
@@ -937,7 +910,6 @@ class DictMethodEntityInstanceHelper(object):
 
                     entityId = asymIdD[asymId]
                     authAsymId = asymAuthIdD[asymId]
-                    cObj.setValue(ii + 1, "ordinal", ii)
                     cObj.setValue(entryId, "entry_id", ii)
                     cObj.setValue(entityId, "entity_id", ii)
                     cObj.setValue(asymId, "asym_id", ii)
@@ -988,7 +960,6 @@ class DictMethodEntityInstanceHelper(object):
 
                     entityId = asymIdD[asymId]
                     authAsymId = asymAuthIdD[asymId]
-                    cObj.setValue(ii + 1, "ordinal", ii)
                     cObj.setValue(entryId, "entry_id", ii)
                     cObj.setValue(entityId, "entity_id", ii)
                     cObj.setValue(asymId, "asym_id", ii)
@@ -1024,7 +995,11 @@ class DictMethodEntityInstanceHelper(object):
                     ii += 1
                     jj += 1
 
+            # Last, remove any duplicate rows that may have occurred
+            cObj.removeDuplicateRows()
+
             return True
+
         except Exception as e:
             logger.exception("%s %s failing with %s", dataContainer.getName(), catName, str(e))
         return False
@@ -1161,7 +1136,6 @@ class DictMethodEntityInstanceHelper(object):
 
         Example:
             loop_
-            _rcsb_entity_instance_validation_feature.ordinal
             _rcsb_entity_instance_validation_feature.entry_id
             _rcsb_entity_instance_validation_feature.entity_id
             _rcsb_entity_instance_validation_feature.asym_id
@@ -1173,12 +1147,11 @@ class DictMethodEntityInstanceHelper(object):
             _rcsb_entity_instance_validation_feature.annotation_lineage_id
             _rcsb_entity_instance_validation_feature.annotation_lineage_name
             _rcsb_entity_instance_validation_feature.annotation_lineage_depth
-            _rcsb_entity_instance_validation_feature.reference_scheme
             _rcsb_entity_instance_validation_feature.provenance_source
             _rcsb_entity_instance_validation_feature.assignment_version
             _rcsb_entity_instance_validation_feature.feature_positions_beg_seq_id
             _rcsb_entity_instance_validation_feature.feature_positions_end_seq_id
-            _rcsb_entity_instance_validation_feature.feature_positions_beg_comp_id
+            # _rcsb_entity_instance_validation_feature.feature_positions_beg_comp_id
             #
             _rcsb_entity_instance_validation_feature.feature_value_comp_id
             _rcsb_entity_instance_validation_feature.feature_value_reported
@@ -1233,7 +1206,6 @@ class DictMethodEntityInstanceHelper(object):
                     entityId = asymIdD[asymId]
                     authAsymId = asymAuthIdD[asymId]
                     #
-                    cObj.setValue(ii + 1, "ordinal", ii)
                     cObj.setValue(entryId, "entry_id", ii)
                     cObj.setValue(entityId, "entity_id", ii)
                     cObj.setValue(asymId, "asym_id", ii)
@@ -1249,7 +1221,7 @@ class DictMethodEntityInstanceHelper(object):
                     #
                     if hasSeq:
                         descriptionS = tN + " in instance %s (altId %s) model %s" % (asymId, altId, modelId) if altId else tN + " in instance %s model %s" % (asymId, modelId)
-                        cObj.setValue(";".join([pTup.compId for pTup in pTupL if pTup.outlierType == fType]), "feature_positions_beg_comp_id", ii)
+                        # cObj.setValue(";".join([pTup.compId for pTup in pTupL if pTup.outlierType == fType]), "feature_positions_beg_comp_id", ii)
                         cObj.setValue(";".join([str(pTup.seqId) for pTup in pTupL if pTup.outlierType == fType]), "feature_positions_beg_seq_id", ii)
                     else:
                         cObj.setValue(pTupL[0].compId, "comp_id", ii)
@@ -1274,7 +1246,6 @@ class DictMethodEntityInstanceHelper(object):
                             ii,
                         )
                     #
-                    cObj.setValue("PDB entity", "reference_scheme", ii)
                     cObj.setValue(descriptionS, "description", ii)
                     cObj.setValue("PDB", "provenance_source", ii)
                     cObj.setValue("V1.0", "assignment_version", ii)
