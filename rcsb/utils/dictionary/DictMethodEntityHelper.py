@@ -14,6 +14,7 @@
 #  28-Mar-2023 dwp Populate 'rcsb_entity_source_organism.provenance_source' with transient value from 'entity_src_nat.rcsb_provenance_source' (applicable to CSMs only)
 #   2-May-2023 dwp Stop loading depth data for CARD lineage annotations
 #  17-Jul-2023 dwp RO-170: Stop populating ordinal, reference_scheme, and feature_positions_beg_comp_id for all feature objects
+#  12-Sep-2023 dwp RO-4033: When using SIFTS alignment data, don't mix and match segments from different chains of the same entity
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
@@ -97,13 +98,26 @@ class DictMethodEntityHelper(object):
         #
         # Process sifts alignments -
         siftsAlignD = {}
+        asymMaxAlignLengthD = {}
         for asymId, authAsymId in asymAuthIdD.items():
             if instTypeD[asymId] not in ["polymer", "branched"]:
                 continue
             entityId = asymIdD[asymId]
-            # accumulate the sifts alignments by entity.
+            #
+            asymMaxAlignLength = asymMaxAlignLengthD.get((entryId, entityId), 0)
+            asymSeqAlignObjL = self.__ssP.getSeqAlignObjList(entryId, authAsymId)
+            asaolenLength = sum([seqAlignObj.getEntityAlignLength() for seqAlignObj in asymSeqAlignObjL])
+            logger.debug("asaolenLength %r for list: %r", asaolenLength, asymSeqAlignObjL)
+            #
+            # accumulate only the longest sifts alignments by entity.
+            # Only keep the chain with the longest alignment
+            if asaolenLength > asymMaxAlignLength:
+                siftsAlignD[(entryId, entityId)] = asymSeqAlignObjL
+                logger.debug("siftsAlignD: %r", siftsAlignD)
+                asymMaxAlignLengthD[(entryId, entityId)] = asaolenLength
+            #
             # siftsAlignD.setdefault((entryId, entityId), []).extend([SeqAlign("SIFTS", **sa) for sa in self.__ssP.getIdentifiers(entryId, authAsymId, idType="UNPAL")])
-            siftsAlignD.setdefault((entryId, entityId), []).extend(self.__ssP.getSeqAlignObjList(entryId, authAsymId))
+
         for (entryId, entityId), seqAlignObjL in siftsAlignD.items():
             if seqAlignObjL:
                 # re-group alignments by common accession

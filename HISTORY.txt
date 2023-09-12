@@ -114,3 +114,4 @@
  1-Jun-2023 - V1.10 Don't back up resources to GitHub during cache update workflows
 17-Jul-2023 - V1.11 RO-170: Stop populating ordinal, reference_scheme, and feature_positions_beg_comp_id for all feature objects;
                     Remove duplicate rows after populating instance features
+12-Sep-2023 - V1.12 RO-4033: Adjust logic used for processing and assigning sequence alignment details
