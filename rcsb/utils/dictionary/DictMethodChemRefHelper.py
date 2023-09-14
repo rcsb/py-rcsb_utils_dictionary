@@ -7,6 +7,7 @@
 # Updates:
 #   29-Mar-2023 dwp Correct attribute name '_rcsb_chem_comp_target.provenance_code' to '_rcsb_chem_comp_target.provenance_source'
 #    5-Apr-2023 dwp Stop loading rcsb_chem_comp_synonyms for rcsb_chem_comp_synonyms.type 'Brand Name' (to be loaded to new separate data item later)
+#   18-Sep-2023 dwp Load COD references separately from CCDC/CSD references
 ##
 """
 Helper class implements external method references supporting chemical
@@ -114,23 +115,35 @@ class DictMethodChemRefHelper(object):
             if ccmProvider:
                 csdMapD = ccmProvider.getMapping()
                 #
+                delD = {}
                 if csdMapD and ccId in csdMapD:
-                    if not dataContainer.exists(catName):
-                        dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
-                    wObj = dataContainer.getObj(catName)
-                    logger.debug("Using CSD model mapping length %d", len(csdMapD))
-                    dbId = csdMapD[ccId][0]["db_code"]
-                    rL = wObj.selectIndices("CCDC/CSD", "resource_name")
-                    if rL:
-                        ok = wObj.removeRows(rL)
-                        if not ok:
-                            logger.debug("Error removing rows in %r %r", catName, rL)
-                    iRow = wObj.getRowCount()
-                    wObj.setValue(ccId, "comp_id", iRow)
-                    wObj.setValue(iRow + 1, "ordinal", iRow)
-                    wObj.setValue("CCDC/CSD", "resource_name", iRow)
-                    wObj.setValue(dbId, "resource_accession_code", iRow)
-                    wObj.setValue("assigned by PDB", "related_mapping_method", iRow)
+                    #
+                    logger.debug("Using CCDC/CSD and COD model mapping length %d", len(csdMapD))
+                    #
+                    for dbi in range(len(csdMapD[ccId])):
+                        if not dataContainer.exists(catName):
+                            dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
+                        wObj = dataContainer.getObj(catName)
+                        dbId = csdMapD[ccId][dbi]["db_code"]
+                        if dbId == "COD":
+                            dbName = "COD"
+                        else:
+                            dbName = "CCDC/CSD"
+                        #
+                        if not delD.get(dbName, False) and rL:
+                            rL = wObj.selectIndices(dbName, "resource_name")
+                            if rL:
+                                ok = wObj.removeRows(rL)
+                                if not ok:
+                                    logger.debug("Error removing rows in %r %r", catName, rL)
+                                else:
+                                    delD[dbName] = True
+                        iRow = wObj.getRowCount()
+                        wObj.setValue(ccId, "comp_id", iRow)
+                        wObj.setValue(iRow + 1, "ordinal", iRow)
+                        wObj.setValue(dbName, "resource_name", iRow)
+                        wObj.setValue(dbId, "resource_accession_code", iRow)
+                        wObj.setValue("assigned by PDB", "related_mapping_method", iRow)
             #
             residProvider = rP.getResource("ResidProvider instance") if rP else None
             if residProvider:
