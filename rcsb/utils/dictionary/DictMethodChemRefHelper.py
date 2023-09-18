@@ -125,12 +125,13 @@ class DictMethodChemRefHelper(object):
                             dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
                         wObj = dataContainer.getObj(catName)
                         dbId = csdMapD[ccId][dbi]["db_code"]
-                        if dbId == "COD":
+                        dbN = csdMapD[ccId][dbi]["db_name"]  # will either be CSD or COD
+                        if dbN == "COD":
                             dbName = "COD"
                         else:
                             dbName = "CCDC/CSD"
                         #
-                        if not delD.get(dbName, False) and rL:
+                        if not delD.get(dbName, False):
                             rL = wObj.selectIndices(dbName, "resource_name")
                             if rL:
                                 ok = wObj.removeRows(rL)
