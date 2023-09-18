@@ -106,34 +106,23 @@ class DictMethodEntityHelper(object):
             #
             asymMaxAlignLength = asymMaxAlignLengthD.get((entryId, entityId), 0)
             asymSeqAlignObjL = self.__ssP.getSeqAlignObjList(entryId, authAsymId)
-            asaolenLength = sum([seqAlignObj.getEntityAlignLength() for seqAlignObj in asymSeqAlignObjL])
-            logger.debug("asaolenLength %r for list: %r", asaolenLength, asymSeqAlignObjL)
+            asaoLength = sum([seqAlignObj.getEntityAlignLength() for seqAlignObj in asymSeqAlignObjL])
+            logger.debug("asaoLength %r for list: %r", asaoLength, asymSeqAlignObjL)
             #
             # accumulate only the longest sifts alignments by entity.
             # Only keep the chain with the longest alignment
-            if asaolenLength > asymMaxAlignLength:
+            if asaoLength > asymMaxAlignLength:
                 siftsAlignD[(entryId, entityId)] = asymSeqAlignObjL
                 logger.debug("siftsAlignD: %r", siftsAlignD)
-                asymMaxAlignLengthD[(entryId, entityId)] = asaolenLength
+                asymMaxAlignLengthD[(entryId, entityId)] = asaoLength
             #
             # siftsAlignD.setdefault((entryId, entityId), []).extend([SeqAlign("SIFTS", **sa) for sa in self.__ssP.getIdentifiers(entryId, authAsymId, idType="UNPAL")])
 
         for (entryId, entityId), seqAlignObjL in siftsAlignD.items():
             if seqAlignObjL:
-                # re-group alignments by common accession
-                alRefD = {}
                 for seqAlignObj in seqAlignObjL:
-                    alRefD.setdefault((seqAlignObj.getDbName(), seqAlignObj.getDbAccession(), seqAlignObj.getDbIsoform()), []).append(seqAlignObj)
-                #
-                # Get the longest overlapping entity region of each ref alignment -
-                for (dbName, dbAcc, dbIsoform), aL in alRefD.items():
-                    alGrpD = splitSeqAlignObjList(aL)
-                    logger.debug("SIFTS -> entryId %s entityId %s dbName %r dbAcc %r dbIsoform %r alGrpD %r", entryId, entityId, dbName, dbAcc, dbIsoform, alGrpD)
-                    for _, grpAlignL in alGrpD.items():
-
-                        lenL = [seqAlignObj.getEntityAlignLength() for seqAlignObj in grpAlignL]
-                        idxMax = lenL.index(max(lenL))
-                        siftsEntityAlignD.setdefault((entryId, entityId, "SIFTS"), {}).setdefault((dbName, dbAcc, dbIsoform), []).append(grpAlignL[idxMax])
+                    dbName, dbAcc, dbIsoform = seqAlignObj.getDbName(), seqAlignObj.getDbAccession(), seqAlignObj.getDbIsoform()
+                    siftsEntityAlignD.setdefault((entryId, entityId, "SIFTS"), {}).setdefault((dbName, dbAcc, dbIsoform), []).append(seqAlignObj)
         #
         logger.debug("PROCESSED SIFTS ->  %r", siftsEntityAlignD)
         return siftsEntityAlignD
