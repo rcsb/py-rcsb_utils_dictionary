@@ -115,30 +115,25 @@ class DictMethodChemRefHelper(object):
             if ccmProvider:
                 csdMapD = ccmProvider.getMapping()
                 #
-                delD = {}
                 if csdMapD and ccId in csdMapD:
                     #
                     logger.debug("Using CCDC/CSD and COD model mapping length %d", len(csdMapD))
                     #
+                    if not dataContainer.exists(catName):
+                        dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
+                    wObj = dataContainer.getObj(catName)
+                    #
+                    rL = wObj.selectIndices("CCDC/CSD", "resource_name") + wObj.selectIndices("COD", "resource_name")
+                    if rL:
+                        ok = wObj.removeRows(rL)
+                        if not ok:
+                            logger.debug("Error removing rows in %r %r", catName, rL)
+                    #
                     for dbi in range(len(csdMapD[ccId])):
-                        if not dataContainer.exists(catName):
-                            dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
-                        wObj = dataContainer.getObj(catName)
                         dbId = csdMapD[ccId][dbi]["db_code"]
                         dbN = csdMapD[ccId][dbi]["db_name"]  # will either be CSD or COD
-                        if dbN == "COD":
-                            dbName = "COD"
-                        else:
-                            dbName = "CCDC/CSD"
+                        dbName = "COD" if dbN == "COD" else "CCDC/CSD"
                         #
-                        if not delD.get(dbName, False):
-                            rL = wObj.selectIndices(dbName, "resource_name")
-                            if rL:
-                                ok = wObj.removeRows(rL)
-                                if not ok:
-                                    logger.debug("Error removing rows in %r %r", catName, rL)
-                                else:
-                                    delD[dbName] = True
                         iRow = wObj.getRowCount()
                         wObj.setValue(ccId, "comp_id", iRow)
                         wObj.setValue(iRow + 1, "ordinal", iRow)
