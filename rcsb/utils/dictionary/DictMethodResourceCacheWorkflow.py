@@ -133,6 +133,7 @@ class DictMethodResourceCacheWorkflow(object):
             "ChEMBLTargetCofactorProvider instance",
             "PharosTargetCofactorProvider instance",
             "CARDTargetAnnotationProvider instance",
+            "CARDTargetOntologyProvider instance",
             "IMGTTargetFeatureProvider instance",
             "SAbDabTargetFeatureProvider instance",
         ]:
