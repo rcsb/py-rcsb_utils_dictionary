@@ -116,3 +116,4 @@
                     Remove duplicate rows after populating instance features
 19-Sep-2023 - V1.12 RO-4033: Adjust logic used for processing and assigning sequence alignment details;
                     Add CARDTargetOntologyProvider to stashable list
+ 3-Oct-2023 - V1.13 Load COD references separately from CCDC/CSD references

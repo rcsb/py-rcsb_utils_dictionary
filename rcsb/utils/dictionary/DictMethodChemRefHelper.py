@@ -7,6 +7,7 @@
 # Updates:
 #   29-Mar-2023 dwp Correct attribute name '_rcsb_chem_comp_target.provenance_code' to '_rcsb_chem_comp_target.provenance_source'
 #    5-Apr-2023 dwp Stop loading rcsb_chem_comp_synonyms for rcsb_chem_comp_synonyms.type 'Brand Name' (to be loaded to new separate data item later)
+#   18-Sep-2023 dwp Load COD references separately from CCDC/CSD references
 ##
 """
 Helper class implements external method references supporting chemical
@@ -115,22 +116,30 @@ class DictMethodChemRefHelper(object):
                 csdMapD = ccmProvider.getMapping()
                 #
                 if csdMapD and ccId in csdMapD:
+                    #
+                    logger.debug("Using CCDC/CSD and COD model mapping length %d", len(csdMapD))
+                    #
                     if not dataContainer.exists(catName):
                         dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
                     wObj = dataContainer.getObj(catName)
-                    logger.debug("Using CSD model mapping length %d", len(csdMapD))
-                    dbId = csdMapD[ccId][0]["db_code"]
-                    rL = wObj.selectIndices("CCDC/CSD", "resource_name")
+                    #
+                    rL = wObj.selectIndices("CCDC/CSD", "resource_name") + wObj.selectIndices("COD", "resource_name")
                     if rL:
                         ok = wObj.removeRows(rL)
                         if not ok:
                             logger.debug("Error removing rows in %r %r", catName, rL)
-                    iRow = wObj.getRowCount()
-                    wObj.setValue(ccId, "comp_id", iRow)
-                    wObj.setValue(iRow + 1, "ordinal", iRow)
-                    wObj.setValue("CCDC/CSD", "resource_name", iRow)
-                    wObj.setValue(dbId, "resource_accession_code", iRow)
-                    wObj.setValue("assigned by PDB", "related_mapping_method", iRow)
+                    #
+                    for dbi in range(len(csdMapD[ccId])):
+                        dbId = csdMapD[ccId][dbi]["db_code"]
+                        dbN = csdMapD[ccId][dbi]["db_name"]  # will either be CSD or COD
+                        dbName = "COD" if dbN == "COD" else "CCDC/CSD"
+                        #
+                        iRow = wObj.getRowCount()
+                        wObj.setValue(ccId, "comp_id", iRow)
+                        wObj.setValue(iRow + 1, "ordinal", iRow)
+                        wObj.setValue(dbName, "resource_name", iRow)
+                        wObj.setValue(dbId, "resource_accession_code", iRow)
+                        wObj.setValue("assigned by PDB", "related_mapping_method", iRow)
             #
             residProvider = rP.getResource("ResidProvider instance") if rP else None
             if residProvider:
