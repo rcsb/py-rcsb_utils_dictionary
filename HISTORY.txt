@@ -117,3 +117,4 @@
 19-Sep-2023 - V1.12 RO-4033: Adjust logic used for processing and assigning sequence alignment details;
                     Add CARDTargetOntologyProvider to stashable list
  3-Oct-2023 - V1.13 Load COD references separately from CCDC/CSD references
+ 2-Nov-2023 - V1.14 Only populate feature summaries for features that are present (at both entity and entity instance levels)
