@@ -15,6 +15,7 @@
 #   2-May-2023 dwp Stop loading depth data for CARD lineage annotations
 #  17-Jul-2023 dwp RO-170: Stop populating ordinal, reference_scheme, and feature_positions_beg_comp_id for all feature objects
 #  12-Sep-2023 dwp RO-4033: When using SIFTS alignment data, don't mix and match segments from different chains of the same entity
+#   2-Nov-2023 dwp Only populate rcsb_entity_feature_summary for features that are present
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
@@ -365,7 +366,7 @@ class DictMethodEntityHelper(object):
                                 else:
                                     refSeqIdD["dbIsoform"].append("?")
                         # else fallback to ma_target_ref_db_details
-                        elif (dataContainer.exists("ma_target_ref_db_details")):
+                        elif dataContainer.exists("ma_target_ref_db_details"):
                             mObj = dataContainer.getObj("ma_target_ref_db_details")
                             for jj in range(mObj.getRowCount()):
                                 tEntityId = mObj.getValue("target_entity_id", jj)
@@ -1616,20 +1617,27 @@ class DictMethodEntityHelper(object):
                     seqIdL = str(fObj.getValue("feature_positions_beg_seq_id", ii)).split(";")
                     fMonomerCountD.setdefault(entityId, {}).setdefault(fType, []).append(len(seqIdL))
             #
+            logger.debug("EntitySummary fCountD: %s - %r", entryId, fCountD)
+            logger.debug("EntitySummary fMonomerCountD: %s - %r", entryId, fMonomerCountD)
+            #
             ii = 0
             for entityId, eType in eTypeD.items():
-                fTypes = self.__getEntityFeatureTypes(eType)
-                for fType in fTypes:
-                    sObj.setValue(ii + 1, "ordinal", ii)
-                    sObj.setValue(entryId, "entry_id", ii)
-                    sObj.setValue(entityId, "entity_id", ii)
-                    sObj.setValue(fType, "type", ii)
-
+                # skip entities without any features
+                if entityId not in fCountD and entityId not in fMonomerCountD:
+                    continue
+                fTypeL = self.__getEntityFeatureTypes(eType)  # All entity type specific features
+                logger.debug("Full feature type list %r", fTypeL)
+                # filter out all empty features (i.e., only provide summaries for features that are present)
+                fTypeFilteredL = []
+                for fD in [fCountD, fMonomerCountD]:
+                    if entityId in fD:
+                        fTypeFilteredL += [ft for ft in fTypeL if ft in fD[entityId]]
+                fTypeFilteredL = list(set(fTypeFilteredL))
+                logger.debug("Filtered feature type list %r", fTypeFilteredL)
+                for fType in fTypeFilteredL:
                     minL = maxL = None
                     fracC = 0.0
-                    fCount = 0
-                    if entityId in fCountD and fType in fCountD[entityId]:
-                        fCount = len(fCountD[entityId][fType])
+                    fCount = len(fCountD[entityId][fType])
 
                     if entityId in fMonomerCountD and fType in fMonomerCountD[entityId] and entityId in entityPolymerLengthD:
                         fracC = float(sum(fMonomerCountD[entityId][fType])) / float(entityPolymerLengthD[entityId])
@@ -1638,8 +1646,12 @@ class DictMethodEntityHelper(object):
                         minL = min(fMonomerCountD[entityId][fType])
                         maxL = max(fMonomerCountD[entityId][fType])
 
-                    sObj.setValue(round(fracC, 5), "coverage", ii)
+                    sObj.setValue(ii + 1, "ordinal", ii)
+                    sObj.setValue(entryId, "entry_id", ii)
+                    sObj.setValue(entityId, "entity_id", ii)
+                    sObj.setValue(fType, "type", ii)
                     sObj.setValue(fCount, "count", ii)
+                    sObj.setValue(round(fracC, 5), "coverage", ii)
                     if minL is not None:
                         sObj.setValue(minL, "minimum_length", ii)
                         sObj.setValue(maxL, "maximum_length", ii)
