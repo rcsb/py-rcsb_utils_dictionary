@@ -4166,7 +4166,7 @@ class DictMethodCommonUtils(object):
                     asymId = tObj.getValue("label_asym_id", ii)
                     metricId = tObj.getValue("metric_id", ii)
                     metricV = tObj.getValue("metric_value", ii)
-                    tId = modelId + "_" + asymId + "_" + metricId + "_" + seqId
+                    tId = str(modelId) + "_" + str(asymId) + "_" + str(metricId) + "_" + str(seqId)
                     if seqId and seqId not in [".", "?"]:   # Eliminates non-polymers and branched
                         if tId not in dL:
                             metricValD.setdefault((modelId, asymId, metricId), []).append((seqId, metricV))

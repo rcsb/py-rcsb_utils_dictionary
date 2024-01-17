@@ -338,7 +338,7 @@ class DictMethodCompModelHelper(object):
                 mD[modelId] = bObj.selectValuesWhere("metric_id", modelId, "model_id")
             for ii in range(cObj.getRowCount()):
                 modelId = cObj.getValue("model_id", ii)
-                cObj.setValue(",".join(vD[modelId]), "ma_qa_metric_global_value", ii)
+                cObj.setValue(",".join([str(v) for v in vD[modelId]]), "ma_qa_metric_global_value", ii)
                 cObj.setValue(",".join([str(maQaMetricGlobalTypeD[mId]["type"]) for mId in mD[modelId]]), "ma_qa_metric_global_type", ii)
                 cObj.setValue(",".join([str(maQaMetricGlobalTypeD[mId]["name"]) for mId in mD[modelId]]), "ma_qa_metric_global_name", ii)
 
