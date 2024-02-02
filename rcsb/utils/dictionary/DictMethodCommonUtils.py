@@ -22,6 +22,8 @@
 #  3-May-2022 dwp Use internal computed-model identifiers for 'entry_id' in containter_identifiers
 # 27-Jun-2022 bv  Update _rcsb_ma_qa_metric_global.ma_qa_metric_global_type to 'pLDDT' for AF models
 # 29-Jun-2022 dwp Use internal computed-model identifiers everywhere (in same manner as experimental models)
+# 01-Feb-2024 bv  Add method 'getInstanceDeuWatMolCounts' to support deuterated water molecule count
+#                 Update methods 'getDepositedAtomCounts' and '__getAtomSiteInfo'
 #
 ##
 """
@@ -650,6 +652,22 @@ class DictMethodCommonUtils(object):
         wD = self.__fetchAtomSiteInfo(dataContainer, modelId=modelId)
         return wD["instanceHeavyAtomCountD"] if "instanceHeavyAtomCountD" in wD else {}
 
+    def getInstanceDeuWatMolCounts(self, dataContainer, modelId="1"):
+        """Return a dictionary of deuterated water molecule counts for each entity instance.
+
+        Args:
+            dataContainer (object):  mmcif.api.DataContainer object instance
+            modelId (str, optional): model index. Defaults to "1".
+
+
+        Returns:
+            dict: {'asymId': <# of deuterated water molecules>, ...}
+        """
+        if not dataContainer or not dataContainer.getName():
+            return {}
+        wD = self.__fetchAtomSiteInfo(dataContainer, modelId=modelId)
+        return wD["instanceDeuWatMolCountD"] if "instanceDeuWatMolCountD" in wD else {}
+
     def getInstanceHydrogenAtomCounts(self, dataContainer, modelId="1"):
         """Return a dictionary of deposited hydrogen atom counts for each entity instance.
 
@@ -758,10 +776,11 @@ class DictMethodCommonUtils(object):
             return {}
         wD = self.__fetchAtomSiteInfo(dataContainer, modelId=modelId)
         numHeavyAtomsModel = wD["numHeavyAtomsModel"] if "numHeavyAtomsModel" in wD else 0
+        numDeuWatMolModel = wD["numDeuWatMolModel"] if "numDeuWatMolModel" in wD else 0
         numHydrogenAtomsModel = wD["numHydrogenAtomsModel"] if "numHydrogenAtomsModel" in wD else 0
         numAtomsTotal = wD["numAtomsAll"] if "numAtomsAll" in wD else 0
         numModelsTotal = wD["numModels"] if "numModels" in wD else 0
-        return numHeavyAtomsModel, numHydrogenAtomsModel, numAtomsTotal, numModelsTotal
+        return numHeavyAtomsModel, numHydrogenAtomsModel, numAtomsTotal, numModelsTotal, numDeuWatMolModel
 
     def getInstancePolymerRanges(self, dataContainer):
         """Return a dictionary of polymer residue range and length for each entity instance.
@@ -987,8 +1006,10 @@ class DictMethodCommonUtils(object):
         #
         numAtomsAll = 0
         numHeavyAtomsModel = 0
+        numDeuWatMolModel = 0
         typeHeavyAtomCountD = {}
         instanceHeavyAtomCountD = {}
+        instanceDeuWatMolCountD = {}
         #
         numHydrogenAtomsModel = 0
         typeHydrogenAtomCountD = {}
@@ -1015,11 +1036,17 @@ class DictMethodCommonUtils(object):
                 cndL = [("type_symbol", "not in", ["H", "D", "T"]), ("pdbx_PDB_model_num", "eq", modelId)]
                 numHeavyAtomsModel = tObj.countValuesWhereOpConditions(cndL)
                 #
+                # Deuterated water molecules per model -
+                cndL2 = [("label_atom_id", "eq", "O"), ("label_comp_id", "eq", "DOD"), ("pdbx_PDB_model_num", "eq", modelId)]
+                numDeuWatMolModel = tObj.countValuesWhereOpConditions(cndL2)
+                #
                 modelIdL = tObj.getAttributeUniqueValueList("pdbx_PDB_model_num")
                 cD = tObj.getCombinationCountsWithConditions(["label_asym_id", "pdbx_PDB_model_num"], [("type_symbol", "not in", ["H", "D", "T"])])
+                dwD = tObj.getCombinationCountsWithConditions(["label_asym_id", "pdbx_PDB_model_num"], [("label_atom_id", "eq", "O"), ("label_comp_id", "eq", "DOD")])
                 #
                 for asymId, _ in instanceTypeD.items():
                     instanceHeavyAtomCountD[asymId] = cD[(asymId, modelId)] if (asymId, modelId) in cD else 0
+                    instanceDeuWatMolCountD[asymId] = dwD[(asymId, modelId)] if (asymId, modelId) in dwD else 0
                 #
                 # for eType in ['polymer', 'non-polymer', 'branched', 'macrolide', 'solvent']:
                 typeHeavyAtomCountD = {k: 0 for k in ["polymer", "non-polymer", "branched", "macrolide", "water"]}
@@ -1064,8 +1091,10 @@ class DictMethodCommonUtils(object):
             atomSiteInfoD = {
                 "instanceHeavyAtomCountD": instanceHeavyAtomCountD,
                 "typeHeavyAtomCountD": typeHeavyAtomCountD,
+                "instanceDeuWatMolCountD": instanceDeuWatMolCountD,
                 "numAtomsAll": numAtomsAll,
                 "numHeavyAtomsModel": numHeavyAtomsModel,
+                "numDeuWatMolModel": numDeuWatMolModel,
                 "numModels": len(modelIdL),
                 "modelId": modelId,
                 "modelIdList": sorted(modelIdL),
