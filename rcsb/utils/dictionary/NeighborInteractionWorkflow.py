@@ -56,7 +56,7 @@ class NeighborInteractionWorkflow(object):
         self.__workPath = kwargs.get("workPath", HERE)
         self.__cachePath = kwargs.get("cachePath", os.path.join(self.__workPath, "CACHE"))
         #
-        self.__numProc = kwargs.get("numProc", 10)
+        self.__numProc = kwargs.get("numProc", 8)
         self.__chunkSize = kwargs.get("chunkSize", 10)
         self.__useCache = kwargs.get("useCache", False)
         #

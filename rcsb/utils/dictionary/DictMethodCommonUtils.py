@@ -4062,7 +4062,6 @@ class DictMethodCommonUtils(object):
                 #
             # --- ----
             tnD = {}
-            ligandIsBoundD = {}
             for asymId, neighborL in ligandTargetInstanceD.items():
                 isBound = False
                 for neighbor in neighborL:
