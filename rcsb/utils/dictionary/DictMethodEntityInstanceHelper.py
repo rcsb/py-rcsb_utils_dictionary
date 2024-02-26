@@ -1811,7 +1811,7 @@ class DictMethodEntityInstanceHelper(object):
             # asymIdRangesD = self.__commonU.getInstancePolymerRanges(dataContainer)
             # pAuthAsymD = self.__commonU.getPolymerIdMap(dataContainer)
             instTypeD = self.__commonU.getInstanceTypes(dataContainer)
-            instIdMapD = self.__commonU.getInstanceIdMap(dataContainer)  # possible to use getNonPolymerIdMap()?
+            instIdMapD = self.__commonU.getInstanceIdMap(dataContainer)
             ii = cObj.getRowCount()
             # ---------------
             # Add CATH assignments
@@ -2042,14 +2042,14 @@ class DictMethodEntityInstanceHelper(object):
                     continue
                 aL = []
                 rTupL = npbD.get(asymId, [])
-                # authAsymId = asymAuthIdD[asymId]
                 if rTupL:
-                    logger.info("Annotations - entryId %s asymId %s rTupL: %r", entryId, asymId, rTupL)
                     rTupTmpL = [(rTup.targetCompId, rTup.connectType, rTup.partnerEntityType, rTup.partnerAsymId) for rTup in rTupL]
                     # ("targetCompId", "connectType", "partnerCompId", "partnerAsymId", "partnerEntityType", "bondDistance", "bondOrder")
-                    logger.info("Annotations  - entryId %s asymId %s rTupTmpL: %r", entryId, asymId, rTupTmpL)
                     rTupS = set(rTupTmpL)
-                    logger.info("Annotations Set - entryId %s asymId %s rTupS: %r", entryId, asymId, rTupS)
+                    #
+                    logger.debug("Annotations TmpL - entryId %s asymId %s rTupTmpL: %r", entryId, asymId, rTupTmpL)
+                    logger.debug("Annotations Set  - entryId %s asymId %s    rTupS: %r", entryId, asymId, rTupS)
+                    #
                     for rTup in rTupS:
                         targetCompId, connectType, partnerEntityType, partnerAsymId = rTup[0], rTup[1], rTup[2], rTup[3]
                         if connectType in ["covalent bond"]:
