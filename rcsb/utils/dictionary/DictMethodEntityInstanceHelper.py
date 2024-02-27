@@ -2078,14 +2078,6 @@ class DictMethodEntityInstanceHelper(object):
                                     "provenance_source": "Primary Data",
                                     "assignment_version": "V1.0",
                                     "description": f"{targetCompId} has {connectType} with {partnerEntityType} instance {partnerAsymId} in model 1",
-                                },
-                                {
-                                    "type": "HAS_NO_COVALENT_LINKAGE",
-                                    "entity_id": asymIdD[asymId],
-                                    "asym_id": asymId,
-                                    "auth_asym_id": authAsymId,
-                                    "comp_id": targetCompId,
-                                    "provenance_source": "Primary Data"
                                 }
                             ])
                         else:
@@ -2093,7 +2085,7 @@ class DictMethodEntityInstanceHelper(object):
                         #
                         jj += 1
 
-                if len(aL) == 0:
+                if not any(["HAS_COVALENT_LINKAGE" in d["type"] for d in aL]):
                     aL.append({
                         "type": "HAS_NO_COVALENT_LINKAGE",
                         "entity_id": asymIdD[asymId],
