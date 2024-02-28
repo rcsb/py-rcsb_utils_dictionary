@@ -19,6 +19,7 @@
 #   20-Mar-2023  dwp Adjust formula weight calculation of polymer entities to use weights of amino acids as they exist in a linked polymer chains
 #   28-Mar-2023  dwp Add transient '_entity_src_nat.rcsb_provenance_source' attribute to use later for populating '_rcsb_entity_source_organism.provenance_source';
 #                    Update assignment of '_entity_src_nat.pdbx_src_id'
+#   28-Feb-2024  dwp Populate rcsb_comp_model_provenance using logic instead of relying on external cache file
 ##
 """
 Helper class implements computed model method references in the RCSB dictionary extension.
@@ -63,8 +64,6 @@ class DictMethodCompModelHelper(object):
             logger.debug("Loaded API for: %r", self.__dApi.getDictionaryTitle())
         else:
             logger.error("Missing dictionary API %r", kwargs)
-        #
-        self.__mcP = rP.getResource("ModelCacheProvider instance") if rP else None
         #
         # Dictionary of amino acids and their formula weights as they exist in a linked polymer chain vs as isolated amino acids (i.e. less 1 oxygen and 2 hydrogens)
         self.aaFwDict3 = {k: v - 18.015 for k, v in {
@@ -368,7 +367,7 @@ class DictMethodCompModelHelper(object):
         """
         try:
             logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
-            if not (dataContainer.exists("entry") and dataContainer.exists("ma_data")):
+            if not (dataContainer.exists("entry") and dataContainer.exists("ma_data") and dataContainer.exists("database_2")):
                 return False
 
             if catName != "rcsb_comp_model_provenance":
@@ -384,23 +383,30 @@ class DictMethodCompModelHelper(object):
             tObj = dataContainer.getObj("entry")
             entryId = tObj.getValue("id", 0)
 
-            # NOTE: Old approach - from when we were using the external/source ID as entry.id
-            # compModelId = self.__mcP.getInternalCompModelId(entryId)
-            # if not compModelId:
-            #     logger.error("Unable to map computed-model entryId/sourceId (%s) to internal identifier - sourceId key not found.", entryId)
-            #     return False
+            sourceDb, sourceId = None, None
+            if entryId.startswith("MA_"):
+                sourceDb = "ModelArchive"
+            elif entryId.startswith("AF_"):
+                sourceDb = "AlphaFoldDB"
 
-            compModelD = self.__mcP.getCompModelData(entryId)
+            if not sourceDb:
+                return False
 
-            cObj.setValue(compModelD["sourceId"], "entry_id", 0)
-            cObj.setValue(compModelD["sourceDb"], "source_db", 0)
-            sourceModelUrl = compModelD.get("sourceModelUrl", None)
+            dObj = dataContainer.getObj("database_2")
+            sourceId = dObj.selectValuesWhere("database_code", sourceDb, "database_id")[0]
+
+            if not sourceId:
+                return False
+
+            sourceModelFileName, sourceModelUrl, sourceModelPaeUrl = self.__getCompModelSourceDetails(sourceDb, sourceId)
+
+            cObj.setValue(sourceId, "entry_id", 0)
+            cObj.setValue(sourceDb, "source_db", 0)
+            cObj.setValue(sourceModelFileName, "source_filename", 0)
             if sourceModelUrl:
-                cObj.setValue(compModelD["sourceModelUrl"], "source_url", 0)
-            cObj.setValue(compModelD["sourceModelFileName"], "source_filename", 0)
-            sourceModelPaeUrl = compModelD.get("sourceModelPaeUrl", None)
+                cObj.setValue(sourceModelUrl, "source_url", 0)
             if sourceModelPaeUrl:
-                cObj.setValue(compModelD["sourceModelPaeUrl"], "source_pae_url", 0)
+                cObj.setValue(sourceModelPaeUrl, "source_pae_url", 0)
 
             return True
 
@@ -408,6 +414,26 @@ class DictMethodCompModelHelper(object):
             logger.exception("For %s failing with %s", catName, str(e))
 
         return False
+
+    def __getCompModelSourceDetails(self, sourceDb, sourceId):
+        """Construct the source URL based on the model name and source DB.
+
+        Args:
+            sourceDb (str): "AlphaFoldDB" or "ModelArchive"
+            sourceId (str): original entry.id as assigned by source DB
+        """
+        sourceModelFileName, sourceModelUrl, sourceModelPaeUrl = None, None, None
+        if sourceDb == "AlphaFoldDB":
+            sourceModelFileName = str(sourceId) + "-model_v4.cif.gz"  # sourceModelFileName is gzipped, URL is not
+            if sourceId.upper().endswith("F1"):
+                sourceModelUrl = "https://alphafold.ebi.ac.uk/files/" + str(sourceId) + "-model_v4.cif"
+                sourceModelPaeUrl = "https://alphafold.ebi.ac.uk/files/" + str(sourceId) + "-predicted_aligned_error_v4.json"
+        elif sourceDb == "ModelArchive":
+            sourceModelFileName = str(sourceId) + ".cif.gz"  # sourceModelFileName is gzipped, URL is not
+            sourceModelUrl = "https://www.modelarchive.org/api/projects/" + str(sourceId) + "?type=basic__model_file_name"  # for .cif file
+            # sourceModelUrl = "https://www.modelarchive.org/doi/10.5452/" + str(sourceId) + ".cif.gz"  # for .cif.gz file
+            sourceModelPaeUrl = None
+        return sourceModelFileName, sourceModelUrl, sourceModelPaeUrl
 
     def addStructInfo(self, dataContainer, catName, **kwargs):
         """Add missing struct table
