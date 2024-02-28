@@ -14,6 +14,8 @@
 #  17-Jul-2023 dwp RO-170: Stop populating ordinal, reference_scheme, and feature_positions_beg_comp_id for all feature objects;
 #                  Remove duplicate rows after populating features (which may occur now that ordinal is no longer populated)
 #   2-Nov-2023 dwp Only populate rcsb_polymer_instance_feature_summary and rcsb_entity_instance_validation_feature_summary for features that are present
+#  26-Feb-2024 dwp Add "HAS_NO_COVALENT_LINKAGE" to instance annotations for cases without covalent linkages (or with only metal coordination);
+#                  Change provenance_source of "PDB" to "Primary Data" for linkage annotations and features
 #
 ##
 """
@@ -940,7 +942,7 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue(";".join(["?" for rTup in rTupL]), "feature_value_uncertainty_estimate", ii)
                     cObj.setValue(";".join(["?" for rTup in rTupL]), "feature_value_uncertainty_estimate_type", ii)
                     # ---
-                    cObj.setValue("PDB", "provenance_source", ii)
+                    cObj.setValue("Primary Data", "provenance_source", ii)
                     cObj.setValue("V1.0", "assignment_version", ii)
                     #
                     ii += 1
@@ -1809,6 +1811,7 @@ class DictMethodEntityInstanceHelper(object):
             # asymIdRangesD = self.__commonU.getInstancePolymerRanges(dataContainer)
             # pAuthAsymD = self.__commonU.getPolymerIdMap(dataContainer)
             instTypeD = self.__commonU.getInstanceTypes(dataContainer)
+            instIdMapD = self.__commonU.getInstanceIdMap(dataContainer)
             ii = cObj.getRowCount()
             # ---------------
             # Add CATH assignments
@@ -2034,40 +2037,82 @@ class DictMethodEntityInstanceHelper(object):
             #  Add covalent attachment property
             npbD = self.__commonU.getBoundNonpolymersByInstance(dataContainer)
             jj = 1
-            for asymId, rTupL in npbD.items():
-                for rTup in rTupL:
-                    if rTup.connectType in ["covalent bond"]:
-                        fType = "HAS_COVALENT_LINKAGE"
-                        fId = "COVALENT_LINKAGE_%d" % jj
+            for asymId, authAsymId in asymAuthIdD.items():
+                if instTypeD[asymId] not in ["non-polymer"]:
+                    continue
+                aL = []
+                rTupL = npbD.get(asymId, [])
+                if rTupL:
+                    rTupTmpL = [(rTup.targetCompId, rTup.connectType, rTup.partnerEntityType, rTup.partnerAsymId) for rTup in rTupL]
+                    # ("targetCompId", "connectType", "partnerCompId", "partnerAsymId", "partnerEntityType", "bondDistance", "bondOrder")
+                    rTupS = set(rTupTmpL)
+                    #
+                    logger.debug("Annotations TmpL - entryId %s asymId %s rTupTmpL: %r", entryId, asymId, rTupTmpL)
+                    logger.debug("Annotations Set  - entryId %s asymId %s    rTupS: %r", entryId, asymId, rTupS)
+                    #
+                    for rTup in rTupS:
+                        targetCompId, connectType, partnerEntityType, partnerAsymId = rTup[0], rTup[1], rTup[2], rTup[3]
+                        if connectType in ["covalent bond"]:
+                            aL.append(
+                                {
+                                    "type": "HAS_COVALENT_LINKAGE",
+                                    "annotation_id": f"COVALENT_LINKAGE_{jj}",
+                                    "entity_id": asymIdD[asymId],
+                                    "asym_id": asymId,
+                                    "auth_asym_id": authAsymId,
+                                    "comp_id": targetCompId,
+                                    "provenance_source": "Primary Data",
+                                    "assignment_version": "V1.0",
+                                    "description": f"{targetCompId} has {connectType} with {partnerEntityType} instance {partnerAsymId} in model 1",
+                                }
+                            )
+                        elif connectType in ["metal coordination"]:
+                            aL.extend([
+                                {
+                                    "type": "HAS_METAL_COORDINATION_LINKAGE",
+                                    "annotation_id": f"METAL_COORDINATION_LINKAGE_{jj}",
+                                    "entity_id": asymIdD[asymId],
+                                    "asym_id": asymId,
+                                    "auth_asym_id": authAsymId,
+                                    "comp_id": targetCompId,
+                                    "provenance_source": "Primary Data",
+                                    "assignment_version": "V1.0",
+                                    "description": f"{targetCompId} has {connectType} with {partnerEntityType} instance {partnerAsymId} in model 1",
+                                }
+                            ])
+                        else:
+                            continue
+                        #
+                        jj += 1
 
-                    elif rTup.connectType in ["metal coordination"]:
-                        fType = "HAS_METAL_COORDINATION_LINKAGE"
-                        fId = "METAL_COORDINATION_LINKAGE_%d" % jj
-                    else:
-                        continue
+                if not any(["HAS_COVALENT_LINKAGE" in d["type"] for d in aL]):
+                    aL.append({
+                        "type": "HAS_NO_COVALENT_LINKAGE",
+                        "entity_id": asymIdD[asymId],
+                        "asym_id": asymId,
+                        "auth_asym_id": authAsymId,
+                        "comp_id": instIdMapD[asymId]["comp_id"],
+                        "provenance_source": "Primary Data"
+                    })
 
-                    entityId = asymIdD[asymId]
-                    authAsymId = asymAuthIdD[asymId]
+                for aD in aL:
                     cObj.setValue(ii + 1, "ordinal", ii)
                     cObj.setValue(entryId, "entry_id", ii)
-                    cObj.setValue(entityId, "entity_id", ii)
-                    cObj.setValue(asymId, "asym_id", ii)
-                    cObj.setValue(authAsymId, "auth_asym_id", ii)
-                    cObj.setValue(rTup.targetCompId, "comp_id", ii)
-                    cObj.setValue(fId, "annotation_id", ii)
-                    cObj.setValue(fType, "type", ii)
-                    #
-                    # ("targetCompId", "connectType", "partnerCompId", "partnerAsymId", "partnerEntityType", "bondDistance", "bondOrder")
-                    cObj.setValue(
-                        "%s has %s with %s instance %s in model 1" % (rTup.targetCompId, rTup.connectType, rTup.partnerEntityType, rTup.partnerAsymId),
-                        "description",
-                        ii,
-                    )
-                    cObj.setValue("PDB", "provenance_source", ii)
-                    cObj.setValue("V1.0", "assignment_version", ii)
+                    cObj.setValue(aD["entity_id"], "entity_id", ii)
+                    cObj.setValue(aD["asym_id"], "asym_id", ii)
+                    cObj.setValue(aD["auth_asym_id"], "auth_asym_id", ii)
+                    cObj.setValue(aD["comp_id"], "comp_id", ii)
+                    cObj.setValue(aD["type"], "type", ii)
+                    if aD.get("annotation_id"):
+                        cObj.setValue(aD["annotation_id"], "annotation_id", ii)
+                    if aD.get("description"):
+                        cObj.setValue(aD["description"], "description", ii)
+                    if aD.get("provenance_source"):
+                        cObj.setValue(aD["provenance_source"], "provenance_source", ii)
+                    if aD.get("assignment_version"):
+                        cObj.setValue(aD["assignment_version"], "assignment_version", ii)
                     #
                     ii += 1
-                    jj += 1
             #
             # Glycosylation features
             jj = 1

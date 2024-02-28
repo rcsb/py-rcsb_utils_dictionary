@@ -120,3 +120,5 @@
  2-Nov-2023 - V1.14 Only populate feature summaries for features that are present (at both entity and entity instance levels)
 16-Jan-2024 - V1.15 Enforce string typing for string operations
 01-Feb-2024 - V1.16 Add support for populating deuterated water molecule counts at entry and assembly levels 
+26-Feb-2024 - V1.17 Add "HAS_NO_COVALENT_LINKAGE" to instance annotations for cases without covalent linkages (or with only metal coordination);
+                    Change provenance_source of "PDB" to "Primary Data" for linkage annotations and features
