@@ -122,3 +122,4 @@
 01-Feb-2024 - V1.16 Add support for populating deuterated water molecule counts at entry and assembly levels 
 26-Feb-2024 - V1.17 Add "HAS_NO_COVALENT_LINKAGE" to instance annotations for cases without covalent linkages (or with only metal coordination);
                     Change provenance_source of "PDB" to "Primary Data" for linkage annotations and features
+04-Mar-2024 - V1.18 Populate rcsb_comp_model_provenance using deterministic logic instead of relying on external cache file
