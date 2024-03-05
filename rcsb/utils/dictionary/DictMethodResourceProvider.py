@@ -88,7 +88,7 @@ from rcsb.utils.targets.SAbDabTargetFeatureProvider import SAbDabTargetFeaturePr
 from rcsb.utils.taxonomy.TaxonomyProvider import TaxonomyProvider
 
 # --
-from rcsb.utils.insilico3d.ModelCacheProvider import ModelCacheProvider
+from rcsb.utils.insilico3d.ModelHoldingsProvider import ModelHoldingsProvider
 
 logger = logging.getLogger(__name__)
 
@@ -363,10 +363,11 @@ class DictMethodResourceProvider(SingletonClass):
                 "buildable": False,
                 "providerType": "optional_1",
             },
-            "ModelCacheProvider instance": {
-                "class": ModelCacheProvider,
+            "ModelHoldingsProvider instance": {
+                "class": ModelHoldingsProvider,
                 "configArgMap": {
-                    "holdingsRemotePath": ("PDBX_COMP_MODEL_CACHE_LIST_PATH", "configPath"),
+                    "csmRemoteDirPath": ("PDBX_COMP_MODEL_REPO_PATH", "configPath"),
+                    "holdingsListRemotePath": ("PDBX_COMP_MODEL_HOLDINGS_LIST_PATH", "configPath")
                 },
                 "stashable": False,
                 "buildable": False,

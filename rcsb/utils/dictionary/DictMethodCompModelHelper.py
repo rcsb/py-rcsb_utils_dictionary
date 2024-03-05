@@ -19,7 +19,7 @@
 #   20-Mar-2023  dwp Adjust formula weight calculation of polymer entities to use weights of amino acids as they exist in a linked polymer chains
 #   28-Mar-2023  dwp Add transient '_entity_src_nat.rcsb_provenance_source' attribute to use later for populating '_rcsb_entity_source_organism.provenance_source';
 #                    Update assignment of '_entity_src_nat.pdbx_src_id'
-#   28-Feb-2024  dwp Populate rcsb_comp_model_provenance using logic instead of relying on external cache file
+#    4-Mar-2024  dwp Populate rcsb_comp_model_provenance using deterministic logic instead of relying on external cache file
 ##
 """
 Helper class implements computed model method references in the RCSB dictionary extension.
@@ -57,6 +57,10 @@ class DictMethodCompModelHelper(object):
         #
         rP = kwargs.get("resourceProvider")
         self.__commonU = rP.getResource("DictMethodCommonUtils instance") if rP else None
+        #
+        # Remove this when done switching to 200 million BCIF load, since only needed for original ~1 million AF load
+        self.__mcP = rP.getResource("ModelHoldingsProvider instance") if rP else None
+        #
         # dapw = rP.getResource("DictionaryAPIProviderWrapper instance") if rP else None
         # self.__dApi = dapw.getApiByName("pdbx_core") if dapw else None
         self.__dApi = kwargs.get("dictionaryApi", None)
@@ -400,12 +404,17 @@ class DictMethodCompModelHelper(object):
 
             sourceModelFileName, sourceModelUrl, sourceModelPaeUrl = self.__getCompModelSourceDetails(sourceDb, sourceId)
 
+            # Remove these lines when done switching to 200 million BCIF load, since fragmented AF models are not included in the Google Cloud dataset
+            isFragmented = False
+            if self.__mcP and self.__mcP.getModelFragmentsDict():
+                isFragmented = self.__mcP.checkIfFragmentedModel(entryId)
+
             cObj.setValue(sourceId, "entry_id", 0)
             cObj.setValue(sourceDb, "source_db", 0)
             cObj.setValue(sourceModelFileName, "source_filename", 0)
-            if sourceModelUrl:
+            if sourceModelUrl and not isFragmented:
                 cObj.setValue(sourceModelUrl, "source_url", 0)
-            if sourceModelPaeUrl:
+            if sourceModelPaeUrl and not isFragmented:
                 cObj.setValue(sourceModelPaeUrl, "source_pae_url", 0)
 
             return True
