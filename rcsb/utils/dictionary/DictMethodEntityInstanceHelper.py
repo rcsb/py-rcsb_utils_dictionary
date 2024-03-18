@@ -69,6 +69,12 @@ class DictMethodEntityInstanceHelper(object):
         self.__ccP = rP.getResource("ChemCompProvider instance") if rP else None
         self.__rlsP = rP.getResource("RcsbLigandScoreProvider instance") if rP else None
         self.__niP = rP.getResource("NeighborInteractionProvider instance") if rP else None
+        self.__ggP = rP.getResource("GlyGenProvider instance") if rP else None
+        self.__cathU = rP.getResource("CathProvider instance") if rP else None
+        self.__scopU = rP.getResource("ScopProvider instance") if rP else None
+        self.__scop2U = rP.getResource("Scop2Provider instance") if rP else None
+        self.__ecodU = rP.getResource("EcodProvider instance") if rP else None
+        self.__sabdabP = rP.getResource("SAbDabTargetFeatureProvider instance") if rP else None
         #
         self.__ssU = DictMethodSecStructUtils(rP, raiseExceptions=self._raiseExceptions)
         #
@@ -273,8 +279,6 @@ class DictMethodEntityInstanceHelper(object):
                 dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
             cObj = dataContainer.getObj(catName)
             #
-            rP = kwargs.get("resourceProvider")
-
             eObj = dataContainer.getObj("entry")
             entryId = eObj.getValue("id", 0)
             #
@@ -286,15 +290,14 @@ class DictMethodEntityInstanceHelper(object):
             # ---------------
             ii = cObj.getRowCount()
             # Add CATH assignments
-            cathU = rP.getResource("CathProvider instance") if rP else None
-            if cathU:
+            if self.__cathU:
                 for asymId, authAsymId in asymAuthIdD.items():
                     if instTypeD[asymId] not in ["polymer", "branched"]:
                         continue
                     entityId = asymIdD[asymId]
-                    dL = cathU.getCathResidueRanges(entryId.lower(), authAsymId)
+                    dL = self.__cathU.getCathResidueRanges(entryId.lower(), authAsymId)
                     logger.debug("%s asymId %s authAsymId %s dL %r", entryId, asymId, authAsymId, dL)
-                    vL = cathU.getCathVersions(entryId.lower(), authAsymId)
+                    vL = self.__cathU.getCathVersions(entryId.lower(), authAsymId)
                     for (cathId, domId, tId, authSeqBeg, authSeqEnd) in dL:
                         addPropTupL = []
                         begSeqId = pAuthAsymD[(authAsymId, str(authSeqBeg), None)]["seq_id"] if (authAsymId, str(authSeqBeg), None) in pAuthAsymD else None
@@ -328,15 +331,15 @@ class DictMethodEntityInstanceHelper(object):
                         cObj.setValue(str(cathId), "feature_id", ii)
                         # cObj.setValue(str(domId), "feature_id", ii)
                         # cObj.setValue(cathId, "name", ii)
-                        cObj.setValue(cathU.getCathName(cathId), "name", ii)
-                        addPropTupL.append(("CATH_NAME", cathU.getCathName(cathId)))
+                        cObj.setValue(self.__cathU.getCathName(cathId), "name", ii)
+                        addPropTupL.append(("CATH_NAME", self.__cathU.getCathName(cathId)))
                         addPropTupL.append(("CATH_DOMAIN_ID", str(domId)))
                         cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
                         cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
                         #
                         if doLineage:
-                            cObj.setValue(";".join(cathU.getNameLineage(cathId)), "annotation_lineage_name", ii)
-                            idLinL = cathU.getIdLineage(cathId)
+                            cObj.setValue(";".join(self.__cathU.getNameLineage(cathId)), "annotation_lineage_name", ii)
+                            idLinL = self.__cathU.getIdLineage(cathId)
                             cObj.setValue(";".join(idLinL), "annotation_lineage_id", ii)
                             cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
                         #
@@ -351,14 +354,13 @@ class DictMethodEntityInstanceHelper(object):
             # ------------
             # Add SCOP assignments
             oldCode = False
-            scopU = rP.getResource("ScopProvider instance") if rP else None
-            if scopU:
+            if self.__scopU:
                 for asymId, authAsymId in asymAuthIdD.items():
                     if instTypeD[asymId] not in ["polymer", "branched"]:
                         continue
                     entityId = asymIdD[asymId]
-                    dL = scopU.getScopResidueRanges(entryId.lower(), authAsymId)
-                    version = scopU.getScopVersion()
+                    dL = self.__scopU.getScopResidueRanges(entryId.lower(), authAsymId)
+                    version = self.__scopU.getScopVersion()
                     for (sunId, domId, sccs, tId, authSeqBeg, authSeqEnd) in dL:
                         addPropTupL = []
                         begSeqId = pAuthAsymD[(authAsymId, str(authSeqBeg), None)]["seq_id"] if (authAsymId, str(authSeqBeg), None) in pAuthAsymD else None
@@ -393,18 +395,18 @@ class DictMethodEntityInstanceHelper(object):
                         #
                         # cObj.setValue(str(sunId), "domain_id", ii)
                         cObj.setValue(domId, "feature_id", ii)
-                        cObj.setValue(scopU.getScopName(sunId), "name", ii)
+                        cObj.setValue(self.__scopU.getScopName(sunId), "name", ii)
                         #
-                        addPropTupL.append(("SCOP_NAME", scopU.getScopName(sunId)))
+                        addPropTupL.append(("SCOP_NAME", self.__scopU.getScopName(sunId)))
                         addPropTupL.append(("SCOP_DOMAIN_ID", str(domId)))
                         addPropTupL.append(("SCOP_SUN_ID", str(sunId)))
                         cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
                         cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
                         #
                         if doLineage:
-                            tL = [t if t is not None else "" for t in scopU.getNameLineage(sunId)]
+                            tL = [t if t is not None else "" for t in self.__scopU.getNameLineage(sunId)]
                             cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
-                            idLinL = scopU.getIdLineage(sunId)
+                            idLinL = self.__scopU.getIdLineage(sunId)
                             cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
                             cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
                             #
@@ -429,15 +431,14 @@ class DictMethodEntityInstanceHelper(object):
                         ii += 1
             # ------------
             # JDW - Add SCOP2 family assignments
-            scopU = rP.getResource("Scop2Provider instance") if rP else None
-            if scopU:
-                version = scopU.getVersion()
+            if self.__scop2U:
+                version = self.__scop2U.getVersion()
                 for asymId, authAsymId in asymAuthIdD.items():
                     if instTypeD[asymId] not in ["polymer", "branched"]:
                         continue
                     entityId = asymIdD[asymId]
                     # Family mappings
-                    dL = scopU.getFamilyResidueRanges(entryId.upper(), authAsymId)
+                    dL = self.__scop2U.getFamilyResidueRanges(entryId.upper(), authAsymId)
                     for (domId, familyId, _, authSeqBeg, authSeqEnd) in dL:
                         addPropTupL = []
                         # map to entity polymer coordinates
@@ -456,18 +457,18 @@ class DictMethodEntityInstanceHelper(object):
                         cObj.setValue("SCOP2_FAMILY", "type", ii)
                         #
                         cObj.setValue(domId, "feature_id", ii)
-                        cObj.setValue(scopU.getName(familyId), "name", ii)
+                        cObj.setValue(self.__scop2U.getName(familyId), "name", ii)
                         #
-                        addPropTupL.append(("SCOP2_FAMILY_NAME", scopU.getName(familyId)))
+                        addPropTupL.append(("SCOP2_FAMILY_NAME", self.__scop2U.getName(familyId)))
                         addPropTupL.append(("SCOP2_DOMAIN_ID", str(domId)))
                         addPropTupL.append(("SCOP2_FAMILY_ID", str(familyId)))
                         cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
                         cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
                         #
                         if doLineage:
-                            tL = [t if t is not None else "" for t in scopU.getNameLineage(familyId)]
+                            tL = [t if t is not None else "" for t in self.__scop2U.getNameLineage(familyId)]
                             cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
-                            idLinL = scopU.getIdLineage(familyId)
+                            idLinL = self.__scop2U.getIdLineage(familyId)
                             cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
                             cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
                             #
@@ -485,7 +486,7 @@ class DictMethodEntityInstanceHelper(object):
                         continue
                     entityId = asymIdD[asymId]
                     # Family mappings
-                    dL = scopU.getSuperFamilyResidueRanges(entryId.lower(), authAsymId)
+                    dL = self.__scop2U.getSuperFamilyResidueRanges(entryId.lower(), authAsymId)
                     for (domId, superfamilyId, _, authSeqBeg, authSeqEnd) in dL:
                         addPropTupL = []
                         # map to entity polymer coordinates
@@ -503,18 +504,18 @@ class DictMethodEntityInstanceHelper(object):
                         cObj.setValue("SCOP2_SUPERFAMILY", "type", ii)
                         #
                         cObj.setValue(domId, "feature_id", ii)
-                        cObj.setValue(scopU.getName(superfamilyId), "name", ii)
+                        cObj.setValue(self.__scop2U.getName(superfamilyId), "name", ii)
                         #
-                        addPropTupL.append(("SCOP2_SUPERFAMILY_NAME", scopU.getName(superfamilyId)))
+                        addPropTupL.append(("SCOP2_SUPERFAMILY_NAME", self.__scop2U.getName(superfamilyId)))
                         addPropTupL.append(("SCOP2_DOMAIN_ID", str(domId)))
                         addPropTupL.append(("SCOP2_SUPERFAMILY_ID", str(superfamilyId)))
                         cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
                         cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
                         #
                         if doLineage:
-                            tL = [t if t is not None else "" for t in scopU.getNameLineage(superfamilyId)]
+                            tL = [t if t is not None else "" for t in self.__scop2U.getNameLineage(superfamilyId)]
                             cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
-                            idLinL = scopU.getIdLineage(superfamilyId)
+                            idLinL = self.__scop2U.getIdLineage(superfamilyId)
                             cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
                             cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
                             #
@@ -532,7 +533,7 @@ class DictMethodEntityInstanceHelper(object):
                         continue
                     entityId = asymIdD[asymId]
                     # Family mappings
-                    dL = scopU.getSuperFamilyResidueRanges2B(entryId.lower(), authAsymId)
+                    dL = self.__scop2U.getSuperFamilyResidueRanges2B(entryId.lower(), authAsymId)
                     for (domId, superfamilyId, _, authSeqBeg, authSeqEnd) in dL:
                         addPropTupL = []
                         # map to entity polymer coordinates
@@ -550,18 +551,18 @@ class DictMethodEntityInstanceHelper(object):
                         cObj.setValue("SCOP2B_SUPERFAMILY", "type", ii)
                         #
                         cObj.setValue(domId, "feature_id", ii)
-                        cObj.setValue(scopU.getName(superfamilyId), "name", ii)
+                        cObj.setValue(self.__scop2U.getName(superfamilyId), "name", ii)
                         #
-                        addPropTupL.append(("SCOP2_SUPERFAMILY_NAME", scopU.getName(superfamilyId)))
+                        addPropTupL.append(("SCOP2_SUPERFAMILY_NAME", self.__scop2U.getName(superfamilyId)))
                         addPropTupL.append(("SCOP2_DOMAIN_ID", str(domId)))
                         addPropTupL.append(("SCOP2_SUPERFAMILY_ID", str(superfamilyId)))
                         cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
                         cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
                         #
                         if doLineage:
-                            tL = [t if t is not None else "" for t in scopU.getNameLineage(superfamilyId)]
+                            tL = [t if t is not None else "" for t in self.__scop2U.getNameLineage(superfamilyId)]
                             cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
-                            idLinL = scopU.getIdLineage(superfamilyId)
+                            idLinL = self.__scop2U.getIdLineage(superfamilyId)
                             cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
                             cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
                             #
@@ -574,15 +575,14 @@ class DictMethodEntityInstanceHelper(object):
                         ii += 1
             # ------------
             # ECOD assignments -
-            ecodU = rP.getResource("EcodProvider instance") if rP else None
-            if ecodU:
-                version = ecodU.getVersion()
+            if self.__ecodU:
+                version = self.__ecodU.getVersion()
                 for asymId, authAsymId in asymAuthIdD.items():
                     if instTypeD[asymId] not in ["polymer", "branched"]:
                         continue
                     entityId = asymIdD[asymId]
                     # Family mappings
-                    dL = ecodU.getFamilyResidueRanges(entryId.lower(), authAsymId)
+                    dL = self.__ecodU.getFamilyResidueRanges(entryId.lower(), authAsymId)
                     for (domId, familyId, _, authSeqBeg, authSeqEnd) in dL:
                         addPropTupL = []
                         # map to entity polymer coordinates
@@ -599,7 +599,7 @@ class DictMethodEntityInstanceHelper(object):
                         cObj.setValue(authAsymId, "auth_asym_id", ii)
                         cObj.setValue("ECOD", "type", ii)
                         #
-                        fName = ecodU.getName(familyId)[3:]
+                        fName = self.__ecodU.getName(familyId)[3:]
                         cObj.setValue(domId, "feature_id", ii)
                         cObj.setValue(fName, "name", ii)
                         #
@@ -609,9 +609,9 @@ class DictMethodEntityInstanceHelper(object):
                         cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
                         #
                         if doLineage:
-                            tL = [t if t is not None else "" for t in ecodU.getNameLineage(familyId)]
+                            tL = [t if t is not None else "" for t in self.__ecodU.getNameLineage(familyId)]
                             cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
-                            idLinL = ecodU.getIdLineage(familyId)
+                            idLinL = self.__ecodU.getIdLineage(familyId)
                             cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
                             cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
                             #
@@ -625,9 +625,8 @@ class DictMethodEntityInstanceHelper(object):
                 #
 
             # --- SAbDab
-            sabdabP = rP.getResource("SAbDabTargetFeatureProvider instance") if rP else None
-            if sabdabP:
-                sabdabVersion = sabdabP.getVersion()
+            if self.__sabdabP:
+                sabdabVersion = self.__sabdabP.getVersion()
                 for asymId, authAsymId in asymAuthIdD.items():
                     if instTypeD[asymId] not in ["polymer"]:
                         continue
@@ -638,7 +637,7 @@ class DictMethodEntityInstanceHelper(object):
                         ("light_subclass", "SABDAB_ANTIBODY_LIGHT_CHAIN_SUBCLASS"),
                         ("heavy_subclass", "SABDAB_ANTIBODY_HEAVY_CHAIN_SUBCLASS"),
                     ]:
-                        fName = sabdabP.getAssignment(instId, ky)
+                        fName = self.__sabdabP.getAssignment(instId, ky)
                         if not fName or fName in ["?", "unknown"]:
                             continue
                         # Full sequence feature
@@ -1801,8 +1800,6 @@ class DictMethodEntityInstanceHelper(object):
                 dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
             cObj = dataContainer.getObj(catName)
             #
-            rP = kwargs.get("resourceProvider")
-
             eObj = dataContainer.getObj("entry")
             entryId = eObj.getValue("id", 0)
             #
@@ -1815,16 +1812,15 @@ class DictMethodEntityInstanceHelper(object):
             ii = cObj.getRowCount()
             # ---------------
             # Add CATH assignments
-            cathU = rP.getResource("CathProvider instance") if rP else None
-            if cathU:
+            if self.__cathU:
                 #
                 for asymId, authAsymId in asymAuthIdD.items():
                     if instTypeD[asymId] not in ["polymer", "branched"]:
                         continue
                     entityId = asymIdD[asymId]
-                    dL = cathU.getCathResidueRanges(entryId.lower(), authAsymId)
+                    dL = self.__cathU.getCathResidueRanges(entryId.lower(), authAsymId)
                     logger.debug("%s asymId %s authAsymId %s dL %r", entryId, asymId, authAsymId, dL)
-                    vL = cathU.getCathVersions(entryId.lower(), authAsymId)
+                    vL = self.__cathU.getCathVersions(entryId.lower(), authAsymId)
                     qD = {}
                     for (cathId, domId, _, _, _) in dL:
                         if cathId in qD:
@@ -1840,10 +1836,10 @@ class DictMethodEntityInstanceHelper(object):
                         cObj.setValue(str(cathId), "annotation_id", ii)
                         # cObj.setValue(str(domId), "annotation_id", ii)
                         # cObj.setValue(cathId, "name", ii)
-                        cObj.setValue(cathU.getCathName(cathId), "name", ii)
+                        cObj.setValue(self.__cathU.getCathName(cathId), "name", ii)
                         #
-                        cObj.setValue(";".join(cathU.getNameLineage(cathId)), "annotation_lineage_name", ii)
-                        idLinL = cathU.getIdLineage(cathId)
+                        cObj.setValue(";".join(self.__cathU.getNameLineage(cathId)), "annotation_lineage_name", ii)
+                        idLinL = self.__cathU.getIdLineage(cathId)
                         cObj.setValue(";".join(idLinL), "annotation_lineage_id", ii)
                         cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
                         #
@@ -1853,14 +1849,13 @@ class DictMethodEntityInstanceHelper(object):
                         ii += 1
             # ------------
             # Add SCOP assignments
-            scopU = rP.getResource("ScopProvider instance") if rP else None
-            if scopU:
+            if self.__scopU:
                 for asymId, authAsymId in asymAuthIdD.items():
                     if instTypeD[asymId] not in ["polymer", "branched"]:
                         continue
                     entityId = asymIdD[asymId]
-                    dL = scopU.getScopResidueRanges(entryId.lower(), authAsymId)
-                    version = scopU.getScopVersion()
+                    dL = self.__scopU.getScopResidueRanges(entryId.lower(), authAsymId)
+                    version = self.__scopU.getScopVersion()
                     qD = {}
                     for (sunId, domId, _, _, _, _) in dL:
                         if sunId in qD:
@@ -1875,11 +1870,11 @@ class DictMethodEntityInstanceHelper(object):
                         #
                         # cObj.setValue(str(sunId), "domain_id", ii)
                         cObj.setValue(domId, "annotation_id", ii)
-                        cObj.setValue(scopU.getScopName(sunId), "name", ii)
+                        cObj.setValue(self.__scopU.getScopName(sunId), "name", ii)
                         #
-                        tL = [t if t is not None else "" for t in scopU.getNameLineage(sunId)]
+                        tL = [t if t is not None else "" for t in self.__scopU.getNameLineage(sunId)]
                         cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
-                        idLinL = scopU.getIdLineage(sunId)
+                        idLinL = self.__scopU.getIdLineage(sunId)
                         cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
                         cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
                         #
@@ -1888,9 +1883,8 @@ class DictMethodEntityInstanceHelper(object):
                         #
                         ii += 1
             # JDW - Add SCOP2 family annotation assignments
-            scopU = rP.getResource("Scop2Provider instance") if rP else None
-            if scopU:
-                version = scopU.getVersion()
+            if self.__scop2U:
+                version = self.__scop2U.getVersion()
                 for asymId, authAsymId in asymAuthIdD.items():
                     # JDW
                     # if instTypeD[asymId] not in ["polymer", "branched"]:
@@ -1898,7 +1892,7 @@ class DictMethodEntityInstanceHelper(object):
                         continue
                     entityId = asymIdD[asymId]
                     # Family mappings
-                    dL = scopU.getFamilyResidueRanges(entryId.upper(), authAsymId)
+                    dL = self.__scop2U.getFamilyResidueRanges(entryId.upper(), authAsymId)
                     qD = {}
                     for (domId, familyId, _, _, _) in dL:
                         if familyId in qD:
@@ -1912,11 +1906,11 @@ class DictMethodEntityInstanceHelper(object):
                         cObj.setValue("SCOP2", "type", ii)
                         #
                         cObj.setValue(domId, "annotation_id", ii)
-                        cObj.setValue(scopU.getName(familyId), "name", ii)
+                        cObj.setValue(self.__scop2U.getName(familyId), "name", ii)
                         #
-                        tL = [t if t is not None else "" for t in scopU.getNameLineage(familyId)]
+                        tL = [t if t is not None else "" for t in self.__scop2U.getNameLineage(familyId)]
                         cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
-                        idLinL = scopU.getIdLineage(familyId)
+                        idLinL = self.__scop2U.getIdLineage(familyId)
                         cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
                         cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
                         #
@@ -1933,7 +1927,7 @@ class DictMethodEntityInstanceHelper(object):
                         continue
                     entityId = asymIdD[asymId]
                     # Family mappings
-                    dL = scopU.getSuperFamilyResidueRanges(entryId.lower(), authAsymId)
+                    dL = self.__scop2U.getSuperFamilyResidueRanges(entryId.lower(), authAsymId)
                     qD = {}
                     for (domId, superfamilyId, _, _, _) in dL:
                         if superfamilyId in qD:
@@ -1947,11 +1941,11 @@ class DictMethodEntityInstanceHelper(object):
                         cObj.setValue("SCOP2", "type", ii)
                         #
                         cObj.setValue(domId, "annotation_id", ii)
-                        cObj.setValue(scopU.getName(superfamilyId), "name", ii)
+                        cObj.setValue(self.__scop2U.getName(superfamilyId), "name", ii)
                         #
-                        tL = [t if t is not None else "" for t in scopU.getNameLineage(superfamilyId)]
+                        tL = [t if t is not None else "" for t in self.__scop2U.getNameLineage(superfamilyId)]
                         cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
-                        idLinL = scopU.getIdLineage(superfamilyId)
+                        idLinL = self.__scop2U.getIdLineage(superfamilyId)
                         cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
                         cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
                         #
@@ -1968,7 +1962,7 @@ class DictMethodEntityInstanceHelper(object):
                         continue
                     entityId = asymIdD[asymId]
                     # Family mappings
-                    dL = scopU.getSuperFamilyResidueRanges2B(entryId.lower(), authAsymId)
+                    dL = self.__scop2U.getSuperFamilyResidueRanges2B(entryId.lower(), authAsymId)
                     qD = {}
                     for (domId, superfamilyId, _, _, _) in dL:
                         if superfamilyId in qD:
@@ -1981,11 +1975,11 @@ class DictMethodEntityInstanceHelper(object):
                         cObj.setValue("SCOP2", "type", ii)
                         #
                         cObj.setValue(domId, "annotation_id", ii)
-                        cObj.setValue(scopU.getName(superfamilyId), "name", ii)
+                        cObj.setValue(self.__scop2U.getName(superfamilyId), "name", ii)
                         #
-                        tL = [t if t is not None else "" for t in scopU.getNameLineage(superfamilyId)]
+                        tL = [t if t is not None else "" for t in self.__scop2U.getNameLineage(superfamilyId)]
                         cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
-                        idLinL = scopU.getIdLineage(superfamilyId)
+                        idLinL = self.__scop2U.getIdLineage(superfamilyId)
                         cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
                         cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
                         #
@@ -1995,9 +1989,8 @@ class DictMethodEntityInstanceHelper(object):
                         ii += 1
             # ------------
             # ECOD annotation assignments -
-            ecodU = rP.getResource("EcodProvider instance") if rP else None
-            if ecodU:
-                version = ecodU.getVersion()
+            if self.__ecodU:
+                version = self.__ecodU.getVersion()
                 for asymId, authAsymId in asymAuthIdD.items():
                     # JDW FIX
                     # if instTypeD[asymId] not in ["polymer", "branched"]:
@@ -2005,7 +1998,7 @@ class DictMethodEntityInstanceHelper(object):
                         continue
                     entityId = asymIdD[asymId]
                     # Family mappings
-                    dL = ecodU.getFamilyResidueRanges(entryId.lower(), authAsymId)
+                    dL = self.__ecodU.getFamilyResidueRanges(entryId.lower(), authAsymId)
                     qD = {}
                     for (domId, familyId, _, _, _) in dL:
                         if familyId in qD:
@@ -2018,14 +2011,14 @@ class DictMethodEntityInstanceHelper(object):
                         cObj.setValue(authAsymId, "auth_asym_id", ii)
                         cObj.setValue("ECOD", "type", ii)
                         #
-                        fName = ecodU.getName(familyId)[3:]
+                        fName = self.__ecodU.getName(familyId)[3:]
                         cObj.setValue(domId, "annotation_id", ii)
                         cObj.setValue(fName, "name", ii)
                         #
 
-                        tL = [t if t is not None else "" for t in ecodU.getNameLineage(familyId)]
+                        tL = [t if t is not None else "" for t in self.__ecodU.getNameLineage(familyId)]
                         cObj.setValue(";".join(tL), "annotation_lineage_name", ii)
-                        idLinL = ecodU.getIdLineage(familyId)
+                        idLinL = self.__ecodU.getIdLineage(familyId)
                         cObj.setValue(";".join([str(t) for t in idLinL]), "annotation_lineage_id", ii)
                         cObj.setValue(";".join([str(jj) for jj in range(1, len(idLinL) + 1)]), "annotation_lineage_depth", ii)
                         #
@@ -2115,11 +2108,10 @@ class DictMethodEntityInstanceHelper(object):
                     ii += 1
             #
             #  GlyGen
-            ggP = rP.getResource("GlyGenProvider instance") if rP else None
-            if ggP:
+            if self.__ggP:
                 gS = set()
-                version = ggP.getVersion()
-                ggD = ggP.getGlycoproteins()
+                version = self.__ggP.getVersion()
+                ggD = self.__ggP.getGlycoproteins()
                 for asymId, authAsymId in asymAuthIdD.items():
                     if instTypeD[asymId] not in ["polymer"]:
                         continue
@@ -2135,7 +2127,7 @@ class DictMethodEntityInstanceHelper(object):
                                 unpIdL = [aD["reference_database_accession"] for aD in unpIdL]
                                 logger.debug("unpIdL %r", unpIdL)
                                 for unpId in unpIdL:
-                                    if ggP.hasGlycoprotein(unpId):
+                                    if self.__ggP.hasGlycoprotein(unpId):
                                         ggId = unpId + "-" + ggD[unpId]
                                         gTup = (entryId, entityId, asymId, authAsymId, ggId)
                                         logger.debug("gTup %r", gTup)
