@@ -2114,7 +2114,47 @@ class DictMethodEntityInstanceHelper(object):
                     #
                     ii += 1
             #
-            # Glycosylation features
+            #  GlyGen
+            ggP = rP.getResource("GlyGenProvider instance") if rP else None
+            if ggP:
+                gS = set()
+                version = ggP.getVersion()
+                ggD = ggP.getGlycoproteins()
+                for asymId, authAsymId in asymAuthIdD.items():
+                    if instTypeD[asymId] not in ["polymer"]:
+                        continue
+                    entityId = asymIdD[asymId]
+                    logger.debug("entryId %r entityId %r, asymId %r", entryId, entityId, asymId)
+                    instConnL = self.__commonU.getInstanceConnections(dataContainer)
+                    for cD in instConnL:
+                        if "role" in cD and cD["role"] in ["C-Mannosylation", "N-Glycosylation", "O-Glycosylation", "S-Glycosylation"]:
+                            if asymId == cD["connect_target_label_asym_id"] or asymId == cD["connect_partner_label_asym_id"]:
+                                # Get UniProt IDs from rcsb_polymer_entity_align
+                                # Note that this requires `addPolymerEntityReferenceAlignments` to be run before `buildEntityInstanceAnnotations` (in methods dictionary)
+                                unpIdL = self.__commonU.getPolymerEntityReferenceAlignments(dataContainer, entityId, "UniProt")
+                                unpIdL = [aD["reference_database_accession"] for aD in unpIdL]
+                                logger.debug("unpIdL %r", unpIdL)
+                                for unpId in unpIdL:
+                                    if ggP.hasGlycoprotein(unpId):
+                                        ggId = unpId + "-" + ggD[unpId]
+                                        gTup = (entryId, entityId, asymId, authAsymId, ggId)
+                                        logger.debug("gTup %r", gTup)
+                                        gS.add(gTup)
+
+                for (entryId, entityId, asymId, authAsymId, ggId) in gS:
+                    logger.info("adding to cObj: %r %r %r %r %r", entryId, entityId, asymId, authAsymId, ggId)
+                    cObj.setValue(ii + 1, "ordinal", ii)
+                    cObj.setValue(entryId, "entry_id", ii)
+                    cObj.setValue(entityId, "entity_id", ii)
+                    cObj.setValue(asymId, "asym_id", ii)
+                    cObj.setValue(authAsymId, "auth_asym_id", ii)
+                    cObj.setValue(ggId, "annotation_id", ii)
+                    cObj.setValue("GlyGen", "provenance_source", ii)
+                    cObj.setValue(version, "assignment_version", ii)
+                    #
+                    ii += 1
+            #
+            # Glycosylation annotations
             jj = 1
             for asymId, rTupL in npbD.items():
                 if instTypeD[asymId] not in ["polymer"]:
