@@ -16,6 +16,8 @@
 #  17-Jul-2023 dwp RO-170: Stop populating ordinal, reference_scheme, and feature_positions_beg_comp_id for all feature objects
 #  12-Sep-2023 dwp RO-4033: When using SIFTS alignment data, don't mix and match segments from different chains of the same entity
 #   2-Nov-2023 dwp Only populate rcsb_entity_feature_summary for features that are present
+#  18-Mar-2024 dwp Separate out gathering of entity reference sequence alignments from assignment step;
+#                  Move rP.getResource calls up to init method
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.

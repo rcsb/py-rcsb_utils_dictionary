@@ -16,7 +16,8 @@
 #   2-Nov-2023 dwp Only populate rcsb_polymer_instance_feature_summary and rcsb_entity_instance_validation_feature_summary for features that are present
 #  26-Feb-2024 dwp Add "HAS_NO_COVALENT_LINKAGE" to instance annotations for cases without covalent linkages (or with only metal coordination);
 #                  Change provenance_source of "PDB" to "Primary Data" for linkage annotations and features
-#
+#  18-Mar-2024 dwp Add GlyGen annotations to polymer entity instances with glycosylation sites;
+#                  Move rP.getResource calls up to init method
 ##
 """
 This helper class implements methods supporting entity-instance-level functions in the RCSB dictionary extension.
@@ -2134,7 +2135,7 @@ class DictMethodEntityInstanceHelper(object):
                                         gS.add(gTup)
 
                 for (entryId, entityId, asymId, authAsymId, ggId) in gS:
-                    logger.info("adding to cObj: %r %r %r %r %r", entryId, entityId, asymId, authAsymId, ggId)
+                    logger.debug("adding to cObj: %r %r %r %r %r", entryId, entityId, asymId, authAsymId, ggId)
                     cObj.setValue(ii + 1, "ordinal", ii)
                     cObj.setValue(entryId, "entry_id", ii)
                     cObj.setValue(entityId, "entity_id", ii)
