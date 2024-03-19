@@ -239,7 +239,7 @@ class DictMethodEntityHelper(object):
 
     def __processPolymerEntityReferenceAlignments(self, dataContainer):
         """Gather and process polymer entity reference alignments from source mmCIF file (PdbAlignments)
-        and SIFTS data (SiftsAlignments). 
+        and SIFTS data (SiftsAlignments).
 
         If self.__useSiftsAlign is True (default), mmCIF data is overwritten with SIFTS data.
 
@@ -460,7 +460,7 @@ class DictMethodEntityHelper(object):
             logger.exception("For %s  %s failing with %s", dataContainer.getName(), catName, str(e))
         return False
 
-    def __salvageMissingTaxonomy(self, dataContainer, **kwargs):
+    def __salvageMissingTaxonomy(self, dataContainer):
         """Add missing taxonomy identifiers using scientific name as a surrogate.
 
         Args:
@@ -1204,7 +1204,7 @@ class DictMethodEntityHelper(object):
             logger.exception("For %s %s failing with %s", catName, atName, str(e))
         return False
 
-    def addEntityMisc(self, dataContainer, catName, atName, **kwargs):
+    def addEntityMisc(self, dataContainer, catName, atName):
         """Add consolidated enzyme classification macromolecule names to the entity category.
 
         Args:
