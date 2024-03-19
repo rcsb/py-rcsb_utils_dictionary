@@ -1404,23 +1404,6 @@ class DictMethodCommonUtils(object):
         wD = self.__fetchInstanceConnections(dataContainer)
         return wD["boundNonpolymerInstanceD"] if "boundNonpolymerInstanceD" in wD else {}
 
-    # def getBoundGlycanByPolymerInstance(self, dataContainer):
-    #     """Return a dictionary of bound glycans by the associated polymer instance.
-
-    #     Args:
-    #         dataContainer (object):  mmcif.api.DataContainer object instance
-
-    #     Returns:
-    #         dict: {<asymId>: NonpolymerBoundInstance( "targetCompId", "targetAtomId", "targetAltId", "connectType", "partnerEntityType", "partnerEntityId",
-    #                                                   "partnerCompId","partnerAsymId", "partnerSeqId", "partnerAuthSeqId", "partnerAtomId", "targetAltId",
-    #                                                   "bondDistance", "bondOrder"), }
-
-    #     """
-    #     if not dataContainer or not dataContainer.getName():
-    #         return {}
-    #     wD = self.__fetchInstanceConnections(dataContainer)
-    #     return wD["boundGlycanByPolymerInstanceD"] if "boundGlycanByPolymerInstanceD" in wD else {}
-
     def __fetchInstanceConnections(self, dataContainer):
         wD = self.__instanceConnectionCache.get(dataContainer.getName())
         if not wD:
@@ -1584,7 +1567,6 @@ class DictMethodCommonUtils(object):
                 instConnectL.append(tD)
 
             boundNonpolymerEntityD, boundNonpolymerInstanceD, boundNonpolymerComponentIdL = self.__getBoundNonpolymers(dataContainer, instConnectL)
-            # boundGlycanByPolymerInstanceD = self.__getBoundGlycansByPolymerInstance(dataContainer, boundNonpolymerInstanceD)
 
         return {
             "instConnectL": instConnectL,
@@ -1592,19 +1574,7 @@ class DictMethodCommonUtils(object):
             "boundNonpolymerEntityD": boundNonpolymerEntityD,
             "boundNonpolymerInstanceD": boundNonpolymerInstanceD,
             "boundNonpolymerComponentIdL": boundNonpolymerComponentIdL,
-            # "boundGlycanByPolymerInstanceD": boundGlycanByPolymerInstanceD,
         }
-
-    # def __getBoundGlycansByPolymerInstance(self, dataContainer, boundNonpolymerInstanceD):
-    #     """
-
-    #     Args:
-    #         dataContainer (_type_): _description_
-    #         boundNonpolymerInstanceD (_type_): _description_
-    #     """
-    #     cloneD = copy.deepcopy(boundNonpolymerInstanceD)
-    #     for asymId, rTupL in npbD.items():
-    #         if instTypeD[asymId] not in ["polymer"]:  # is this a mistake? obviously nothing in npbD (non-polymer) will be a polymer...
 
     def __getBoundNonpolymers(self, dataContainer, instConnectL):
         """Get nonpolymer bound
