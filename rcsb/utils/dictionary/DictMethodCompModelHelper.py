@@ -58,9 +58,6 @@ class DictMethodCompModelHelper(object):
         rP = kwargs.get("resourceProvider")
         self.__commonU = rP.getResource("DictMethodCommonUtils instance") if rP else None
         #
-        # Remove this when done switching to 200 million BCIF load, since only needed for original ~1 million AF load
-        self.__mcP = rP.getResource("ModelHoldingsProvider instance") if rP else None
-        #
         # dapw = rP.getResource("DictionaryAPIProviderWrapper instance") if rP else None
         # self.__dApi = dapw.getApiByName("pdbx_core") if dapw else None
         self.__dApi = kwargs.get("dictionaryApi", None)
@@ -382,6 +379,10 @@ class DictMethodCompModelHelper(object):
             if not dataContainer.exists(catName):
                 dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
 
+            # Remove this when done switching to 200 million BCIF load, since only needed for original ~1 million AF load
+            rP = kwargs.get("resourceProvider")
+            mcP = rP.getResource("ModelHoldingsProvider instance") if rP else None
+
             cObj = dataContainer.getObj(catName)
 
             tObj = dataContainer.getObj("entry")
@@ -406,8 +407,8 @@ class DictMethodCompModelHelper(object):
 
             # Remove these lines when done switching to 200 million BCIF load, since fragmented AF models are not included in the Google Cloud dataset
             isFragmented = False
-            if self.__mcP and self.__mcP.getModelFragmentsDict():
-                isFragmented = self.__mcP.checkIfFragmentedModel(entryId)
+            if mcP and mcP.getModelFragmentsDict():
+                isFragmented = mcP.checkIfFragmentedModel(entryId)
 
             cObj.setValue(sourceId, "entry_id", 0)
             cObj.setValue(sourceDb, "source_db", 0)
