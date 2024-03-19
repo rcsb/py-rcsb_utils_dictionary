@@ -86,8 +86,6 @@ class DictMethodEntityHelper(object):
         self.__chemblP = rP.getResource("ChEMBLTargetCofactorProvider instance") if rP else None
         self.__dbP = rP.getResource("DrugBankTargetCofactorProvider instance") if rP else None
         self.__phP = rP.getResource("PharosTargetCofactorProvider instance") if rP else None
-        self.__taxU = rP.getResource("TaxonomyProvider instance") if rP else None
-        self.__ecU = rP.getResource("EnzymeDatabaseProvider instance") if rP else None
         #
         logger.debug("Dictionary entity method helper init")
 
@@ -472,6 +470,9 @@ class DictMethodEntityHelper(object):
         #
         ok = False
         try:
+            rP = kwargs.get("resourceProvider")
+            taxU = rP.getResource("TaxonomyProvider instance") if rP else None
+            # "pdbx_gene_src_scientific_name" "pdbx_gene_src_ncbi_taxonomy_id"
             for catName, atSn, atTaxId in [
                 ("entity_src_gen", "pdbx_gene_src_scientific_name", "pdbx_gene_src_ncbi_taxonomy_id"),
                 ("entity_src_gen", "pdbx_host_org_scientific_name", "pdbx_host_org_ncbi_taxonomy_id"),
@@ -487,7 +488,7 @@ class DictMethodEntityHelper(object):
                             continue
                         sn = sObj.getValueOrDefault(atSn, ii, defaultValue=None)
                         if sn:
-                            taxId = self.__taxU.getTaxId(sn)
+                            taxId = taxU.getTaxId(sn)
                             if taxId:
                                 if not sObj.hasAttribute(atTaxId):
                                     sObj.appendAttribute(atTaxId)
@@ -575,6 +576,9 @@ class DictMethodEntityHelper(object):
             #
             if not dataContainer.exists(hostCatName):
                 dataContainer.append(DataCategory(hostCatName, attributeNameList=self.__dApi.getAttributeNameList(hostCatName)))
+            #
+            rP = kwargs.get("resourceProvider")
+            taxU = rP.getResource("TaxonomyProvider instance") if rP else None
             #
             isCompModel = False
             if dataContainer.exists("ma_data"):
@@ -724,25 +728,25 @@ class DictMethodEntityHelper(object):
                         # if at == 'ncbi_taxonomy_id' and v[ii] and v[ii] not in ['.', '?'] and v[ii].isdigit():
                         if at == "ncbi_taxonomy_id" and v[ii] and v[ii] not in [".", "?"]:
                             taxId = int(self.__reNonDigit.sub("", v[ii]))
-                            taxId = self.__taxU.getMergedTaxId(taxId)
+                            taxId = taxU.getMergedTaxId(taxId)
                             cObj.setValue(str(taxId), "ncbi_taxonomy_id", iRow)
                             entryTaxIdD[taxId] += 1
                             entityTaxIdD.setdefault(entityId, set()).add(taxId)
                             #
-                            sn = self.__taxU.getScientificName(taxId)
+                            sn = taxU.getScientificName(taxId)
                             if sn:
                                 cObj.setValue(sn, "ncbi_scientific_name", iRow)
                             #
-                            psn = self.__taxU.getParentScientificName(taxId)
+                            psn = taxU.getParentScientificName(taxId)
                             if psn:
                                 cObj.setValue(psn, "ncbi_parent_scientific_name", iRow)
                             #
-                            cnL = self.__taxU.getCommonNames(taxId)
+                            cnL = taxU.getCommonNames(taxId)
                             if cnL:
                                 fcnL = self.__filterCaseDuplicates(cnL)
                                 cObj.setValue(";".join(list(OrderedDict.fromkeys(fcnL))), "ncbi_common_names", iRow)
                             # Add lineage -
-                            linL = self.__taxU.getLineageWithNames(taxId)
+                            linL = taxU.getLineageWithNames(taxId)
                             if linL is not None:
                                 cObj.setValue(";".join([str(tup[0]) for tup in OrderedDict.fromkeys(linL)]), "taxonomy_lineage_depth", iRow)
                                 cObj.setValue(";".join([str(tup[1]) for tup in OrderedDict.fromkeys(linL)]), "taxonomy_lineage_id", iRow)
@@ -779,21 +783,21 @@ class DictMethodEntityHelper(object):
                         #  if at == 'ncbi_taxonomy_id' and v[ii] and v[ii] not in ['.', '?'] and v[ii].isdigit():
                         if at == "ncbi_taxonomy_id" and v[ii] and v[ii] not in [".", "?"]:
                             taxId = int(self.__reNonDigit.sub("", v[ii]))
-                            taxId = self.__taxU.getMergedTaxId(taxId)
+                            taxId = taxU.getMergedTaxId(taxId)
                             hObj.setValue(str(taxId), "ncbi_taxonomy_id", iRow)
-                            sn = self.__taxU.getScientificName(taxId)
+                            sn = taxU.getScientificName(taxId)
                             if sn:
                                 hObj.setValue(sn, "ncbi_scientific_name", iRow)
                             #
-                            psn = self.__taxU.getParentScientificName(taxId)
+                            psn = taxU.getParentScientificName(taxId)
                             if psn:
                                 hObj.setValue(psn, "ncbi_parent_scientific_name", iRow)
                             #
-                            cnL = self.__taxU.getCommonNames(taxId)
+                            cnL = taxU.getCommonNames(taxId)
                             if cnL:
                                 hObj.setValue(";".join(sorted(set(cnL))), "ncbi_common_names", iRow)
                             # Add lineage -
-                            linL = self.__taxU.getLineageWithNames(taxId)
+                            linL = taxU.getLineageWithNames(taxId)
                             if linL is not None:
                                 hObj.setValue(";".join([str(tup[0]) for tup in OrderedDict.fromkeys(linL)]), "taxonomy_lineage_depth", iRow)
                                 hObj.setValue(";".join([str(tup[1]) for tup in OrderedDict.fromkeys(linL)]), "taxonomy_lineage_id", iRow)
@@ -1245,6 +1249,13 @@ class DictMethodEntityHelper(object):
             for at in atList:
                 if not eObj.hasAttribute(at):
                     eObj.appendAttribute(at)
+
+            hasEc = eObj.hasAttribute("pdbx_ec")
+            #
+            rP = kwargs.get("resourceProvider")
+            ecU = None
+            if hasEc:
+                ecU = rP.getResource("EnzymeDatabaseProvider instance") if rP else None
             #
             ncObj = None
             if dataContainer.exists("entity_name_com"):
@@ -1335,11 +1346,11 @@ class DictMethodEntityHelper(object):
                     if ecIdL:
                         ecIdL = list(OrderedDict.fromkeys(ecIdL))
                         for tId in ecIdL:
-                            ecId = self.__ecU.normalize(tId)
-                            if not self.__ecU.exists(ecId):
+                            ecId = ecU.normalize(tId)
+                            if not ecU.exists(ecId):
                                 continue
-                            # tL = self.__ecU.getLineage(ecId) if ecId and len(ecId) > 7 else None
-                            tL = self.__ecU.getLineage(ecId)
+                            # tL = ecU.getLineage(ecId) if ecId and len(ecId) > 7 else None
+                            tL = ecU.getLineage(ecId)
                             if tL:
                                 linL.extend(tL)
                                 ecIdUpdL.append(ecId)
