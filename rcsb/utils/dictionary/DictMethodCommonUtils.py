@@ -24,7 +24,7 @@
 # 29-Jun-2022 dwp Use internal computed-model identifiers everywhere (in same manner as experimental models)
 # 01-Feb-2024 bv  Add method 'getInstanceDeuWatMolCounts' to support deuterated water molecule count
 #                 Update methods 'getDepositedAtomCounts' and '__getAtomSiteInfo'
-#
+# 18-Mar-2024 dwp Add method 'getPolymerEntityReferenceAlignments' to enable retrieval of all UniProt IDs
 ##
 """
 Helper class implements common utility external method references supporting the RCSB dictionary extension.
@@ -1772,6 +1772,54 @@ class DictMethodCommonUtils(object):
             "SWALL": "UniProt",
         }
         return dbNameMapD
+
+    def getPolymerEntityReferenceAlignments(self, dataContainer, entityId=None, dbName=None):
+        """Get list of polymer entity reference alignments from category 'rcsb_polymer_entity_align'
+
+        Args:
+            dataContainer (object): mmcif.api.DataContainer object instance
+            entityId (optional): Only return reference alignments for a specfic entity.
+            dbName (optional): _description_. Defaults to None.
+
+        Returns:
+            list: list of entity reference alignment dictionaries
+                  e.g., [{
+                    'ordinal': 1, 'entry_id': '7XIW', 'entity_id': '1', 'reference_database_name': 'UniProt',
+                    'reference_database_accession': 'P0DTC2', 'reference_database_isoform': None, 'provenance_source': 'SIFTS',
+                    'aligned_regions_entity_beg_seq_id': '1', 'aligned_regions_ref_beg_seq_id': '1', 'aligned_regions_length': '1270'
+                  }]
+        """
+        pdbEntityAlignL = []
+
+        if dataContainer.exists("rcsb_polymer_entity_align"):
+            aObj = dataContainer.getObj("rcsb_polymer_entity_align")
+            for idx in range(aObj.getRowCount()):
+                aD = aObj.getRowAttributeDict(idx)
+                # Example aD:
+                # {
+                #     "oridnal" : 1,
+                #     "entry_id" : "1B5F",
+                #     "entity_id" : 1,
+                #     "reference_database_name" : "UniProt",
+                #     "reference_database_accession" : "Q9XFX3",
+                #     "provenance_source" : "SIFTS",
+                #     "aligned_regions" : [
+                #         {
+                #             "ref_beg_seq_id" : 418,
+                #             "entity_beg_seq_id" : 1,
+                #             "length" : 87
+                #         }
+                #     ]
+                # }
+                if entityId and str(aD.get("entity_id", "")) != str(entityId):
+                    continue
+                if dbName and aD.get("reference_database_name") != dbName:
+                    continue
+                pdbEntityAlignL.append(aD)
+        else:
+            logger.warning("Missing rcsb_polymer_entity_align information for dataContainer %r", dataContainer.getName())
+
+        return pdbEntityAlignL
 
     def __getReferenceSequenceDetails(self, dataContainer):
         """Get reference sequence and related alignment details.

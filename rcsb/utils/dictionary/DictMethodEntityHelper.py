@@ -16,6 +16,7 @@
 #  17-Jul-2023 dwp RO-170: Stop populating ordinal, reference_scheme, and feature_positions_beg_comp_id for all feature objects
 #  12-Sep-2023 dwp RO-4033: When using SIFTS alignment data, don't mix and match segments from different chains of the same entity
 #   2-Nov-2023 dwp Only populate rcsb_entity_feature_summary for features that are present
+#  18-Mar-2024 dwp Separate out gathering of entity reference sequence alignments from assignment step
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
@@ -166,14 +167,16 @@ class DictMethodEntityHelper(object):
         return pdbEntityAlignD
 
     def addPolymerEntityReferenceAlignments(self, dataContainer, catName, **kwargs):
-        """[summary]
+        """Populate _rcsb_polymer_entity_align with data from mmCIF file and/or SIFTS data if available.
+
+        If self.__useSiftsAlign is True (default), mmCIF data is overwritten with SIFTS data.
 
         Args:
-            dataContainer ([type]): [description]
-            catName ([type]): [description]
+            dataContainer (object): mmif.api.DataContainer object instance
+            catName (str): Category name
 
         Returns:
-            [type]: [description]
+            bool: True for success or False otherwise
 
         Example:
             _rcsb_polymer_entity_align.ordinal
@@ -199,18 +202,7 @@ class DictMethodEntityHelper(object):
             #
             cObj = dataContainer.getObj(catName)
             #
-            pdbEntityAlignD = self.__processPdbAlignments(dataContainer)
-            #
-            if self.__useSiftsAlign:
-                siftsEntityAlignD = self.__processSiftsAlignments(dataContainer)
-                logger.debug("siftsEntityAlignD %d", len(siftsEntityAlignD))
-                #
-                for (entryId, entityId, provSource), refD in siftsEntityAlignD.items():
-                    if (entryId, entityId, "PDB") in pdbEntityAlignD:
-                        del pdbEntityAlignD[(entryId, entityId, "PDB")]
-                    pdbEntityAlignD.update({(entryId, entityId, provSource): refD})
-            #
-            # ---
+            pdbEntityAlignD = self.__processPolymerEntityReferenceAlignments(dataContainer)
 
             iRow = cObj.getRowCount()
             for (entryId, entityId, provSource), refD in pdbEntityAlignD.items():
@@ -242,7 +234,40 @@ class DictMethodEntityHelper(object):
             logger.exception("For %s  %s failing with %s", dataContainer.getName(), catName, str(e))
         return False
 
+    def __processPolymerEntityReferenceAlignments(self, dataContainer):
+        """Gather and process polymer entity reference alignments from source mmCIF file (PdbAlignments)
+        and SIFTS data (SiftsAlignments).
+
+        If self.__useSiftsAlign is True (default), mmCIF data is overwritten with SIFTS data.
+
+        Args:
+            dataContainer (object): mmif.api.DataContainer object instance
+
+        Returns:
+            dict: Dictionary of all polymer entity reference alignments, in the format of:
+                    {(entryId, entityId, provSource), {('UNP', 'ABCDEF', None): [DB: 'UNP' ACC: 'ABCDEF' ISOFORM None ENITY BEG: 1 DB BEG: 22 LEN: 274]}, ...}
+                  e.g.,:
+                    {('1BQH', '1', 'SIFTS'), {('UNP', 'P01901', None): [DB: 'UNP' ACC: 'P01901' ISOFORM None ENITY BEG: 1 DB BEG: 22 LEN: 274]},
+                    ('1BQH', '2', 'SIFTS'), {('UNP', 'P01887', None): [DB: 'UNP' ACC: 'P01887' ISOFORM None ENITY BEG: 1 DB BEG: 21 LEN: 99]},
+                    ('1BQH', '4', 'SIFTS'), {('UNP', 'P01731', None): [DB: 'UNP' ACC: 'P01731' ISOFORM None ENITY BEG: 1 DB BEG: 28 LEN: 129]}
+        """
+
+        pdbEntityAlignD = {}
         #
+        pdbEntityAlignD = self.__processPdbAlignments(dataContainer)
+        #
+        if self.__useSiftsAlign:
+            siftsEntityAlignD = self.__processSiftsAlignments(dataContainer)
+            logger.debug("siftsEntityAlignD %d", len(siftsEntityAlignD))
+            #
+            for (entryId, entityId, provSource), refD in siftsEntityAlignD.items():
+                if (entryId, entityId, "PDB") in pdbEntityAlignD:
+                    # This deletes ALL "PDB" provSource items, even those not related to UniProt. E.g., EMBL is lost for 1B5F:
+                    #   {('1B5F', '1', 'PDB'): {('EMBL', 'CAB4134', None): [DB: 'EMBL' ACC: 'CAB4134' ISOFORM None ENITY BEG: '1' DB BEG: '71' LEN: 239]}, ...}
+                    del pdbEntityAlignD[(entryId, entityId, "PDB")]
+                pdbEntityAlignD.update({(entryId, entityId, provSource): refD})
+        #
+        return pdbEntityAlignD
 
     def buildContainerEntityIds(self, dataContainer, catName, **kwargs):
         """Load the input category with rcsb_entity_container_identifiers content.
@@ -391,7 +416,7 @@ class DictMethodEntityHelper(object):
                                 continue
                             refIdD["resName"].append(resName)
                             refIdD["resAccession"].append(gId)
-                            refIdD["provSource"].append("RCSB")
+                            refIdD["provSource"].append("RCSB")  # Comes from internal processing of WURCS data mapped to GlyTouCan IDs at https://api.glycosmos.org/
                 #
                 if asymIdL:
                     cObj.setValue(",".join(sorted(set(asymIdL))).strip(), "asym_ids", ii)

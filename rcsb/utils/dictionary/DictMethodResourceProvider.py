@@ -24,6 +24,8 @@
 #  21-Jul-2022  bv Update ModelCacheProvider to make providerType "core" and not stashable or buildable
 #  14-Mar-2023 dwp Replace CARDTargetFeatureProvider with CARDTargetAnnotationProvider
 #  19-Sep-2023 dwp Add CARDTargetOntologyProvider to stashable list
+#  19-Mar-2024 dwp Create separate providerType names 'pdbx_core' and 'pdbx_comp_model_core' to limit
+#                  loading of unnecessary resources for each dataset (via providerTypeExclude)
 ##
 """
 Resource provider for dictionary method runner and DictMethodHelper tools.
@@ -141,7 +143,7 @@ class DictMethodResourceProvider(SingletonClass):
                 },
                 "stashable": True,
                 "buildable": False,
-                "providerType": "core",
+                "providerType": "pdbx_core",
             },
             "Scop2Provider instance": {
                 "class": Scop2ClassificationProvider,
@@ -371,7 +373,7 @@ class DictMethodResourceProvider(SingletonClass):
                 },
                 "stashable": False,
                 "buildable": False,
-                "providerType": "core",
+                "providerType": "pdbx_comp_model_core",
             },
             # --
         }

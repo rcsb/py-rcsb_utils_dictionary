@@ -123,3 +123,6 @@
 26-Feb-2024 - V1.17 Add "HAS_NO_COVALENT_LINKAGE" to instance annotations for cases without covalent linkages (or with only metal coordination);
                     Change provenance_source of "PDB" to "Primary Data" for linkage annotations and features
 04-Mar-2024 - V1.18 Populate rcsb_comp_model_provenance using deterministic logic instead of relying on external cache file
+18-Mar-2024 - V1.19 Add GlyGen annotations to polymer entity instances with glycosylation sites;
+                    Create separate providerType names 'pdbx_core' and 'pdbx_comp_model_core' to limit loading of unnecessary
+                    resources for each dataset (via providerTypeExclude)
