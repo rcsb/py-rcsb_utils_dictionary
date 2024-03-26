@@ -18,6 +18,7 @@
 #                  Change provenance_source of "PDB" to "Primary Data" for linkage annotations and features
 #  19-Mar-2024 dwp Add GlyGen annotations to polymer entity instances with glycosylation sites;
 #                  Don't run 'buildInstanceLigandNeighbors' or 'buildInstanceTargetNeighbors' for CSMs (no neighbor data available)
+#  26-Mar-2024 dwp Add "type" to GlyGen annotations
 ##
 """
 This helper class implements methods supporting entity-instance-level functions in the RCSB dictionary extension.
@@ -2149,6 +2150,7 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue(entityId, "entity_id", ii)
                     cObj.setValue(asymId, "asym_id", ii)
                     cObj.setValue(authAsymId, "auth_asym_id", ii)
+                    cObj.setValue("GlyGen", "type", ii)
                     cObj.setValue(ggId, "annotation_id", ii)
                     cObj.setValue("GlyGen", "provenance_source", ii)
                     cObj.setValue(version, "assignment_version", ii)
