@@ -126,3 +126,5 @@
 18-Mar-2024 - V1.19 Add GlyGen annotations to polymer entity instances with glycosylation sites;
                     Create separate providerType names 'pdbx_core' and 'pdbx_comp_model_core' to limit loading of unnecessary
                     resources for each dataset (via providerTypeExclude)
+26-Mar-2024 - V1.20 Add GlyGen annotation 'type' to polymer entity instances, but temporarily turn off loading
+                    Fix incremental update method for NeighborInteractionWorkflow
