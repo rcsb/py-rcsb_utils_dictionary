@@ -1,6 +1,6 @@
 scipy
 numpy
-mmcif >= 0.75
+mmcif >= 0.88.0
 rcsb.utils.chemref >= 0.79
 rcsb.utils.citation >= 0.16
 rcsb.utils.config >= 0.35

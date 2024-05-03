@@ -129,3 +129,4 @@
 26-Mar-2024 - V1.20 Add GlyGen annotation 'type' to polymer entity instances, but temporarily turn off loading
                     Fix incremental update method for NeighborInteractionWorkflow
  1-Apr-2024 - V1.21 Turn on GlyGen annotations loading
+ 3-May-2024 - V1.22 Adjust BIRD citation method in DictMethodChemRefHelper
