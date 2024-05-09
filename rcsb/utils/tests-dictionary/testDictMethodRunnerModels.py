@@ -49,7 +49,7 @@ class DictMethodRunnerModelsTests(unittest.TestCase):
     def setUp(self):
 
         self.__isMac = platform.system() == "Darwin"
-        self.__excludeType = None if self.__isMac else "optional"
+        self.__excludeTypeL = None if self.__isMac else ["optional"]
         self.__export = True
         self.__numProc = 2
         self.__fileLimit = 5
@@ -113,7 +113,7 @@ class DictMethodRunnerModelsTests(unittest.TestCase):
                 cachePath=self.__cachePath,
                 restoreUseStash=False,
                 restoreUseGit=True,
-                providerTypeExclude=self.__excludeType,
+                providerTypeExcludeL=self.__excludeTypeL,
             )
             dmh = DictMethodRunner(dictApi, modulePathMap=self.__modulePathMap, resourceProvider=rP)
             locatorObjList = self.__rpP.getLocatorObjList(contentType=contentType, mergeContentTypes=mergeContent)

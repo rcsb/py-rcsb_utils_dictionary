@@ -43,7 +43,7 @@ class DictmethodResourceProviderTests(unittest.TestCase):
 
     def setUp(self):
         isMac = platform.system() == "Darwin"
-        self.__excludeType = None if isMac else "optional"
+        self.__excludeTypeL = None if isMac else ["optional"]
         self.__mockTopPath = os.path.join(TOPDIR, "rcsb", "mock-data")
         self.__cachePath = os.path.join(HERE, "test-output", "CACHE")
         self.__configPath = os.path.join(self.__mockTopPath, "config", "dbload-setup-example.yml")
@@ -71,7 +71,7 @@ class DictmethodResourceProviderTests(unittest.TestCase):
             cachePath=self.__cachePath,
             restoreUseStash=False,
             restoreUseGit=True,
-            providerTypeExclude=self.__excludeType,
+            providerTypeExcludeL=self.__excludeTypeL,
         )
         obj = rP.getResource(resourceName, useCache=False, default=None, doBackup=False, useStash=False, useGit=True)
         self.assertTrue(obj is not None)
@@ -84,7 +84,7 @@ class DictmethodResourceProviderTests(unittest.TestCase):
             cachePath=self.__cachePath,
             restoreUseStash=False,
             restoreUseGit=True,
-            providerTypeExclude=self.__excludeType,
+            providerTypeExcludeL=self.__excludeTypeL,
         )
         ok = rP.cacheResources(useCache=True, doRestore=True)
         self.assertTrue(ok)
@@ -99,7 +99,7 @@ class DictmethodResourceProviderTests(unittest.TestCase):
             cachePath=self.__cachePath,
             restoreUseStash=False,
             restoreUseGit=False,
-            providerTypeExclude=None,
+            providerTypeExcludeL=None,
         )
         ok = rP.cacheResources(useCache=False, doBackup=True, useStash=False, useGit=True, clearCache=True, providerSelect="buildable")
         self.assertTrue(ok)
@@ -178,7 +178,7 @@ class DictmethodResourceProviderTests(unittest.TestCase):
             cachePath=self.__cachePath,
             restoreUseStash=False,
             restoreUseGit=True,
-            providerTypeExclude=self.__excludeType,
+            providerTypeExcludeL=self.__excludeTypeL,
         )
         ok = rP.cacheResources(useCache=True, doRestore=True)
         self.assertTrue(ok)
@@ -193,7 +193,7 @@ class DictmethodResourceProviderTests(unittest.TestCase):
             cachePath=self.__cachePath,
             restoreUseStash=False,
             restoreUseGit=False,
-            providerTypeExclude=self.__excludeType,
+            providerTypeExcludeL=self.__excludeTypeL,
         )
         obj = rP.getResource(resourceName, useCache=False, default=None, doBackup=True, useStash=False, useGit=True)
         self.assertTrue(obj is not None)
@@ -209,7 +209,7 @@ class DictmethodResourceProviderTests(unittest.TestCase):
             cachePath=self.__cachePath,
             restoreUseStash=True,
             restoreUseGit=False,
-            providerTypeExclude=None,
+            providerTypeExcludeL=None,
         )
         for providerName in [
             "CARDTargetAnnotationProvider instance",

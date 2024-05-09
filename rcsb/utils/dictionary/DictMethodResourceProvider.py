@@ -25,7 +25,8 @@
 #  14-Mar-2023 dwp Replace CARDTargetFeatureProvider with CARDTargetAnnotationProvider
 #  19-Sep-2023 dwp Add CARDTargetOntologyProvider to stashable list
 #  19-Mar-2024 dwp Create separate providerType names 'pdbx_core' and 'pdbx_comp_model_core' to limit
-#                  loading of unnecessary resources for each dataset (via providerTypeExclude)
+#                  loading of unnecessary resources for each dataset (via providerTypeExcludeL)
+#   9-May-2024 dwp Change providerTypeExclude to be a list, 'providerTypeExcludeL'
 ##
 """
 Resource provider for dictionary method runner and DictMethodHelper tools.
@@ -107,14 +108,15 @@ class DictMethodResourceProvider(SingletonClass):
             cachePath (str, optional): path used for temporary file management (default: '.')
             restoreUseStash (bool, optional): use remote stash storage for restore operations
             restoreUseGit (bool, optional): use remote storage for restore operations
-            providerTypeExclude (str, optional): exclude providers containing this name string. Defaults to None.
+            providerTypeExcludeL (list, optional): exclude providers in this list. Defaults to None.
         """
         self.__cfgOb = cfgOb
         self.__configName = kwargs.get("configName", self.__cfgOb.getDefaultSectionName())
         self.__cachePath = kwargs.get("cachePath", ".")
         self.__restoreUseStash = kwargs.get("restoreUseStash", True)
         self.__restoreUseGit = kwargs.get("restoreUseGit", True)
-        self.__providerTypeExclude = kwargs.get("providerTypeExclude", None)
+        providerTypeExcludeL = kwargs.get("providerTypeExcludeL", None)
+        self.__providerTypeExcludeL = providerTypeExcludeL if providerTypeExcludeL else []
         # --
         self.__providerInstanceD = {}
         self.__providerD = {
@@ -150,28 +152,28 @@ class DictMethodResourceProvider(SingletonClass):
                 "configArgMap": {},
                 "stashable": True,
                 "buildable": True,
-                "providerType": "optional_1",
+                "providerType": "optional",
             },
             "EcodProvider instance": {
                 "class": EcodClassificationProvider,
                 "configArgMap": {},
                 "stashable": True,
                 "buildable": True,
-                "providerType": "optional_1",
+                "providerType": "optional",
             },
             "ScopProvider instance": {
                 "class": ScopClassificationProvider,
                 "configArgMap": {},
                 "stashable": True,
                 "buildable": True,
-                "providerType": "optional_1",
+                "providerType": "optional",
             },
             "CathProvider instance": {
                 "class": CathClassificationProvider,
                 "configArgMap": {},
                 "stashable": True,
                 "buildable": True,
-                "providerType": "optional_1",
+                "providerType": "optional",
             },
             "DrugBankProvider instance": {
                 "class": DrugBankProvider,
@@ -218,14 +220,14 @@ class DictMethodResourceProvider(SingletonClass):
                 "configArgMap": {},
                 "stashable": True,
                 "buildable": False,
-                "providerType": "optional_1",
+                "providerType": "optional",
             },
             "PsiModProvider instance": {
                 "class": PsiModProvider,
                 "configArgMap": {},
                 "stashable": True,
                 "buildable": True,
-                "providerType": "optional_1",
+                "providerType": "optional",
             },
             "PubChemProvider instance": {
                 "class": PubChemProvider,
@@ -283,14 +285,14 @@ class DictMethodResourceProvider(SingletonClass):
                 "configArgMap": {},
                 "stashable": True,
                 "buildable": True,
-                "providerType": "optional_1",
+                "providerType": "optional",
             },
             "GlycanProvider instance": {
                 "class": GlycanProvider,
                 "configArgMap": {},
                 "stashable": True,
                 "buildable": False,
-                "providerType": "optional_1",
+                "providerType": "optional",
             },
             "SiftsSummaryProvider instance": {
                 "class": SiftsSummaryProvider,
@@ -307,63 +309,63 @@ class DictMethodResourceProvider(SingletonClass):
                 "configArgMap": {},
                 "stashable": True,
                 "buildable": True,
-                "providerType": "optional_1",
+                "providerType": "optional",
             },
             "DrugBankTargetCofactorProvider instance": {
                 "class": DrugBankTargetCofactorProvider,
                 "configArgMap": {},
                 "stashable": True,
                 "buildable": False,
-                "providerType": "optional_1",
+                "providerType": "optional",
             },
             "ChEMBLTargetCofactorProvider instance": {
                 "class": ChEMBLTargetCofactorProvider,
                 "configArgMap": {},
                 "stashable": True,
                 "buildable": False,
-                "providerType": "optional_1",
+                "providerType": "optional",
             },
             "PharosTargetCofactorProvider instance": {
                 "class": PharosTargetCofactorProvider,
                 "configArgMap": {},
                 "stashable": True,
                 "buildable": False,
-                "providerType": "optional_1",
+                "providerType": "optional",
             },
             "CARDTargetAnnotationProvider instance": {
                 "class": CARDTargetAnnotationProvider,
                 "configArgMap": {},
                 "stashable": True,
                 "buildable": False,
-                "providerType": "optional_1",
+                "providerType": "optional",
             },
             "CARDTargetOntologyProvider instance": {
                 "class": CARDTargetOntologyProvider,
                 "configArgMap": {},
                 "stashable": True,
                 "buildable": False,
-                "providerType": "optional_1",
+                "providerType": "optional",
             },
             "IMGTTargetFeatureProvider instance": {
                 "class": IMGTTargetFeatureProvider,
                 "configArgMap": {},
                 "stashable": True,
                 "buildable": False,
-                "providerType": "optional_1",
+                "providerType": "optional",
             },
             "SAbDabTargetFeatureProvider instance": {
                 "class": SAbDabTargetFeatureProvider,
                 "configArgMap": {},
                 "stashable": True,
                 "buildable": False,
-                "providerType": "optional_1",
+                "providerType": "optional",
             },
             "EntryInfoProvider instance": {
                 "class": EntryInfoProvider,
                 "configArgMap": {},
                 "stashable": True,
                 "buildable": False,
-                "providerType": "optional_1",
+                "providerType": "optional",
             },
             "ModelHoldingsProvider instance": {
                 "class": ModelHoldingsProvider,
@@ -377,7 +379,9 @@ class DictMethodResourceProvider(SingletonClass):
             },
             # --
         }
-        logger.info("Dictionary resource provider restoreUseGit %r restoreUseStash %r providerTypeExclude %r", self.__restoreUseGit, self.__restoreUseStash, self.__providerTypeExclude)
+        logger.info(
+            "Dictionary resource provider restoreUseGit %r restoreUseStash %r providerTypeExcludeL %r", self.__restoreUseGit, self.__restoreUseStash, self.__providerTypeExcludeL
+        )
         self.__filterProviderWarnD = {}
         #
 
@@ -415,9 +419,9 @@ class DictMethodResourceProvider(SingletonClass):
             return default
 
         # Apply exclusions
-        if self.__providerTypeExclude and self.__providerTypeExclude in self.__providerD[providerName]["providerType"]:
+        if self.__providerTypeExcludeL and self.__providerD[providerName]["providerType"] in self.__providerTypeExcludeL:
             if providerName not in self.__filterProviderWarnD:
-                logger.info("Provider %r excluded by filter %r", providerName, self.__providerTypeExclude)
+                logger.info("Provider %r excluded by filter %r", providerName, self.__providerTypeExcludeL)
             self.__filterProviderWarnD[providerName] = True
             return default
         #
@@ -460,8 +464,8 @@ class DictMethodResourceProvider(SingletonClass):
             fU.remove(self.__cachePath)
         #
         for providerName in sorted(self.__providerD):
-            if self.__providerTypeExclude and self.__providerTypeExclude in self.__providerD[providerName]["providerType"]:
-                logger.info("Provider excluded by filter %r", providerName)
+            if self.__providerTypeExcludeL and self.__providerD[providerName]["providerType"] in self.__providerTypeExcludeL:
+                logger.info("Provider %r excluded by filter %r", providerName, self.__providerTypeExcludeL)
                 continue
             #
             rusageMax = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss

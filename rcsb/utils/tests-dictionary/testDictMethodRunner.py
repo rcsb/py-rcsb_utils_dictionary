@@ -43,7 +43,7 @@ TOPDIR = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
 class DictMethodRunnerTests(unittest.TestCase):
     def setUp(self):
         self.__isMac = platform.system() == "Darwin"
-        self.__excludeType = None if self.__isMac else "optional"
+        self.__excludeTypeL = None if self.__isMac else ["optional"]
         self.__export = True
         self.__numProc = 2
         mockTopPath = os.path.join(TOPDIR, "rcsb", "mock-data")
@@ -186,7 +186,7 @@ class DictMethodRunnerTests(unittest.TestCase):
                 cachePath=self.__cachePath,
                 restoreUseStash=False,
                 restoreUseGit=True,
-                providerTypeExclude=self.__excludeType,
+                providerTypeExcludeL=self.__excludeTypeL,
             )
             dmh = DictMethodRunner(dictApi, modulePathMap=self.__modulePathMap, resourceProvider=rP)
             rpP = RepositoryProvider(cfgOb=self.__cfgOb, numProc=self.__numProc, fileLimit=fileLimit, cachePath=self.__cachePath)
@@ -226,7 +226,7 @@ class DictMethodRunnerTests(unittest.TestCase):
             cachePath=self.__cachePath,
             restoreUseStash=False,
             restoreUseGit=True,
-            providerTypeExclude=self.__excludeType,
+            providerTypeExcludeL=self.__excludeTypeL,
         )
         ok = rP.cacheResources(useCache=True, doRestore=True, useStash=False, useGit=True)
         self.assertTrue(ok)
@@ -242,7 +242,7 @@ class DictMethodRunnerTests(unittest.TestCase):
                 cachePath=self.__cachePath,
                 restoreUseStash=False,
                 restoreUseGit=True,
-                providerTypeExclude=self.__excludeType,
+                providerTypeExcludeL=self.__excludeTypeL,
             )
             dmh = DictMethodRunner(dictApi, modulePathMap=self.__modulePathMap, resourceProvider=rP)
             ok = dmh is not None
