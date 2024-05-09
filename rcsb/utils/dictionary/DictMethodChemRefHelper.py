@@ -797,6 +797,7 @@ class DictMethodChemRefHelper(object):
 
     def renameCitationCategory(self, dataContainer, catName, **kwargs):
         """Rename citation and citation author categories.
+        Note that this method is run twice: once for catName 'rcsb_bird_citation', and once for 'rcsb_bird_citation_author'
 
         Args:
             dataContainer (object): mmif.api.DataContainer object instance
@@ -807,22 +808,35 @@ class DictMethodChemRefHelper(object):
         """
         try:
             _ = kwargs
+            ok = False
             logger.debug("Starting with  %r %r", dataContainer.getName(), catName)
+            #
+            catDestSrcMap = {
+                "rcsb_bird_citation": "citation",
+                "rcsb_bird_citation_author": "citation_author",
+            }
+            #
             if not (dataContainer.exists("chem_comp") and dataContainer.exists("pdbx_chem_comp_identifier")):
                 return False
             containerName = dataContainer.getName()
             if not containerName.upper().startswith("PRD_"):
                 return False
             #
+            if catName not in catDestSrcMap:
+                logger.error("Unsupported catName %r", catName)
+                return False
+            #
             # Copy target categories to new name
-            if dataContainer.exists("citation"):
-                dataContainer.copy("citation", "rcsb_bird_citation")
-            if dataContainer.exists("citation_author"):
-                dataContainer.copy("citation_author", "rcsb_bird_citation_author")
-            return True
+            ccId = dataContainer.getObj("chem_comp").getValue("id", 0)
+            srcCat = catDestSrcMap[catName]
+            logger.debug("Working on containerName %r ccId %r srcCatName %r catName %r", containerName, ccId, srcCat, catName)
+            if dataContainer.exists(srcCat) and not dataContainer.exists(catName):
+                ok = dataContainer.copy(srcCat, catName)
+                if not ok:
+                    logger.error("Failed for containerName %r ccId %r srcCatName %r catName %r", containerName, ccId, srcCat, catName)
+            return ok
         except Exception as e:
             logger.exception("For %s failing with %s", catName, str(e))
-
         return False
 
     def addChemCompSynonyms(self, dataContainer, catName, **kwargs):

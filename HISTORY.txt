@@ -130,3 +130,4 @@
                     Fix incremental update method for NeighborInteractionWorkflow
  1-Apr-2024 - V1.21 Turn on GlyGen annotations loading
  3-May-2024 - V1.22 Adjust BIRD citation method in DictMethodChemRefHelper
+ 9-May-2024 - V1.23 Tweak to above update (V1.22); update setuptools config
