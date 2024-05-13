@@ -132,3 +132,4 @@
  3-May-2024 - V1.22 Adjust BIRD citation method in DictMethodChemRefHelper
  9-May-2024 - V1.23 Tweak to above update (V1.22); update setuptools config;
                     Adjust provider type exclusion to accept a list of types (in DictMethodResourceProvider)
+13-May-2024 - V1.24 Update requirements
