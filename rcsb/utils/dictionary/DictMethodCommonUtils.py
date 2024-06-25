@@ -4045,39 +4045,63 @@ class DictMethodCommonUtils(object):
             #
             for asymId, ligXyzL in ligandXyzD.items():
                 #
-                if asymId in nonPolymerBoundD:
-                    # Process bound ligands
-                    for tup in nonPolymerBoundD[asymId]:
-                        if tup.partnerEntityType not in ["non-polymer", "water"]:
-                            ligandTargetInstanceD.setdefault(asymId, []).append(
-                                LigandTargetInstance(
-                                    modelId,
-                                    asymId,
-                                    tup.targetCompId,
-                                    tup.targetAtomId,
-                                    tup.targetAltId,
-                                    tup.connectType,
-                                    targetModelId,
-                                    tup.partnerEntityType,
-                                    tup.partnerEntityId,
-                                    tup.partnerCompId,
-                                    tup.partnerAsymId,
-                                    tup.partnerSeqId,
-                                    tup.partnerAuthSeqId,
-                                    tup.partnerAtomId,
-                                    tup.partnerAltId,
-                                    float(tup.bondDistance) if tup.bondDistance else None,
-                                )
-                            )
-                else:
-                    # Calculate ligand - target interactions
-                    lArr = np.array(ligXyzL, order="F")
-                    distance, index = tree.query(lArr, distance_upper_bound=distLimit)
-                    logger.debug("%s lig asymId %s distance %r  index %r", entryId, asymId, distance, index)
-                    for ligIndex, (dist, ind) in enumerate(zip(distance, index)):
+                # Calculate ligand - target interactions
+                lArr = np.array(ligXyzL, order="F")
+                distance, index = tree.query(lArr, k=3, distance_upper_bound=distLimit)  # Find the first k neighbors for the given ligand's atom
+                # Note that if k=1 (default for tree.query), then for ligands with only one atom (i.e., ions), only one neighbor is found,
+                # whereas ligands with more than one atom (e.g., ATP), a different neighbor can be found for each atom
+                logger.debug("%s lig asymId %s distance %r  index %r", entryId, asymId, distance, index)
+                for ligIndex, (distL, indL) in enumerate(zip(distance, index)):
+                    for (dist, ind) in zip(distL, indL):
                         if dist == np.inf:
                             continue
                         # ----
+                        connectType = "non-bonded"
+                        bondDist = dist
+                        # Check if the ligand-polymer interaction is defined in struct_conn, and if so then get the bond type (metal coord. or covalent) and distance
+                        if asymId in nonPolymerBoundD:
+                            for tup in nonPolymerBoundD[asymId]:
+                                if tup.partnerEntityType not in ["non-polymer", "water"]:
+                                    tmpCompareL = [
+                                        (tup.targetCompId, ligandRefD[asymId][ligIndex].compId),
+                                        (tup.targetAtomId, ligandRefD[asymId][ligIndex].atomId),
+                                        (tup.partnerEntityId, targetRefL[ind].entityId),
+                                        (tup.partnerCompId, targetRefL[ind].compId),
+                                        (tup.partnerAsymId, targetRefL[ind].asymId),
+                                        (tup.partnerSeqId, targetRefL[ind].seqId),
+                                        (tup.partnerAuthSeqId, targetRefL[ind].authSeqId),
+                                        (tup.partnerAtomId, targetRefL[ind].atomId),
+                                    ]
+                                    # logger.info(
+                                    #     "entryId %r, asymId %r, tmpCompareL %r, tup.connectType %r, tup.bondDistance %r (vs dist %r)",
+                                    #     entryId, asymId, tmpCompareL, tup.connectType, float(tup.bondDistance), round(dist, 3)
+                                    # )
+                                    if all([str(k) == str(v) for k, v in tmpCompareL]) and tup.connectType in ["metal coordination", "covalent bond"]:
+                                        # logger.info("match for entryId %r, asymId %r", entryId, asymId)
+                                        connectType = tup.connectType
+                                        bondDist = float(tup.bondDistance) if tup.bondDistance else None
+                                        break
+                        # ----
+                        # tmpLTI =(
+                        #     entryId,
+                        #     modelId,
+                        #     asymId,
+                        #     ligandRefD[asymId][ligIndex].compId,
+                        #     ligandRefD[asymId][ligIndex].atomId,
+                        #     ligandRefD[asymId][ligIndex].altId,
+                        #     connectType,
+                        #     targetModelId,
+                        #     targetRefL[ind].entityType,
+                        #     targetRefL[ind].entityId,
+                        #     targetRefL[ind].compId,
+                        #     targetRefL[ind].asymId,
+                        #     targetRefL[ind].seqId,
+                        #     targetRefL[ind].authSeqId,
+                        #     targetRefL[ind].atomId,
+                        #     targetRefL[ind].altId,
+                        #     round(bondDist, 3),
+                        # )
+                        # logger.info("tmpLTI: %r", tmpLTI)
                         ligandTargetInstanceD.setdefault(asymId, []).append(
                             LigandTargetInstance(
                                 modelId,
@@ -4085,7 +4109,7 @@ class DictMethodCommonUtils(object):
                                 ligandRefD[asymId][ligIndex].compId,
                                 ligandRefD[asymId][ligIndex].atomId,
                                 ligandRefD[asymId][ligIndex].altId,
-                                "non-bonded",
+                                connectType,
                                 targetModelId,
                                 targetRefL[ind].entityType,
                                 targetRefL[ind].entityId,
@@ -4095,18 +4119,21 @@ class DictMethodCommonUtils(object):
                                 targetRefL[ind].authSeqId,
                                 targetRefL[ind].atomId,
                                 targetRefL[ind].altId,
-                                round(dist, 3),
+                                round(bondDist, 3),
                             )
                         )
+                        # logger.info("...ligandTargetInstanceD %r", ligandTargetInstanceD)
                         # ----
-                    if not (asymId in ligandTargetInstanceD and len(ligandTargetInstanceD[asymId])):
-                        logger.debug("%s no neighbors for ligand asymId %s within %.2f", entryId, asymId, distLimit)
-                        continue
+                if not (asymId in ligandTargetInstanceD and len(ligandTargetInstanceD[asymId])):
+                    logger.debug("%s no neighbors for ligand asymId %s within %.2f", entryId, asymId, distLimit)
+                    continue
+            # logger.info("FINAL ligandTargetInstanceD %r", ligandTargetInstanceD)
             #
             # re-sort by distance -
             cloneD = copy.deepcopy(ligandTargetInstanceD)
             for asymId in cloneD:
                 ligandTargetInstanceD[asymId] = sorted(cloneD[asymId], key=itemgetter(-1))
+            # logger.info("RESORTED ligandTargetInstanceD %r", ligandTargetInstanceD)
                 #
             # --- ----
             tnD = {}
@@ -4118,11 +4145,22 @@ class DictMethodCommonUtils(object):
                         isBound = True
                 ligandIsBoundD[asymId] = isBound
             # --- ----
+            # Example tnD (for 3FJQ):
+            #     {'C': {('A', '184'): [<__main__.LigandTargetInstance object at 0x109ab9fd0>,
+            #                         <__main__.LigandTargetInstance object at 0x109ab9fa0>,
+            #                         <__main__.LigandTargetInstance object at 0x109ab9f70>]},
+            #     'D': {('A', '171'): [<__main__.LigandTargetInstance object at 0x109ab9f40>,
+            #                         <__main__.LigandTargetInstance object at 0x109ab9ee0>],
+            #         ('A', '184'): [<__main__.LigandTargetInstance object at 0x109ab9f10>]}}
+
+            #
             jj = 0
             for asymId, nD in tnD.items():
                 for (pAsymId, pAuthSeqId), nL in nD.items():
                     ligandIndexD.setdefault(asymId, {})[(pAsymId, pAuthSeqId)] = jj
                     targetIndexD.setdefault((pAsymId, pAuthSeqId), {})[asymId] = jj
+                    # This picks only the first interaction of the list (for a given "pAsymId, pAuthSeqId" pair)
+                    # Effectively what this does is, for a given ligand interacting with residue 100 of a partner, it picks the interaction with the closest atom of that residue)
                     nearestNeighbors.append(nL[0])
                     jj += 1
             #
@@ -4131,6 +4169,7 @@ class DictMethodCommonUtils(object):
             logger.exception("Failing for %r with %r", dataContainer.getName() if dataContainer else None, str(e))
         #
         logger.info("Completed %s at %s (%.4f seconds)", dataContainer.getName(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), time.time() - startTime)
+        # logger.info("RETURN rD %r", rD)
         return rD
 
     def getCompModelDb2L(self, dataContainer):

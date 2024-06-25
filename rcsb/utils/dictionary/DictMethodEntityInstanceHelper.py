@@ -2620,6 +2620,7 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue(neighbor.ligandAltId, "ligand_alt_id", ii)
                     cObj.setValue(neighbor.ligandAltId if neighbor.ligandAltId and neighbor.ligandAltId not in ["?"] else ".", "ligand_alt_id", ii)
                     cObj.setValue("N" if neighbor.connectType == "non-bonded" else "Y", "ligand_is_bound", ii)
+                    cObj.setValue(neighbor.connectType, "connect_type", ii)
                     cObj.setValue("%.3f" % neighbor.distance, "distance", ii)
                     # ----
                     ii += 1
