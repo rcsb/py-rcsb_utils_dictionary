@@ -818,12 +818,7 @@ class DictMethodEntityInstanceHelper(object):
                         #
                         targetCompId = neighbor.partnerCompId
                         targetSeqId = str(neighbor.partnerSeqId)
-                        # targetEntityId = neighbor.partnerEntityId
-                        # targetAuthSeqId = str(neighbor.partnerAuthSeqId)
-                        # ligandCompId = neighbor.ligandCompId
                         connectType = neighbor.connectType
-                        # distance = neighbor.distance
-                        # rTupL.append((targetSeqId, targetCompId))
                         rTupD.setdefault("LIGAND_INTERACTION", []).append((targetSeqId, targetCompId))
                         if connectType == "metal coordination":
                             rTupD.setdefault("LIGAND_METAL_COORDINATION_LINKAGE", []).append((targetSeqId, targetCompId))
@@ -2587,6 +2582,7 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue(neighbor.partnerAuthSeqId, "target_auth_seq_id", ii)
                     cObj.setValue(neighbor.partnerAtomId, "target_atom_id", ii)
                     # cObj.setValue("N" if neighbor.connectType == "non-bonded" else "Y", "target_is_bound", ii)
+                    cObj.setValue(neighbor.connectType, "connect_type", ii)
                     cObj.setValue("%.3f" % neighbor.distance, "distance", ii)
                     # ----
                     ii += 1
@@ -2669,9 +2665,6 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue(neighbor.ligandAtomId, "ligand_atom_id", ii)
                     cObj.setValue(neighbor.ligandAltId, "ligand_alt_id", ii)
                     cObj.setValue(neighbor.ligandAltId if neighbor.ligandAltId and neighbor.ligandAltId not in ["?"] else ".", "ligand_alt_id", ii)
-                    # CAN'T REMOVE YET! WILL AFFECT USES OF LigandNeighborMappingProviderObj!
-                    # --> Can adjust the LigandNeighborMappingProvider to not save 'ligand_is_bound' info to ligand-neighbor-mapping-data.json, since that component is never used
-                    #       (it's excluded by getLigandNeighbors via [0])
                     # cObj.setValue("N" if neighbor.connectType == "non-bonded" else "Y", "ligand_is_bound", ii)
                     cObj.setValue(neighbor.connectType, "connect_type", ii)
                     cObj.setValue("%.3f" % neighbor.distance, "distance", ii)
