@@ -25,6 +25,8 @@
 # 01-Feb-2024 bv  Add method 'getInstanceDeuWatMolCounts' to support deuterated water molecule count
 #                 Update methods 'getDepositedAtomCounts' and '__getAtomSiteInfo'
 # 18-Mar-2024 dwp Add method 'getPolymerEntityReferenceAlignments' to enable retrieval of all UniProt IDs
+# 24-Jul-2024 dwp Adjust ligand interaction calculation and provider to not rely on struct_conn and instead
+#                 base calculation on coordinates only
 ##
 """
 Helper class implements common utility external method references supporting the RCSB dictionary extension.
@@ -164,7 +166,7 @@ class DictMethodCommonUtils(object):
         self.__wsPattern = re.compile(r"\s+", flags=re.UNICODE | re.MULTILINE)
         self.__reNonDigit = re.compile(r"[^\d]+")
         #
-        cacheSize = 2
+        cacheSize = 8  # Set to max number of procs
         self.__entityAndInstanceMapCache = CacheUtils(size=cacheSize, label="instance mapping")
         self.__atomInfoCache = CacheUtils(size=cacheSize, label="atom site counts and mapping")
         self.__instanceConnectionCache = CacheUtils(size=cacheSize, label="instance connections")
@@ -3835,6 +3837,22 @@ class DictMethodCommonUtils(object):
         wD = self.__fetchNeighborInfo(dataContainer)
         return wD["nearestNeighbors"] if "nearestNeighbors" in wD else {}
 
+    def getInteractionIndex(self, dataContainer):
+        """Return the index dictionary of polymer and branched entity targets interactions
+        with ligand entity instances.
+
+        Args:
+            dataContainer (object):  mmcif.api.DataContainer object instance
+
+        Returns:
+            (dict): {targetAsymId: {(ligandAsymId, ligandCompId): [nnIndex1, nnIndex2]}}
+
+        """
+        if not dataContainer or not dataContainer.getName():
+            return {}
+        wD = self.__fetchNeighborInfo(dataContainer)
+        return wD["interactionIndexD"] if "interactionIndexD" in wD else {}
+
     def getLigandNeighborIndex(self, dataContainer):
         """Return the index of nearest neighbors for ligands interacting
         with targets polymer and branched entity instances.
@@ -3953,6 +3971,7 @@ class DictMethodCommonUtils(object):
             nearestNeighbors = []
             ligandIndexD = {}
             targetIndexD = {}
+            interactionIndexD = {}
             ligandIsBoundD = {}
             ligandAtomCountD = {}
             ligandHydrogenAtomCountD = {}
@@ -3961,6 +3980,7 @@ class DictMethodCommonUtils(object):
                 "targetNeighborIndexD": targetIndexD,
                 "ligandNeighborIndexD": ligandIndexD,
                 "nearestNeighbors": nearestNeighbors,
+                "interactionIndexD": interactionIndexD,
                 "ligandIsBoundD": ligandIsBoundD,
                 "ligandAtomCountD": ligandAtomCountD,
                 "ligandHydrogenAtomCountD": ligandHydrogenAtomCountD,
@@ -4043,13 +4063,13 @@ class DictMethodCommonUtils(object):
             logger.debug("targetXyzL[0] %r tArr.shape %r tArr[0] %r", targetXyzL[0], tArr.shape, tArr[0])
             tree = spatial.cKDTree(tArr)
             #
+            # Calculate ligand - target interactions
             for asymId, ligXyzL in ligandXyzD.items():
-                #
-                # Calculate ligand - target interactions
+                # Set kn nearest neighbors to find PER ATOM (6 for single atom, e.g., a metal ion; else default to 3)
+                kn = 6 if len(ligXyzL) == 1 else 3
+                # logger.info("%r %r %r", entryId, asymId, ligXyzL)
                 lArr = np.array(ligXyzL, order="F")
-                distance, index = tree.query(lArr, k=3, distance_upper_bound=distLimit)  # Find the first k neighbors for the given ligand's atom
-                # Note that if k=1 (default for tree.query), then for ligands with only one atom (i.e., ions), only one neighbor is found,
-                # whereas ligands with more than one atom (e.g., ATP), a different neighbor can be found for each atom
+                distance, index = tree.query(lArr, k=kn, distance_upper_bound=distLimit)  # Find the first k neighbors for the given ligand's atom
                 logger.debug("%s lig asymId %s distance %r  index %r", entryId, asymId, distance, index)
                 for ligIndex, (distL, indL) in enumerate(zip(distance, index)):
                     for (dist, ind) in zip(distL, indL):
@@ -4082,26 +4102,6 @@ class DictMethodCommonUtils(object):
                                         bondDist = float(tup.bondDistance) if tup.bondDistance else None
                                         break
                         # ----
-                        # tmpLTI =(
-                        #     entryId,
-                        #     modelId,
-                        #     asymId,
-                        #     ligandRefD[asymId][ligIndex].compId,
-                        #     ligandRefD[asymId][ligIndex].atomId,
-                        #     ligandRefD[asymId][ligIndex].altId,
-                        #     connectType,
-                        #     targetModelId,
-                        #     targetRefL[ind].entityType,
-                        #     targetRefL[ind].entityId,
-                        #     targetRefL[ind].compId,
-                        #     targetRefL[ind].asymId,
-                        #     targetRefL[ind].seqId,
-                        #     targetRefL[ind].authSeqId,
-                        #     targetRefL[ind].atomId,
-                        #     targetRefL[ind].altId,
-                        #     round(bondDist, 3),
-                        # )
-                        # logger.info("tmpLTI: %r", tmpLTI)
                         ligandTargetInstanceD.setdefault(asymId, []).append(
                             LigandTargetInstance(
                                 modelId,
@@ -4122,19 +4122,17 @@ class DictMethodCommonUtils(object):
                                 round(bondDist, 3),
                             )
                         )
-                        # logger.info("...ligandTargetInstanceD %r", ligandTargetInstanceD)
                         # ----
                 if not (asymId in ligandTargetInstanceD and len(ligandTargetInstanceD[asymId])):
                     logger.debug("%s no neighbors for ligand asymId %s within %.2f", entryId, asymId, distLimit)
                     continue
-            # logger.info("FINAL ligandTargetInstanceD %r", ligandTargetInstanceD)
             #
             # re-sort by distance -
             cloneD = copy.deepcopy(ligandTargetInstanceD)
             for asymId in cloneD:
                 ligandTargetInstanceD[asymId] = sorted(cloneD[asymId], key=itemgetter(-1))
-            # logger.info("RESORTED ligandTargetInstanceD %r", ligandTargetInstanceD)
-                #
+            # logger.info("Resorted ligandTargetInstanceD %r", ligandTargetInstanceD)
+            #
             # --- ----
             tnD = {}
             for asymId, neighborL in ligandTargetInstanceD.items():
@@ -4146,22 +4144,33 @@ class DictMethodCommonUtils(object):
                 ligandIsBoundD[asymId] = isBound
             # --- ----
             # Example tnD (for 3FJQ):
-            #     {'C': {('A', '184'): [<__main__.LigandTargetInstance object at 0x109ab9fd0>,
-            #                         <__main__.LigandTargetInstance object at 0x109ab9fa0>,
-            #                         <__main__.LigandTargetInstance object at 0x109ab9f70>]},
-            #     'D': {('A', '171'): [<__main__.LigandTargetInstance object at 0x109ab9f40>,
-            #                         <__main__.LigandTargetInstance object at 0x109ab9ee0>],
-            #         ('A', '184'): [<__main__.LigandTargetInstance object at 0x109ab9f10>]}}
-
+            #     {'C': {('A', '184'): [LigandTargetInstance1, LigandTargetInstance2, LigandTargetInstance3, ...],
+            #      'D': {('A', '171'): [LigandTargetInstance1, LigandTargetInstance2],
+            #            ('A', '184'): [LigandTargetInstance1]}}
             #
             jj = 0
             for asymId, nD in tnD.items():
                 for (pAsymId, pAuthSeqId), nL in nD.items():
-                    ligandIndexD.setdefault(asymId, {})[(pAsymId, pAuthSeqId)] = jj
-                    targetIndexD.setdefault((pAsymId, pAuthSeqId), {})[asymId] = jj
-                    # This picks only the first interaction of the list (for a given "pAsymId, pAuthSeqId" pair)
-                    # Effectively what this does is, for a given ligand interacting with residue 100 of a partner, it picks the interaction with the closest atom of that residue)
-                    nearestNeighbors.append(nL[0])
+                    #
+                    ligandIndexD.setdefault(asymId, {})[(pAsymId, pAuthSeqId)] = jj  # This is used for building rcsb_target_neighbors (see buildInstanceTargetNeighbors)
+                    # E.g.: {'C': {('A', '184'): 0}, 'D': {('A', '171'): 1, ('A', '184'): 2}}
+                    # (Organized by ligand asymId first, then polymer chain and residue. Indices correspond to the index in nearestNeighbors)
+                    #
+                    targetIndexD.setdefault((pAsymId, pAuthSeqId), {})[asymId] = jj  # This is used for building rcsb_ligand_neighbors (see buildInstanceLigandNeighbors)
+                    # E.g.,: {('A', '184'): {'C': 0, 'D': 2}, ('A', '171'): {'D': 1}}
+                    # (Organized by polymer chain and residue first, then by ligand)
+                    #
+                    # Below, pick only the "first" (i.e., closest) interaction of the list (for a given "pAsymId, pAuthSeqId" pair).
+                    # So, for a given ligand that has multiple interactions with the same residue of the polymer, it picks the shortest one.
+                    # Note that this will lead to loss of information for cases where different atoms of a given ligand have interactions with the same polymer residue
+                    nearestNeighborD = nL[0]
+                    nearestNeighbors.append(nearestNeighborD)
+                    #
+                    ligandCompId = nearestNeighborD.ligandCompId if nearestNeighborD.ligandCompId else None
+                    if not ligandCompId:
+                        logger.error("Missing ligand compId for asymId %r", asymId)
+                    interactionIndexD.setdefault(pAsymId, {}).setdefault((asymId, ligandCompId), []).append(jj)
+                    #
                     jj += 1
             #
             # --- ----
@@ -4169,7 +4178,6 @@ class DictMethodCommonUtils(object):
             logger.exception("Failing for %r with %r", dataContainer.getName() if dataContainer else None, str(e))
         #
         logger.info("Completed %s at %s (%.4f seconds)", dataContainer.getName(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), time.time() - startTime)
-        # logger.info("RETURN rD %r", rD)
         return rD
 
     def getCompModelDb2L(self, dataContainer):

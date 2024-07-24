@@ -2304,7 +2304,6 @@ class DictMethodEntityHelper(object):
                             cObj.setValue(tD["query_id_type"], "resource_name", ii)
                             cObj.setValue(str(tD["assignment_version"]), "resource_version", ii)
                             #
-                            cObj.setValue(tD["query_id"], "target_resource_id", ii)
                             for ky, atName, atType in atTupMap:
                                 if ky in cfD and cfD[ky]:
                                     if atType == "list":
@@ -2340,7 +2339,6 @@ class DictMethodEntityHelper(object):
                             cObj.setValue(tD["query_id_type"], "resource_name", ii)
                             cObj.setValue(str(tD["assignment_version"]), "resource_version", ii)
                             #
-                            cObj.setValue(tD["query_id"], "target_resource_id", ii)
                             for ky, atName, atType in atTupMap:
                                 if ky in cfD and cfD[ky]:
                                     if atType == "list":
@@ -2384,7 +2382,6 @@ class DictMethodEntityHelper(object):
                             cObj.setValue(tD["query_id_type"], "resource_name", ii)
                             cObj.setValue(str(tD["assignment_version"]), "resource_version", ii)
                             #
-                            cObj.setValue(tD["query_id"], "target_resource_id", ii)
                             for ky, atName, atType in atTupMap:
                                 if ky in cfD and cfD[ky]:
                                     if atType == "list":

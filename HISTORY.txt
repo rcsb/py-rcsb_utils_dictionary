@@ -133,3 +133,4 @@
  9-May-2024 - V1.23 Tweak to above update (V1.22); update setuptools config;
                     Adjust provider type exclusion to accept a list of types (in DictMethodResourceProvider)
 13-May-2024 - V1.24 Update requirements
+24-Jul-2024 - V1.25 Update ligand neighbor calculations and populate them into polymer entity instance features

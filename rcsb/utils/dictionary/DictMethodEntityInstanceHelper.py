@@ -20,6 +20,7 @@
 #                  Don't run 'buildInstanceLigandNeighbors' or 'buildInstanceTargetNeighbors' for CSMs (no neighbor data available)
 #  26-Mar-2024 dwp Add "type" to GlyGen annotations, but temporarily turn off loading
 #   1-Apr-2024 dwp Turn on GlyGen annotations loading
+#  24-Jul-2024 dwp Add ligand interactions to polymer entity instance features
 ##
 """
 This helper class implements methods supporting entity-instance-level functions in the RCSB dictionary extension.
@@ -802,6 +803,55 @@ class DictMethodEntityInstanceHelper(object):
                             cObj.setValue(ligandSiteD[tId]["siteLabel"], "name", ii)
                     #
                     ii += 1
+            #
+            jj = 1
+            interactionIndexD = self.__commonU.getInteractionIndex(dataContainer)
+            nearestNeighborL = self.__commonU.getNearestNeighborList(dataContainer)
+            for targetAsymId, ligandInteractionD in interactionIndexD.items():
+                if instTypeD[targetAsymId] not in ["polymer"]:
+                    continue
+                for (ligandAsymId, ligandCompId), nIndexL in ligandInteractionD.items():
+                    addPropTupL = [("PARTNER_ASYM_ID", ligandAsymId), ("PARTNER_COMP_ID", ligandCompId)]
+                    rTupD = {}
+                    for nIndex in nIndexL:
+                        neighbor = nearestNeighborL[nIndex]
+                        #
+                        targetCompId = neighbor.partnerCompId
+                        targetSeqId = str(neighbor.partnerSeqId)
+                        # targetEntityId = neighbor.partnerEntityId
+                        # targetAuthSeqId = str(neighbor.partnerAuthSeqId)
+                        # ligandCompId = neighbor.ligandCompId
+                        connectType = neighbor.connectType
+                        # distance = neighbor.distance
+                        # rTupL.append((targetSeqId, targetCompId))
+                        rTupD.setdefault("LIGAND_INTERACTION", []).append((targetSeqId, targetCompId))
+                        if connectType == "metal coordination":
+                            rTupD.setdefault("LIGAND_METAL_COORDINATION_LINKAGE", []).append((targetSeqId, targetCompId))
+                        if connectType == "covalent bond":
+                            rTupD.setdefault("LIGAND_COVALENT_LINKAGE", []).append((targetSeqId, targetCompId))
+
+                    for rTupType, rTupL in rTupD.items():
+                        entityId = asymIdD[targetAsymId]
+                        ligandEntityId = asymIdD[ligandAsymId]
+                        authAsymId = asymAuthIdD[targetAsymId]
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        cObj.setValue(targetAsymId, "asym_id", ii)
+                        cObj.setValue(authAsymId, "auth_asym_id", ii)
+                        cObj.setValue(rTupType, "type", ii)
+                        cObj.setValue(f"{rTupType}_{jj}", "feature_id", ii)
+                        cObj.setValue(f"ligand {ligandCompId}", "name", ii)
+                        cObj.setValue(f"Software generated binding site for ligand entity {ligandEntityId} component {ligandCompId} instance {ligandAsymId}", "description", ii)
+                        #
+                        cObj.setValue(";".join([str(rTup[0]) for rTup in rTupL]), "feature_positions_beg_seq_id", ii)
+                        cObj.setValue(";".join([str(rTup[1]) for rTup in rTupL]), "feature_positions_beg_comp_id", ii)
+                        cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
+                        cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
+                        #
+                        cObj.setValue("PDB", "provenance_source", ii)
+                        cObj.setValue("V1.0", "assignment_version", ii)
+                        ii += 1
+                    jj += 1
             #
             unObsPolyResRngD = self.__commonU.getUnobservedPolymerResidueInfo(dataContainer)
             for (modelId, asymId, zeroOccFlag), rTupL in unObsPolyResRngD.items():
@@ -2536,7 +2586,7 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue(neighbor.partnerSeqId, "target_seq_id", ii)
                     cObj.setValue(neighbor.partnerAuthSeqId, "target_auth_seq_id", ii)
                     cObj.setValue(neighbor.partnerAtomId, "target_atom_id", ii)
-                    cObj.setValue("N" if neighbor.connectType == "non-bonded" else "Y", "target_is_bound", ii)
+                    # cObj.setValue("N" if neighbor.connectType == "non-bonded" else "Y", "target_is_bound", ii)
                     cObj.setValue("%.3f" % neighbor.distance, "distance", ii)
                     # ----
                     ii += 1
@@ -2619,7 +2669,10 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue(neighbor.ligandAtomId, "ligand_atom_id", ii)
                     cObj.setValue(neighbor.ligandAltId, "ligand_alt_id", ii)
                     cObj.setValue(neighbor.ligandAltId if neighbor.ligandAltId and neighbor.ligandAltId not in ["?"] else ".", "ligand_alt_id", ii)
-                    cObj.setValue("N" if neighbor.connectType == "non-bonded" else "Y", "ligand_is_bound", ii)
+                    # CAN'T REMOVE YET! WILL AFFECT USES OF LigandNeighborMappingProviderObj!
+                    # --> Can adjust the LigandNeighborMappingProvider to not save 'ligand_is_bound' info to ligand-neighbor-mapping-data.json, since that component is never used
+                    #       (it's excluded by getLigandNeighbors via [0])
+                    # cObj.setValue("N" if neighbor.connectType == "non-bonded" else "Y", "ligand_is_bound", ii)
                     cObj.setValue(neighbor.connectType, "connect_type", ii)
                     cObj.setValue("%.3f" % neighbor.distance, "distance", ii)
                     # ----
