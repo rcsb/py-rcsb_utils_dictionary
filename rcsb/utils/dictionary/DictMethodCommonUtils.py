@@ -4177,7 +4177,7 @@ class DictMethodCommonUtils(object):
         except Exception as e:
             logger.exception("Failing for %r with %r", dataContainer.getName() if dataContainer else None, str(e))
         #
-        logger.info("Completed %s at %s (%.4f seconds)", dataContainer.getName(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), time.time() - startTime)
+        logger.debug("Completed %s at %s (%.4f seconds)", dataContainer.getName(), time.strftime("%Y %m %d %H:%M:%S", time.localtime()), time.time() - startTime)
         return rD
 
     def getCompModelDb2L(self, dataContainer):
