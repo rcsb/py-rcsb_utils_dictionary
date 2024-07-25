@@ -27,6 +27,7 @@
 #  19-Mar-2024 dwp Create separate providerType names 'pdbx_core' and 'pdbx_comp_model_core' to limit
 #                  loading of unnecessary resources for each dataset (via providerTypeExcludeL)
 #   9-May-2024 dwp Change providerTypeExclude to be a list, 'providerTypeExcludeL'
+#  25-Jul-2024 dwp Remove NeighborInteractionProvider from provider list (since calculating on the fly from now on)
 ##
 """
 Resource provider for dictionary method runner and DictMethodHelper tools.
@@ -60,7 +61,6 @@ from rcsb.utils.citation.JournalTitleAbbreviationProvider import JournalTitleAbb
 # ---
 from rcsb.utils.dictionary.DictionaryApiProviderWrapper import DictionaryApiProviderWrapper
 from rcsb.utils.dictionary.DictMethodCommonUtils import DictMethodCommonUtils
-from rcsb.utils.dictionary.NeighborInteractionProvider import NeighborInteractionProvider
 from rcsb.utils.ec.EnzymeDatabaseProvider import EnzymeDatabaseProvider
 from rcsb.utils.io.FileUtil import FileUtil
 from rcsb.utils.io.SingletonClass import SingletonClass
@@ -136,16 +136,6 @@ class DictMethodResourceProvider(SingletonClass):
                 "stashable": False,
                 "buildable": False,
                 "providerType": "core",
-            },
-            "NeighborInteractionProvider instance": {
-                "class": NeighborInteractionProvider,
-                "configArgMap": {
-                    "cfgOb": (self.__cfgOb, "value"),
-                    "configName": (self.__configName, "value"),
-                },
-                "stashable": True,
-                "buildable": False,
-                "providerType": "pdbx_core",
             },
             "Scop2Provider instance": {
                 "class": Scop2ClassificationProvider,

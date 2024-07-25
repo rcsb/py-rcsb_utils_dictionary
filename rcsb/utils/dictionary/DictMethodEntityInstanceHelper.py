@@ -20,7 +20,8 @@
 #                  Don't run 'buildInstanceLigandNeighbors' or 'buildInstanceTargetNeighbors' for CSMs (no neighbor data available)
 #  26-Mar-2024 dwp Add "type" to GlyGen annotations, but temporarily turn off loading
 #   1-Apr-2024 dwp Turn on GlyGen annotations loading
-#  24-Jul-2024 dwp Add ligand interactions to polymer entity instance features
+#  25-Jul-2024 dwp Add ligand interactions to polymer entity instance features;
+#                  Stop relying on NeighborInteractionProvider cache file, and instead calculate all interactions on the fly
 ##
 """
 This helper class implements methods supporting entity-instance-level functions in the RCSB dictionary extension.
@@ -72,7 +73,6 @@ class DictMethodEntityInstanceHelper(object):
         #
         self.__ccP = rP.getResource("ChemCompProvider instance") if rP else None
         self.__rlsP = rP.getResource("RcsbLigandScoreProvider instance") if rP else None
-        # self.__niP = rP.getResource("NeighborInteractionProvider instance") if rP else None
         #
         self.__ssU = DictMethodSecStructUtils(rP, raiseExceptions=self._raiseExceptions)
         #
@@ -2293,9 +2293,7 @@ class DictMethodEntityInstanceHelper(object):
             if not dataContainer.exists("exptl"):
                 return False
             #
-            rP = kwargs.get("resourceProvider")
-            niP = rP.getResource("NeighborInteractionProvider instance") if rP else None
-            if not self.__rlsP or not niP:
+            if not self.__rlsP:
                 return False
             eObj = dataContainer.getObj("entry")
             entryId = eObj.getValue("id", 0)
@@ -2325,16 +2323,10 @@ class DictMethodEntityInstanceHelper(object):
             excludeList = self.__rlsP.getLigandExcludeList()
             rankD = {}
             scoreD = {}
-            # -- Get existing interactions or calculate on the fly
-            if niP.hasEntry(entryId):
-                ligandAtomCountD = niP.getAtomCounts(entryId)
-                ligandHydrogenAtomCountD = niP.getHydrogenAtomCounts(entryId)
-                intIsBoundD = niP.getLigandNeighborBoundState(entryId)
-                # occupancySumD = niP.getInstanceOccupancySumD(entryId)
-            else:
-                ligandAtomCountD = self.__commonU.getLigandAtomCountD(dataContainer)
-                ligandHydrogenAtomCountD = self.__commonU.getLigandHydrogenAtomCountD(dataContainer)
-                intIsBoundD = self.__commonU.getLigandNeighborBoundState(dataContainer)
+            # -- Calculate interactions on the fly
+            ligandAtomCountD = self.__commonU.getLigandAtomCountD(dataContainer)
+            ligandHydrogenAtomCountD = self.__commonU.getLigandHydrogenAtomCountD(dataContainer)
+            intIsBoundD = self.__commonU.getLigandNeighborBoundState(dataContainer)
             occupancySumD = self.__commonU.getInstanceOccupancySumD(dataContainer)
             # logger.info("%r occupancySumD %r", entryId, occupancySumD)
             # --
@@ -2540,16 +2532,9 @@ class DictMethodEntityInstanceHelper(object):
             asymIdD = self.__commonU.getInstanceEntityMap(dataContainer)
             asymAuthIdD = self.__commonU.getAsymAuthIdMap(dataContainer)
             #
-            rP = kwargs.get("resourceProvider")
-            niP = rP.getResource("NeighborInteractionProvider instance") if rP else None
-            #
-            # -- Get existing interactions or calculate on the fly
-            if niP.hasEntry(entryId):
-                ligandIndexD = niP.getLigandNeighborIndex(entryId)
-                nearestNeighborL = niP.getNearestNeighborList(entryId)
-            else:
-                ligandIndexD = self.__commonU.getLigandNeighborIndex(dataContainer)
-                nearestNeighborL = self.__commonU.getNearestNeighborList(dataContainer)
+            # -- Calculate interactions on the fly
+            ligandIndexD = self.__commonU.getLigandNeighborIndex(dataContainer)
+            nearestNeighborL = self.__commonU.getNearestNeighborList(dataContainer)
             #
             logger.debug("%s (%d) ligandIndexD %r", entryId, len(nearestNeighborL), ligandIndexD)
             #
@@ -2622,16 +2607,9 @@ class DictMethodEntityInstanceHelper(object):
             asymIdD = self.__commonU.getInstanceEntityMap(dataContainer)
             asymAuthIdD = self.__commonU.getAsymAuthIdMap(dataContainer)
             #
-            rP = kwargs.get("resourceProvider")
-            niP = rP.getResource("NeighborInteractionProvider instance") if rP else None
-            #
-            # -- Get existing interactions or calculate on the fly
-            if niP.hasEntry(entryId):
-                targetIndexD = niP.getTargetNeighborIndex(entryId)
-                nearestNeighborL = niP.getNearestNeighborList(entryId)
-            else:
-                targetIndexD = self.__commonU.getTargetNeighborIndex(dataContainer)
-                nearestNeighborL = self.__commonU.getNearestNeighborList(dataContainer)
+            # -- Calculate interactions on the fly
+            targetIndexD = self.__commonU.getTargetNeighborIndex(dataContainer)
+            nearestNeighborL = self.__commonU.getNearestNeighborList(dataContainer)
             #
             logger.debug("%s (%d) targetIndexD %r", entryId, len(nearestNeighborL), targetIndexD)
             #
