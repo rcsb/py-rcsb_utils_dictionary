@@ -9,6 +9,7 @@
 #    5-Apr-2023 dwp Stop loading rcsb_chem_comp_synonyms for rcsb_chem_comp_synonyms.type 'Brand Name' (to be loaded to new separate data item later)
 #   18-Sep-2023 dwp Load COD references separately from CCDC/CSD references
 #    3-May-2024 dwp Change BIRD citation method to copy categories instead of just renaming, and only apply to BIRD entries
+#   25-Jul-2024 dwp Fix assignment logic of Pharos data for rcsb_chem_comp_related.related_mapping_method in addChemCompRelated()
 ##
 """
 Helper class implements external method references supporting chemical
@@ -200,12 +201,16 @@ class DictMethodChemRefHelper(object):
 
                     #
                     for rName, rIdS in xD.items():
-                        if rName in ["PubChem", "Pharos"]:
+                        aMethod = None
+                        if rName in ["PubChem"]:
                             aMethod = "matching InChIKey in PubChem"
                         elif rName in ["CAS", "ChEMBL", "ChEBI"]:
                             aMethod = "assigned by PubChem resource"
                         elif rName in ["Pharos"]:
                             aMethod = "matching ChEMBL ID in Pharos"
+                        if not aMethod:
+                            logger.error("No matching condition for rName %r", rName)
+                            continue
                         for rId in rIdS:
                             iRow = wObj.getRowCount()
                             wObj.setValue(ccId, "comp_id", iRow)

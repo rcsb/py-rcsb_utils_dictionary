@@ -608,7 +608,8 @@ class DictMethodAssemblyHelper(object):
         epTypeD = self.__commonU.getEntityPolymerTypes(dataContainer)
         eTypeD = self.__commonU.getEntityTypes(dataContainer)
         epTypeFilteredD = self.__commonU.getPolymerEntityFilteredTypes(dataContainer)
-
+        #
+        methodL = []
         if dataContainer.exists("exptl"):
             xObj = dataContainer.getObj("exptl")
             methodL = xObj.getAttributeValueList("method")

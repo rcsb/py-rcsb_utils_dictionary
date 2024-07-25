@@ -720,6 +720,7 @@ class DictMethodResourceProvider(SingletonClass):
         logger.debug("%r classArgs %r", providerName, classArgs)
         #
         useCache = True
+        ok = okB = True
         try:
             if sourceCache == "stash":
                 prI = self.__providerD[providerName]["class"](cachePath=cachePath, useCache=useCache, **classArgs)

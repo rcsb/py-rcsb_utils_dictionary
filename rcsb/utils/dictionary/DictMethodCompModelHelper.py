@@ -312,6 +312,8 @@ class DictMethodCompModelHelper(object):
 
             if dataContainer.exists("ma_qa_metric_global"):
                 bObj = dataContainer.getObj("ma_qa_metric_global")
+            else:
+                return False
 
             maQaMetricTypeD = self.__commonU.getMaQaMetricType(dataContainer)
             maQaMetricGlobalTypeD = maQaMetricTypeD["maQaMetricGlobalTypeD"]
