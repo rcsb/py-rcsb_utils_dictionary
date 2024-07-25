@@ -60,7 +60,6 @@ class NeighborInteractionWorkflow(object):
         self.__numProc = kwargs.get("numProc", 8)
         self.__chunkSize = kwargs.get("chunkSize", 10)
         self.__useCache = kwargs.get("useCache", False)
-        self.__cacheType = kwargs.get("cacheType", "full")
         #
         self.__stashRemotePrefix = kwargs.get("stashRemotePrefix", None)
         #
@@ -71,7 +70,7 @@ class NeighborInteractionWorkflow(object):
             logger.debug("Starting at %s", time.strftime("%Y %m %d %H:%M:%S", time.localtime()))
         #
         self.__tiP = NeighborInteractionProvider(
-            self.__cachePath, useCache=self.__useCache, cfgOb=self.__cfgOb, configName=self.__configName, numProc=self.__numProc, chunkSize=self.__chunkSize, cacheType=self.__cacheType
+            self.__cachePath, useCache=self.__useCache, cfgOb=self.__cfgOb, configName=self.__configName, numProc=self.__numProc, chunkSize=self.__chunkSize
         )
 
     def update(self, incremental=True):
@@ -87,7 +86,7 @@ class NeighborInteractionWorkflow(object):
 
     def restore(self, minCount=0):
         ok1 = self.__tiP.restore(self.__cfgOb, self.__configName, remotePrefix=self.__stashRemotePrefix, useStash=True, useGit=True)
-        ok2 = self.__tiP.reload(cacheType=self.__cacheType)
+        ok2 = self.__tiP.reload()
         ok3 = self.__tiP.testCache(minCount=minCount)
         return ok1 and ok2 and ok3
 

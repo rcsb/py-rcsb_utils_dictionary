@@ -2,9 +2,7 @@
 #  File:           NeighborInteractionProvider.py
 #  Date:           17-Feb-2021 jdw
 #
-#  Updates:
-#   24-Jul-2024 dwp  Split up data file into two cache files--one with all entries and interactions ("-full"),
-#                    and one containing only large entries with many interactions ("-min")
+#  Updated:
 #
 ##
 """
@@ -89,7 +87,6 @@ class NeighborInteractionProvider(StashableBase):
         super(NeighborInteractionProvider, self).__init__(self.__cachePath, [dirName])
         self.__numProc = kwargs.get("numProc", 2)
         self.__chunkSize = kwargs.get("chunkSize", 10)
-        cacheType = kwargs.get("cacheType", "min")
         # useCache = kwargs.get("useCache", True)
         #
         #  - Configuration for stash services -
@@ -97,7 +94,7 @@ class NeighborInteractionProvider(StashableBase):
         #
         self.__mU = MarshalUtil(workPath=self.__dirPath)
         self.__rpP = RepositoryProvider(cfgOb=self.__cfgOb, numProc=self.__numProc, fileLimit=self.__fileLimit, cachePath=self.__cachePath)
-        self.__neighborD = self.__reload(fmt="pickle", useCache=useCache, cacheType=cacheType)
+        self.__neighborD = self.__reload(fmt="pickle", useCache=useCache)
         #
 
     def testCache(self, minCount=1):
@@ -263,38 +260,21 @@ class NeighborInteractionProvider(StashableBase):
             tD = self.__calculateNeighbors(distLimit=distLimit, numProc=self.__numProc, chunkSize=self.__chunkSize, updateOnly=updateOnly)
             self.__neighborD = {"version": self.__version, "created": tS, "entries": tD}
             kwargs = {"indent": indent} if fmt == "json" else {"pickleProtocol": 4}
-            # Export full version of neighbor interactions
-            targetFilePathFull = self.__getTargetFilePath(fmt=fmt, cacheType="full")
-            ok = self.__mU.doExport(targetFilePathFull, self.__neighborD, fmt=fmt, **kwargs)
-            logger.info("Wrote %r status %r", targetFilePathFull, ok)
-            # Export minimal version of neighbor interactions (containing only entries with very high number of interactions)
-            minNeighborD = self.filterDownNeighbors()
-            targetFilePathMin = self.__getTargetFilePath(fmt=fmt, cacheType="min")
-            ok = self.__mU.doExport(targetFilePathMin, minNeighborD, fmt=fmt, **kwargs)
-            logger.info("Wrote %r status %r", targetFilePathMin, ok)
+            targetFilePath = self.__getTargetFilePath(fmt=fmt)
+            ok = self.__mU.doExport(targetFilePath, self.__neighborD, fmt=fmt, **kwargs)
+            logger.info("Wrote %r status %r", targetFilePath, ok)
         except Exception as e:
             logger.exception("Failing with %s", str(e))
         return ok
 
-    def reload(self, fmt="pickle", cacheType="min"):
-        """Reload data into memory.
-
-        Args:
-            fmt (str, optional): Expected file format. Defaults to "pickle".
-            cacheType (str, optional): Type of neighbor interaction cache data file ("min" or "full"). Defaults to "min".
-                                       Use "min" to load slim version of file containing only very large entries with many interactions.
-                                       Use "full" to load full version of file containing all entries (only do this for updating the stash).
-
-        Returns:
-            bool: True if reload is success or False otherwise
-        """
-        self.__neighborD = self.__reload(fmt=fmt, useCache=True, cacheType=cacheType)
+    def reload(self, fmt="pickle"):
+        self.__neighborD = self.__reload(fmt=fmt, useCache=True)
         return self.__neighborD is not None
 
-    def __reload(self, fmt="pickle", useCache=True, cacheType="min"):
+    def __reload(self, fmt="pickle", useCache=True):
         """Reload from the current cache file."""
         try:
-            targetFilePath = self.__getTargetFilePath(fmt=fmt, cacheType=cacheType)
+            targetFilePath = self.__getTargetFilePath(fmt=fmt)
             tS = time.strftime("%Y %m %d %H:%M:%S", time.localtime())
             neighborD = {"version": self.__version, "created": tS, "entries": {}}
             logger.debug("useCache %r targetFilePath %r", useCache, targetFilePath)
@@ -309,27 +289,10 @@ class NeighborInteractionProvider(StashableBase):
         #
         return neighborD
 
-    def __getTargetFilePath(self, fmt="pickle", cacheType="min"):
+    def __getTargetFilePath(self, fmt="pickle"):
         ext = "pic" if fmt == "pickle" else "json"
-        pth = os.path.join(self.__dirPath, f"neighbor-data-{cacheType}.{ext}")
+        pth = os.path.join(self.__dirPath, "neighbor-data." + ext)
         return pth
-
-    def filterDownNeighbors(self):
-        minEntryL = []
-        minNeighborD = {}
-        if not all([k in self.__neighborD for k in ["entries", "version", "created"]]):
-            return minNeighborD
-        minNeighborD.update({"version": self.__neighborD["version"], "created": self.__neighborD["created"], "entries": {}})
-        #
-        for entry, eD in self.__neighborD["entries"].items():
-            if "nearestNeighbors" in eD and len(eD["nearestNeighbors"]) > 5000:
-                minEntryL.append(entry)
-        logger.info("Filtered down neighbor interaction entry list from %d to %d entries", len(self.__neighborD["entries"]), len(minEntryL))
-        #
-        for entry in minEntryL:
-            minNeighborD["entries"].update({entry: self.__neighborD["entries"][entry]})
-        #
-        return minNeighborD
 
     def __calculateNeighbors(self, distLimit=5.0, numProc=2, chunkSize=10, updateOnly=False):
         """Calculate non-polymer target interactions for all repository structure files.
@@ -372,11 +335,11 @@ class NeighborInteractionProvider(StashableBase):
         logger.info("Completed with multi-proc status %r failures %r total entries with data (%d)", ok, len(failList), len(rD))
         return rD
 
-    def convert(self, fmt1="json", fmt2="pickle", cacheType="min"):
+    def convert(self, fmt1="json", fmt2="pickle"):
         #
-        targetFilePath = self.__getTargetFilePath(fmt=fmt1, cacheType=cacheType)
+        targetFilePath = self.__getTargetFilePath(fmt=fmt1)
         self.__neighborD = self.__mU.doImport(targetFilePath, fmt=fmt1)
         #
-        targetFilePath = self.__getTargetFilePath(fmt=fmt2, cacheType=cacheType)
+        targetFilePath = self.__getTargetFilePath(fmt=fmt2)
         ok = self.__mU.doExport(targetFilePath, self.__neighborD, fmt=fmt2, pickleProtocol=4)
         return ok
