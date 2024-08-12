@@ -74,6 +74,7 @@ class NeighborInteractionWorkflow(object):
         )
 
     def update(self, incremental=True):
+        ok = True
         if incremental:
             ok = self.restore()
         ok = self.__tiP.generate(distLimit=5.0, updateOnly=incremental, fmt="pickle") and ok

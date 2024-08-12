@@ -127,7 +127,6 @@ class DictMethodResourceCacheWorkflow(object):
 
     def syncResourceCache(self):
         for providerName in [
-            "NeighborInteractionProvider instance",
             "GlycanProvider instance",
             "DrugBankTargetCofactorProvider instance",
             "ChEMBLTargetCofactorProvider instance",
