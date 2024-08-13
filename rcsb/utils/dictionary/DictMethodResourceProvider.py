@@ -318,7 +318,7 @@ class DictMethodResourceProvider(SingletonClass):
                 },
                 "stashable": False,
                 "buildable": False,
-                "providerType": "pdbx_core",
+                "providerType": "optional",
             },
             # "ChEMBLTargetCofactorProvider instance": {
             #     "class": ChEMBLTargetCofactorProvider,
@@ -334,7 +334,7 @@ class DictMethodResourceProvider(SingletonClass):
                 },
                 "stashable": False,
                 "buildable": False,
-                "providerType": "pdbx_core",
+                "providerType": "optional",
             },
             # "PharosTargetCofactorProvider instance": {
             #     "class": PharosTargetCofactorProvider,
@@ -350,7 +350,7 @@ class DictMethodResourceProvider(SingletonClass):
                 },
                 "stashable": False,
                 "buildable": False,
-                "providerType": "pdbx_core",
+                "providerType": "optional",
             },
             "CARDTargetAnnotationProvider instance": {
                 "class": CARDTargetAnnotationProvider,
