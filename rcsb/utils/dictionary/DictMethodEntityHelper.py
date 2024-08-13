@@ -82,9 +82,12 @@ class DictMethodEntityHelper(object):
         self.__cardP = rP.getResource("CARDTargetAnnotationProvider instance") if rP else None
         self.__imgtP = rP.getResource("IMGTTargetFeatureProvider instance") if rP else None
         self.__sabdabP = rP.getResource("SAbDabTargetFeatureProvider instance") if rP else None
-        self.__chemblP = rP.getResource("ChEMBLTargetCofactorProvider instance") if rP else None
-        self.__dbP = rP.getResource("DrugBankTargetCofactorProvider instance") if rP else None
-        self.__phP = rP.getResource("PharosTargetCofactorProvider instance") if rP else None
+        # self.__chemblP = rP.getResource("ChEMBLTargetCofactorProvider instance") if rP else None
+        self.__chemblA = rP.getResource("ChEMBLTargetCofactorAccessor instance") if rP else None
+        # self.__dbP = rP.getResource("DrugBankTargetCofactorProvider instance") if rP else None
+        self.__dbA = rP.getResource("DrugBankTargetCofactorAccessor instance") if rP else None
+        # self.__phP = rP.getResource("PharosTargetCofactorProvider instance") if rP else None
+        self.__phA = rP.getResource("PharosTargetCofactorAccessor instance") if rP else None
         #
         logger.debug("Dictionary entity method helper init")
 
@@ -2052,12 +2055,12 @@ class DictMethodEntityHelper(object):
             ii = cObj.getRowCount()
             #
             # --- ChEMBL
-            if self.__chemblP:
+            if self.__chemblA:
                 for entityId, eType in eTypeD.items():
                     if eType not in ["polymer", "branched"]:
                         continue
                     eId = entryId + "_" + entityId
-                    tDL = self.__chemblP.getTargets(eId)
+                    tDL = self.__chemblA.getTargets(eId)
                     dupD = {}
                     for tD in tDL:
                         if tD["query_id"] in dupD:
@@ -2083,12 +2086,12 @@ class DictMethodEntityHelper(object):
                         #
                         ii += 1
             #
-            if self.__dbP:
+            if self.__dbA:
                 for entityId, eType in eTypeD.items():
                     if eType not in ["polymer", "branched"]:
                         continue
                     eId = entryId + "_" + entityId
-                    tDL = self.__dbP.getTargets(eId)
+                    tDL = self.__dbA.getTargets(eId)
                     dupD = {}
                     for tD in tDL:
                         if tD["query_id"] in dupD:
@@ -2113,12 +2116,12 @@ class DictMethodEntityHelper(object):
                         #
                         ii += 1
             #
-            if self.__phP:
+            if self.__phA:
                 for entityId, eType in eTypeD.items():
                     if eType not in ["polymer", "branched"]:
                         continue
                     eId = entryId + "_" + entityId
-                    tDL = self.__phP.getTargets(eId)
+                    tDL = self.__phA.getTargets(eId)
                     dupD = {}
                     for tD in tDL:
                         if tD["query_id"] in dupD:
@@ -2270,12 +2273,12 @@ class DictMethodEntityHelper(object):
             #
             #  JDW "cofactor_id" -> 'cofactor_resource_id': 'DB14031', 'target_resource_id': 'P06276',
             # --- ChEMBL
-            if self.__chemblP:
+            if self.__chemblA:
                 for entityId, eType in eTypeD.items():
                     if eType not in ["polymer", "branched"]:
                         continue
                     eId = entryId + "_" + entityId
-                    tDL = self.__chemblP.getTargets(eId)
+                    tDL = self.__chemblA.getTargets(eId)
                     # --
                     dupD = {}
                     # --
@@ -2313,12 +2316,12 @@ class DictMethodEntityHelper(object):
                             #
                             ii += 1
             #
-            if self.__dbP:
+            if self.__dbA:
                 for entityId, eType in eTypeD.items():
                     if eType not in ["polymer", "branched"]:
                         continue
                     eId = entryId + "_" + entityId
-                    tDL = self.__dbP.getTargets(eId)
+                    tDL = self.__dbA.getTargets(eId)
                     # --
                     dupD = {}
                     # --
@@ -2348,12 +2351,12 @@ class DictMethodEntityHelper(object):
                             #
                             ii += 1
 
-            if self.__phP:
+            if self.__phA:
                 for entityId, eType in eTypeD.items():
                     if eType not in ["polymer", "branched"]:
                         continue
                     eId = entryId + "_" + entityId
-                    tDL = self.__phP.getTargets(eId)
+                    tDL = self.__phA.getTargets(eId)
                     # --
                     dupD = {}
                     # --

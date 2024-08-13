@@ -81,10 +81,13 @@ from rcsb.utils.struct.ScopClassificationProvider import ScopClassificationProvi
 # ---
 from rcsb.utils.targets.CARDTargetAnnotationProvider import CARDTargetAnnotationProvider
 from rcsb.utils.targets.CARDTargetOntologyProvider import CARDTargetOntologyProvider
-from rcsb.utils.targets.ChEMBLTargetCofactorProvider import ChEMBLTargetCofactorProvider
-from rcsb.utils.targets.DrugBankTargetCofactorProvider import DrugBankTargetCofactorProvider
+# from rcsb.utils.targets.ChEMBLTargetCofactorProvider import ChEMBLTargetCofactorProvider
+from rcsb.utils.targets.ChEMBLTargetCofactorProvider import ChEMBLTargetCofactorAccessor
+# from rcsb.utils.targets.DrugBankTargetCofactorProvider import DrugBankTargetCofactorProvider
+from rcsb.utils.targets.DrugBankTargetCofactorProvider import DrugBankTargetCofactorAccessor
 from rcsb.utils.targets.IMGTTargetFeatureProvider import IMGTTargetFeatureProvider
-from rcsb.utils.targets.PharosTargetCofactorProvider import PharosTargetCofactorProvider
+# from rcsb.utils.targets.PharosTargetCofactorProvider import PharosTargetCofactorProvider
+from rcsb.utils.targets.PharosTargetCofactorProvider import PharosTargetCofactorAccessor
 from rcsb.utils.targets.SAbDabTargetFeatureProvider import SAbDabTargetFeatureProvider
 
 # --
@@ -301,26 +304,53 @@ class DictMethodResourceProvider(SingletonClass):
                 "buildable": True,
                 "providerType": "optional",
             },
-            "DrugBankTargetCofactorProvider instance": {
-                "class": DrugBankTargetCofactorProvider,
-                "configArgMap": {},
-                "stashable": True,
+            # "DrugBankTargetCofactorProvider instance": {
+            #     "class": DrugBankTargetCofactorProvider,
+            #     "configArgMap": {},
+            #     "stashable": True,
+            #     "buildable": False,
+            #     "providerType": "optional",
+            # },
+            "DrugBankTargetCofactorAccessor instance": {
+                "class": DrugBankTargetCofactorAccessor,
+                "configArgMap": {
+                    "cfgOb": (self.__cfgOb, "value"),
+                },
+                "stashable": False,
                 "buildable": False,
-                "providerType": "optional",
+                "providerType": "pdbx_core",
             },
-            "ChEMBLTargetCofactorProvider instance": {
-                "class": ChEMBLTargetCofactorProvider,
-                "configArgMap": {},
-                "stashable": True,
+            # "ChEMBLTargetCofactorProvider instance": {
+            #     "class": ChEMBLTargetCofactorProvider,
+            #     "configArgMap": {},
+            #     "stashable": True,
+            #     "buildable": False,
+            #     "providerType": "optional",
+            # },
+            "ChEMBLTargetCofactorAccessor instance": {
+                "class": ChEMBLTargetCofactorAccessor,
+                "configArgMap": {
+                    "cfgOb": (self.__cfgOb, "value"),
+                },
+                "stashable": False,
                 "buildable": False,
-                "providerType": "optional",
+                "providerType": "pdbx_core",
             },
-            "PharosTargetCofactorProvider instance": {
-                "class": PharosTargetCofactorProvider,
-                "configArgMap": {},
-                "stashable": True,
+            # "PharosTargetCofactorProvider instance": {
+            #     "class": PharosTargetCofactorProvider,
+            #     "configArgMap": {},
+            #     "stashable": True,
+            #     "buildable": False,
+            #     "providerType": "optional",
+            # },
+            "PharosTargetCofactorAccessor instance": {
+                "class": PharosTargetCofactorAccessor,
+                "configArgMap": {
+                    "cfgOb": (self.__cfgOb, "value"),
+                },
+                "stashable": False,
                 "buildable": False,
-                "providerType": "optional",
+                "providerType": "pdbx_core",
             },
             "CARDTargetAnnotationProvider instance": {
                 "class": CARDTargetAnnotationProvider,
