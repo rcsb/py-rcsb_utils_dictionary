@@ -48,8 +48,9 @@ class DictMethodRunnerModelsTests(unittest.TestCase):
     #
     def setUp(self):
 
-        self.__isMac = platform.system() == "Darwin"
-        self.__excludeTypeL = None if self.__isMac else ["optional"]
+        # self.__isMac = platform.system() == "Darwin"
+        # self.__excludeTypeL = None if self.__isMac else ["optional"]
+        self.__excludeTypeL = ["optional"]
         self.__export = True
         self.__numProc = 2
         self.__fileLimit = 5

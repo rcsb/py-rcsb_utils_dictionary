@@ -42,8 +42,9 @@ class DictmethodResourceProviderTests(unittest.TestCase):
     buildTestingCache = False
 
     def setUp(self):
-        isMac = platform.system() == "Darwin"
-        self.__excludeTypeL = None if isMac else ["optional"]
+        # isMac = platform.system() == "Darwin"
+        # self.__excludeTypeL = None if isMac else ["optional"]
+        self.__excludeTypeL = ["optional"]
         self.__mockTopPath = os.path.join(TOPDIR, "rcsb", "mock-data")
         self.__cachePath = os.path.join(HERE, "test-output", "CACHE")
         self.__configPath = os.path.join(self.__mockTopPath, "config", "dbload-setup-example.yml")

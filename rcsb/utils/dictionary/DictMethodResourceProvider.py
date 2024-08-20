@@ -28,6 +28,7 @@
 #                  loading of unnecessary resources for each dataset (via providerTypeExcludeL)
 #   9-May-2024 dwp Change providerTypeExclude to be a list, 'providerTypeExcludeL'
 #  25-Jul-2024 dwp Remove NeighborInteractionProvider from provider list (since calculating on the fly from now on)
+#  20-Aug-2024 dwp Add support for accessing target cofactor data from MongoDB
 ##
 """
 Resource provider for dictionary method runner and DictMethodHelper tools.
@@ -81,10 +82,10 @@ from rcsb.utils.struct.ScopClassificationProvider import ScopClassificationProvi
 # ---
 from rcsb.utils.targets.CARDTargetAnnotationProvider import CARDTargetAnnotationProvider
 from rcsb.utils.targets.CARDTargetOntologyProvider import CARDTargetOntologyProvider
-from rcsb.utils.targets.ChEMBLTargetCofactorProvider import ChEMBLTargetCofactorProvider
-from rcsb.utils.targets.DrugBankTargetCofactorProvider import DrugBankTargetCofactorProvider
+from rcsb.utils.targets.ChEMBLTargetCofactorProvider import ChEMBLTargetCofactorAccessor
+from rcsb.utils.targets.DrugBankTargetCofactorProvider import DrugBankTargetCofactorAccessor
 from rcsb.utils.targets.IMGTTargetFeatureProvider import IMGTTargetFeatureProvider
-from rcsb.utils.targets.PharosTargetCofactorProvider import PharosTargetCofactorProvider
+from rcsb.utils.targets.PharosTargetCofactorProvider import PharosTargetCofactorAccessor
 from rcsb.utils.targets.SAbDabTargetFeatureProvider import SAbDabTargetFeatureProvider
 
 # --
@@ -301,24 +302,30 @@ class DictMethodResourceProvider(SingletonClass):
                 "buildable": True,
                 "providerType": "optional",
             },
-            "DrugBankTargetCofactorProvider instance": {
-                "class": DrugBankTargetCofactorProvider,
-                "configArgMap": {},
-                "stashable": True,
+            "DrugBankTargetCofactorAccessor instance": {
+                "class": DrugBankTargetCofactorAccessor,
+                "configArgMap": {
+                    "cfgOb": (self.__cfgOb, "value"),
+                },
+                "stashable": False,
                 "buildable": False,
                 "providerType": "optional",
             },
-            "ChEMBLTargetCofactorProvider instance": {
-                "class": ChEMBLTargetCofactorProvider,
-                "configArgMap": {},
-                "stashable": True,
+            "ChEMBLTargetCofactorAccessor instance": {
+                "class": ChEMBLTargetCofactorAccessor,
+                "configArgMap": {
+                    "cfgOb": (self.__cfgOb, "value"),
+                },
+                "stashable": False,
                 "buildable": False,
                 "providerType": "optional",
             },
-            "PharosTargetCofactorProvider instance": {
-                "class": PharosTargetCofactorProvider,
-                "configArgMap": {},
-                "stashable": True,
+            "PharosTargetCofactorAccessor instance": {
+                "class": PharosTargetCofactorAccessor,
+                "configArgMap": {
+                    "cfgOb": (self.__cfgOb, "value"),
+                },
+                "stashable": False,
                 "buildable": False,
                 "providerType": "optional",
             },

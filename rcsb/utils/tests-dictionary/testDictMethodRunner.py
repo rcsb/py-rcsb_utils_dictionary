@@ -42,8 +42,10 @@ TOPDIR = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
 
 class DictMethodRunnerTests(unittest.TestCase):
     def setUp(self):
-        self.__isMac = platform.system() == "Darwin"
-        self.__excludeTypeL = None if self.__isMac else ["optional"]
+        # self.__isMac = platform.system() == "Darwin"
+        # self.__excludeTypeL = None if self.__isMac else ["optional"]
+        self.__isMac = False
+        self.__excludeTypeL = ["optional"]
         self.__export = True
         self.__numProc = 2
         mockTopPath = os.path.join(TOPDIR, "rcsb", "mock-data")
