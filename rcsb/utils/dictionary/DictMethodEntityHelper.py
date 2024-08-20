@@ -17,6 +17,7 @@
 #  12-Sep-2023 dwp RO-4033: When using SIFTS alignment data, don't mix and match segments from different chains of the same entity
 #   2-Nov-2023 dwp Only populate rcsb_entity_feature_summary for features that are present
 #  18-Mar-2024 dwp Separate out gathering of entity reference sequence alignments from assignment step
+#  20-Aug-2024 dwp Add support for accessing target cofactor data from MongoDB
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
@@ -82,11 +83,8 @@ class DictMethodEntityHelper(object):
         self.__cardP = rP.getResource("CARDTargetAnnotationProvider instance") if rP else None
         self.__imgtP = rP.getResource("IMGTTargetFeatureProvider instance") if rP else None
         self.__sabdabP = rP.getResource("SAbDabTargetFeatureProvider instance") if rP else None
-        # self.__chemblP = rP.getResource("ChEMBLTargetCofactorProvider instance") if rP else None
         self.__chemblA = rP.getResource("ChEMBLTargetCofactorAccessor instance") if rP else None
-        # self.__dbP = rP.getResource("DrugBankTargetCofactorProvider instance") if rP else None
         self.__dbA = rP.getResource("DrugBankTargetCofactorAccessor instance") if rP else None
-        # self.__phP = rP.getResource("PharosTargetCofactorProvider instance") if rP else None
         self.__phA = rP.getResource("PharosTargetCofactorAccessor instance") if rP else None
         #
         logger.debug("Dictionary entity method helper init")
@@ -2043,6 +2041,9 @@ class DictMethodEntityHelper(object):
             if not dataContainer.exists("entry"):
                 return False
             #
+            if dataContainer.exists("ma_data"):
+                return False
+            #
             # Create the new target category
             if not dataContainer.exists(catName):
                 dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
@@ -2258,6 +2259,9 @@ class DictMethodEntityHelper(object):
                 return False
             # Exit if source categories are missing
             if not dataContainer.exists("entry"):
+                return False
+            #
+            if dataContainer.exists("ma_data"):
                 return False
             #
             # Create the new target category

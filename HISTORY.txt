@@ -135,3 +135,4 @@
 13-May-2024 - V1.24 Update requirements
 25-Jul-2024 - V1.25 Update ligand neighbor calculations and populate them into polymer entity instance features;
                     Remove NeighborInteractionProvider from DictMethodResourceProvider, since will now be calculating interactions on the fly
+20-Aug-2024 - V1.26 Add support for accessing target cofactor data from MongoDB
