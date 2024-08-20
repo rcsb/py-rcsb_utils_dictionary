@@ -112,15 +112,15 @@ jobs:
             displayName: "Start and configure mysql ..."
 
         # -----
-      - ? ${{ if and(contains(parameters.fixtures, 'mongodb'), startsWith(parameters.os, 'linux')) }}
-        : # Mongo install
+      # Mongo install
+      - ${{ if and(contains(parameters.fixtures, 'mongodb'), startsWith(parameters.os, 'linux')) }}:
           - script: |
               sudo apt-get install gnupg wget
-              wget -qO - https://www.mongodb.org/static/pgp/server-4.2.asc | sudo apt-key add -
+              wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc | sudo apt-key add -
               # sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 9DA31620334BD75D9DCB49F368818C72E52529D4
               sudo apt list --installed | grep mongodb
-              echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/4.2 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.2.list
-              # echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/4.2 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.2.list
+              echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+              # echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
               sudo apt-get update
               sudo apt-get install -y mongodb-org
               sudo apt list --installed | grep mongo
@@ -130,6 +130,19 @@ jobs:
               sudo service mongod start
               sudo ss -tulpn
             displayName: "Start Mongo service"
+        #
+      - ${{ if and(contains(parameters.fixtures, 'mongodb'), startsWith(parameters.os, 'macos')) }}:
+          - script: |
+              brew tap mongodb/brew
+              brew update
+              brew install mongodb-community@5.0
+            displayName: "Installing mongodb"
+          #
+          - script: brew services start mongodb-community@5.0
+            displayName: "Start Mongo service"
+          #
+          - script: brew services list
+            displayName: "Check mongodb service"
         #
       #
       - script: 'python -c "import sys; print(sys.version); print(sys.executable)"'
