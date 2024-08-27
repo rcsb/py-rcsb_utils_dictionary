@@ -329,15 +329,15 @@ class DictMethodResourceProvider(SingletonClass):
                 "buildable": False,
                 "providerType": "optional",
             },
-            "CARDTargetAnnotationProvider instance": {
-                "class": CARDTargetAnnotationProvider,
+            "CARDTargetOntologyProvider instance": {
+                "class": CARDTargetOntologyProvider,
                 "configArgMap": {},
                 "stashable": True,
                 "buildable": False,
                 "providerType": "optional",
             },
-            "CARDTargetOntologyProvider instance": {
-                "class": CARDTargetOntologyProvider,
+            "CARDTargetAnnotationProvider instance": {
+                "class": CARDTargetAnnotationProvider,
                 "configArgMap": {},
                 "stashable": True,
                 "buildable": False,

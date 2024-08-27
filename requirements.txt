@@ -1,6 +1,6 @@
 scipy
 numpy
-mmcif >= 0.88.0
+mmcif >= 0.89.0
 rcsb.utils.chemref >= 0.91
 rcsb.utils.citation >= 0.22
 rcsb.utils.config >= 0.40
@@ -10,7 +10,7 @@ rcsb.utils.multiproc >= 0.19
 rcsb.utils.repository >= 0.43
 rcsb.utils.seq >= 0.82
 rcsb.utils.struct >= 0.47
-rcsb.utils.targets >= 0.80
+rcsb.utils.targets >= 0.82
 rcsb.utils.taxonomy >= 0.43
 rcsb.utils.validation >= 0.31
 rcsb.utils.insilico3d >= 0.38
