@@ -14,6 +14,11 @@
 #  28-Mar-2023 dwp Populate 'rcsb_entity_source_organism.provenance_source' with transient value from 'entity_src_nat.rcsb_provenance_source' (applicable to CSMs only)
 #   2-May-2023 dwp Stop loading depth data for CARD lineage annotations
 #   3-Jul-2023 aae Stop populating 'rcsb_nonpolymer_instance_feature' from 'rcsb_entity_instance_validation_feature'
+#  17-Jul-2023 dwp RO-170: Stop populating ordinal, reference_scheme, and feature_positions_beg_comp_id for all feature objects
+#  12-Sep-2023 dwp RO-4033: When using SIFTS alignment data, don't mix and match segments from different chains of the same entity
+#   2-Nov-2023 dwp Only populate rcsb_entity_feature_summary for features that are present
+#  18-Mar-2024 dwp Separate out gathering of entity reference sequence alignments from assignment step
+#  20-Aug-2024 dwp Add support for accessing target cofactor data from MongoDB
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
@@ -79,9 +84,9 @@ class DictMethodEntityHelper(object):
         self.__cardP = rP.getResource("CARDTargetAnnotationProvider instance") if rP else None
         self.__imgtP = rP.getResource("IMGTTargetFeatureProvider instance") if rP else None
         self.__sabdabP = rP.getResource("SAbDabTargetFeatureProvider instance") if rP else None
-        self.__chemblP = rP.getResource("ChEMBLTargetCofactorProvider instance") if rP else None
-        self.__dbP = rP.getResource("DrugBankTargetCofactorProvider instance") if rP else None
-        self.__phP = rP.getResource("PharosTargetCofactorProvider instance") if rP else None
+        self.__chemblA = rP.getResource("ChEMBLTargetCofactorAccessor instance") if rP else None
+        self.__dbA = rP.getResource("DrugBankTargetCofactorAccessor instance") if rP else None
+        self.__phA = rP.getResource("PharosTargetCofactorAccessor instance") if rP else None
         #
         logger.debug("Dictionary entity method helper init")
 
@@ -97,29 +102,31 @@ class DictMethodEntityHelper(object):
         #
         # Process sifts alignments -
         siftsAlignD = {}
+        asymMaxAlignLengthD = {}
         for asymId, authAsymId in asymAuthIdD.items():
             if instTypeD[asymId] not in ["polymer", "branched"]:
                 continue
             entityId = asymIdD[asymId]
-            # accumulate the sifts alignments by entity.
+            #
+            asymMaxAlignLength = asymMaxAlignLengthD.get((entryId, entityId), 0)
+            asymSeqAlignObjL = self.__ssP.getSeqAlignObjList(entryId, authAsymId)
+            asaoLength = sum([seqAlignObj.getEntityAlignLength() for seqAlignObj in asymSeqAlignObjL])
+            logger.debug("asaoLength %r for list: %r", asaoLength, asymSeqAlignObjL)
+            #
+            # accumulate only the longest sifts alignments by entity.
+            # Only keep the chain with the longest alignment
+            if asaoLength > asymMaxAlignLength:
+                siftsAlignD[(entryId, entityId)] = asymSeqAlignObjL
+                logger.debug("siftsAlignD: %r", siftsAlignD)
+                asymMaxAlignLengthD[(entryId, entityId)] = asaoLength
+            #
             # siftsAlignD.setdefault((entryId, entityId), []).extend([SeqAlign("SIFTS", **sa) for sa in self.__ssP.getIdentifiers(entryId, authAsymId, idType="UNPAL")])
-            siftsAlignD.setdefault((entryId, entityId), []).extend(self.__ssP.getSeqAlignObjList(entryId, authAsymId))
+
         for (entryId, entityId), seqAlignObjL in siftsAlignD.items():
             if seqAlignObjL:
-                # re-group alignments by common accession
-                alRefD = {}
                 for seqAlignObj in seqAlignObjL:
-                    alRefD.setdefault((seqAlignObj.getDbName(), seqAlignObj.getDbAccession(), seqAlignObj.getDbIsoform()), []).append(seqAlignObj)
-                #
-                # Get the longest overlapping entity region of each ref alignment -
-                for (dbName, dbAcc, dbIsoform), aL in alRefD.items():
-                    alGrpD = splitSeqAlignObjList(aL)
-                    logger.debug("SIFTS -> entryId %s entityId %s dbName %r dbAcc %r dbIsoform %r alGrpD %r", entryId, entityId, dbName, dbAcc, dbIsoform, alGrpD)
-                    for _, grpAlignL in alGrpD.items():
-
-                        lenL = [seqAlignObj.getEntityAlignLength() for seqAlignObj in grpAlignL]
-                        idxMax = lenL.index(max(lenL))
-                        siftsEntityAlignD.setdefault((entryId, entityId, "SIFTS"), {}).setdefault((dbName, dbAcc, dbIsoform), []).append(grpAlignL[idxMax])
+                    dbName, dbAcc, dbIsoform = seqAlignObj.getDbName(), seqAlignObj.getDbAccession(), seqAlignObj.getDbIsoform()
+                    siftsEntityAlignD.setdefault((entryId, entityId, "SIFTS"), {}).setdefault((dbName, dbAcc, dbIsoform), []).append(seqAlignObj)
         #
         logger.debug("PROCESSED SIFTS ->  %r", siftsEntityAlignD)
         return siftsEntityAlignD
@@ -162,14 +169,16 @@ class DictMethodEntityHelper(object):
         return pdbEntityAlignD
 
     def addPolymerEntityReferenceAlignments(self, dataContainer, catName, **kwargs):
-        """[summary]
+        """Populate _rcsb_polymer_entity_align with data from mmCIF file and/or SIFTS data if available.
+
+        If self.__useSiftsAlign is True (default), mmCIF data is overwritten with SIFTS data.
 
         Args:
-            dataContainer ([type]): [description]
-            catName ([type]): [description]
+            dataContainer (object): mmif.api.DataContainer object instance
+            catName (str): Category name
 
         Returns:
-            [type]: [description]
+            bool: True for success or False otherwise
 
         Example:
             _rcsb_polymer_entity_align.ordinal
@@ -195,18 +204,7 @@ class DictMethodEntityHelper(object):
             #
             cObj = dataContainer.getObj(catName)
             #
-            pdbEntityAlignD = self.__processPdbAlignments(dataContainer)
-            #
-            if self.__useSiftsAlign:
-                siftsEntityAlignD = self.__processSiftsAlignments(dataContainer)
-                logger.debug("siftsEntityAlignD %d", len(siftsEntityAlignD))
-                #
-                for (entryId, entityId, provSource), refD in siftsEntityAlignD.items():
-                    if (entryId, entityId, "PDB") in pdbEntityAlignD:
-                        del pdbEntityAlignD[(entryId, entityId, "PDB")]
-                    pdbEntityAlignD.update({(entryId, entityId, provSource): refD})
-            #
-            # ---
+            pdbEntityAlignD = self.__processPolymerEntityReferenceAlignments(dataContainer)
 
             iRow = cObj.getRowCount()
             for (entryId, entityId, provSource), refD in pdbEntityAlignD.items():
@@ -238,7 +236,40 @@ class DictMethodEntityHelper(object):
             logger.exception("For %s  %s failing with %s", dataContainer.getName(), catName, str(e))
         return False
 
+    def __processPolymerEntityReferenceAlignments(self, dataContainer):
+        """Gather and process polymer entity reference alignments from source mmCIF file (PdbAlignments)
+        and SIFTS data (SiftsAlignments).
+
+        If self.__useSiftsAlign is True (default), mmCIF data is overwritten with SIFTS data.
+
+        Args:
+            dataContainer (object): mmif.api.DataContainer object instance
+
+        Returns:
+            dict: Dictionary of all polymer entity reference alignments, in the format of:
+                    {(entryId, entityId, provSource), {('UNP', 'ABCDEF', None): [DB: 'UNP' ACC: 'ABCDEF' ISOFORM None ENITY BEG: 1 DB BEG: 22 LEN: 274]}, ...}
+                  e.g.,:
+                    {('1BQH', '1', 'SIFTS'), {('UNP', 'P01901', None): [DB: 'UNP' ACC: 'P01901' ISOFORM None ENITY BEG: 1 DB BEG: 22 LEN: 274]},
+                    ('1BQH', '2', 'SIFTS'), {('UNP', 'P01887', None): [DB: 'UNP' ACC: 'P01887' ISOFORM None ENITY BEG: 1 DB BEG: 21 LEN: 99]},
+                    ('1BQH', '4', 'SIFTS'), {('UNP', 'P01731', None): [DB: 'UNP' ACC: 'P01731' ISOFORM None ENITY BEG: 1 DB BEG: 28 LEN: 129]}
+        """
+
+        pdbEntityAlignD = {}
         #
+        pdbEntityAlignD = self.__processPdbAlignments(dataContainer)
+        #
+        if self.__useSiftsAlign:
+            siftsEntityAlignD = self.__processSiftsAlignments(dataContainer)
+            logger.debug("siftsEntityAlignD %d", len(siftsEntityAlignD))
+            #
+            for (entryId, entityId, provSource), refD in siftsEntityAlignD.items():
+                if (entryId, entityId, "PDB") in pdbEntityAlignD:
+                    # This deletes ALL "PDB" provSource items, even those not related to UniProt. E.g., EMBL is lost for 1B5F:
+                    #   {('1B5F', '1', 'PDB'): {('EMBL', 'CAB4134', None): [DB: 'EMBL' ACC: 'CAB4134' ISOFORM None ENITY BEG: '1' DB BEG: '71' LEN: 239]}, ...}
+                    del pdbEntityAlignD[(entryId, entityId, "PDB")]
+                pdbEntityAlignD.update({(entryId, entityId, provSource): refD})
+        #
+        return pdbEntityAlignD
 
     def buildContainerEntityIds(self, dataContainer, catName, **kwargs):
         """Load the input category with rcsb_entity_container_identifiers content.
@@ -362,7 +393,7 @@ class DictMethodEntityHelper(object):
                                 else:
                                     refSeqIdD["dbIsoform"].append("?")
                         # else fallback to ma_target_ref_db_details
-                        elif (dataContainer.exists("ma_target_ref_db_details")):
+                        elif dataContainer.exists("ma_target_ref_db_details"):
                             mObj = dataContainer.getObj("ma_target_ref_db_details")
                             for jj in range(mObj.getRowCount()):
                                 tEntityId = mObj.getValue("target_entity_id", jj)
@@ -387,7 +418,7 @@ class DictMethodEntityHelper(object):
                                 continue
                             refIdD["resName"].append(resName)
                             refIdD["resAccession"].append(gId)
-                            refIdD["provSource"].append("RCSB")
+                            refIdD["provSource"].append("RCSB")  # Comes from internal processing of WURCS data mapped to GlyTouCan IDs at https://api.glycosmos.org/
                 #
                 if asymIdL:
                     cObj.setValue(",".join(sorted(set(asymIdL))).strip(), "asym_ids", ii)
@@ -1613,20 +1644,27 @@ class DictMethodEntityHelper(object):
                     seqIdL = str(fObj.getValue("feature_positions_beg_seq_id", ii)).split(";")
                     fMonomerCountD.setdefault(entityId, {}).setdefault(fType, []).append(len(seqIdL))
             #
+            logger.debug("EntitySummary fCountD: %s - %r", entryId, fCountD)
+            logger.debug("EntitySummary fMonomerCountD: %s - %r", entryId, fMonomerCountD)
+            #
             ii = 0
             for entityId, eType in eTypeD.items():
-                fTypes = self.__getEntityFeatureTypes(eType)
-                for fType in fTypes:
-                    sObj.setValue(ii + 1, "ordinal", ii)
-                    sObj.setValue(entryId, "entry_id", ii)
-                    sObj.setValue(entityId, "entity_id", ii)
-                    sObj.setValue(fType, "type", ii)
-
+                # skip entities without any features
+                if entityId not in fCountD and entityId not in fMonomerCountD:
+                    continue
+                fTypeL = self.__getEntityFeatureTypes(eType)  # All entity type specific features
+                logger.debug("Full feature type list %r", fTypeL)
+                # filter out all empty features (i.e., only provide summaries for features that are present)
+                fTypeFilteredL = []
+                for fD in [fCountD, fMonomerCountD]:
+                    if entityId in fD:
+                        fTypeFilteredL += [ft for ft in fTypeL if ft in fD[entityId]]
+                fTypeFilteredL = list(set(fTypeFilteredL))
+                logger.debug("Filtered feature type list %r", fTypeFilteredL)
+                for fType in fTypeFilteredL:
                     minL = maxL = None
                     fracC = 0.0
-                    fCount = 0
-                    if entityId in fCountD and fType in fCountD[entityId]:
-                        fCount = len(fCountD[entityId][fType])
+                    fCount = len(fCountD[entityId][fType])
 
                     if entityId in fMonomerCountD and fType in fMonomerCountD[entityId] and entityId in entityPolymerLengthD:
                         fracC = float(sum(fMonomerCountD[entityId][fType])) / float(entityPolymerLengthD[entityId])
@@ -1635,8 +1673,12 @@ class DictMethodEntityHelper(object):
                         minL = min(fMonomerCountD[entityId][fType])
                         maxL = max(fMonomerCountD[entityId][fType])
 
-                    sObj.setValue(round(fracC, 5), "coverage", ii)
+                    sObj.setValue(ii + 1, "ordinal", ii)
+                    sObj.setValue(entryId, "entry_id", ii)
+                    sObj.setValue(entityId, "entity_id", ii)
+                    sObj.setValue(fType, "type", ii)
                     sObj.setValue(fCount, "count", ii)
+                    sObj.setValue(round(fracC, 5), "coverage", ii)
                     if minL is not None:
                         sObj.setValue(minL, "minimum_length", ii)
                         sObj.setValue(maxL, "maximum_length", ii)
@@ -1651,19 +1693,16 @@ class DictMethodEntityHelper(object):
 
         Example:
             loop_
-            _rcsb_entity_feature.ordinal
             _rcsb_entity_feature.entry_id
             _rcsb_entity_feature.entity_id
             _rcsb_entity_feature.feature_id
             _rcsb_entity_feature.type
             _rcsb_entity_feature.name
             _rcsb_entity_feature.description
-            _rcsb_entity_feature.reference_scheme
             _rcsb_entity_feature.provenance_source
             _rcsb_entity_feature.assignment_version
             _rcsb_entity_feature.feature_positions_beg_seq_id
             _rcsb_entity_feature.feature_positions_end_seq_id
-            _rcsb_entity_feature.feature_positions_value
 
         """
         logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
@@ -1695,7 +1734,6 @@ class DictMethodEntityHelper(object):
             #
             targetFeatureD = self.__getTargetComponentFeatures(dataContainer)
             for (entityId, compId, filteredFeature) in targetFeatureD:
-                cObj.setValue(ii + 1, "ordinal", ii)
                 cObj.setValue(entryId, "entry_id", ii)
                 cObj.setValue(entityId, "entity_id", ii)
                 cObj.setValue(compId, "comp_id", ii)
@@ -1742,7 +1780,6 @@ class DictMethodEntityHelper(object):
                             begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
                             endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
                         #
-                        cObj.setValue(ii + 1, "ordinal", ii)
                         cObj.setValue(entryId, "entry_id", ii)
                         cObj.setValue(entityId, "entity_id", ii)
                         cObj.setValue(fD["type"], "type", ii)
@@ -1772,7 +1809,6 @@ class DictMethodEntityHelper(object):
                         begSeqId = ";".join([str(tD["beg_seq_id"]) for tD in fD["feature_positions"]])
                         endSeqId = ";".join([str(tD["end_seq_id"]) for tD in fD["feature_positions"]])
                         #
-                        cObj.setValue(ii + 1, "ordinal", ii)
                         cObj.setValue(entryId, "entry_id", ii)
                         cObj.setValue(entityId, "entity_id", ii)
                         cObj.setValue(fD["type"].upper(), "type", ii)
@@ -1797,7 +1833,6 @@ class DictMethodEntityHelper(object):
                         # Full sequence feature
                         begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
                         endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
-                        cObj.setValue(ii + 1, "ordinal", ii)
                         cObj.setValue(entryId, "entry_id", ii)
                         cObj.setValue(entityId, "entity_id", ii)
                         cObj.setValue(fType, "type", ii)
@@ -1832,7 +1867,6 @@ class DictMethodEntityHelper(object):
                     for pfamId, begSeqId, endSeqId in pfamTupS:
                         details = self.__pfP.getDescription(pfamId)
                         if details:
-                            cObj.setValue(ii + 1, "ordinal", ii)
                             cObj.setValue(entryId, "entry_id", ii)
                             cObj.setValue(entityId, "entity_id", ii)
                             cObj.setValue("Pfam", "type", ii)
@@ -1851,7 +1885,6 @@ class DictMethodEntityHelper(object):
                 birdFeatureD = self.__getBirdFeatures(dataContainer)
                 for (entityId, compId, prdId, filteredFeature), fName in birdFeatureD.items():
                     addPropTupL = []
-                    cObj.setValue(ii + 1, "ordinal", ii)
                     cObj.setValue(entryId, "entry_id", ii)
                     cObj.setValue(entityId, "entity_id", ii)
                     cObj.setValue(compId, "comp_id", ii)
@@ -1881,7 +1914,6 @@ class DictMethodEntityHelper(object):
             for (entityId, seqId, compId, filteredFeature) in modMonomerFeatures:
                 addPropTupL = []
                 parentCompId = self.__ccP.getParentComponent(compId)
-                cObj.setValue(ii + 1, "ordinal", ii)
                 cObj.setValue(entryId, "entry_id", ii)
                 cObj.setValue(entityId, "entity_id", ii)
                 cObj.setValue(filteredFeature, "type", ii)
@@ -1894,10 +1926,9 @@ class DictMethodEntityHelper(object):
                     cObj.setValue(";".join([str(tup[0]) for tup in addPropTupL]), "additional_properties_name", ii)
                     cObj.setValue(";".join([str(tup[1]) for tup in addPropTupL]), "additional_properties_values", ii)
 
-                cObj.setValue(compId, "feature_positions_beg_comp_id", ii)
+                # cObj.setValue(compId, "feature_positions_beg_comp_id", ii)
                 cObj.setValue(seqId, "feature_positions_beg_seq_id", ii)
                 #
-                cObj.setValue("PDB entity", "reference_scheme", ii)
                 cObj.setValue("PDB", "provenance_source", ii)
                 cObj.setValue("V1.0", "assignment_version", ii)
                 #
@@ -1909,7 +1940,6 @@ class DictMethodEntityHelper(object):
             for (entityId, seqId, compId, filteredFeature), sDetails in seqMonomerFeatures.items():
                 if filteredFeature not in ["mutation"]:
                     continue
-                cObj.setValue(ii + 1, "ordinal", ii)
                 cObj.setValue(entryId, "entry_id", ii)
                 cObj.setValue(entityId, "entity_id", ii)
                 cObj.setValue(filteredFeature, "type", ii)
@@ -1917,10 +1947,9 @@ class DictMethodEntityHelper(object):
                 details = ",".join(list(sDetails))
                 cObj.setValue(details, "name", ii)
                 #
-                cObj.setValue(compId, "feature_positions_beg_comp_id", ii)
+                # cObj.setValue(compId, "feature_positions_beg_comp_id", ii)
                 cObj.setValue(seqId, "feature_positions_beg_seq_id", ii)
                 #
-                cObj.setValue("PDB entity", "reference_scheme", ii)
                 cObj.setValue("PDB", "provenance_source", ii)
                 cObj.setValue("V1.0", "assignment_version", ii)
                 #
@@ -1932,7 +1961,6 @@ class DictMethodEntityHelper(object):
             for (entityId, begSeqId, endSeqId, filteredFeature), sDetails in seqRangeFeatures.items():
                 if filteredFeature not in ["artifact"]:
                     continue
-                cObj.setValue(ii + 1, "ordinal", ii)
                 cObj.setValue(entryId, "entry_id", ii)
                 cObj.setValue(entityId, "entity_id", ii)
                 cObj.setValue(filteredFeature, "type", ii)
@@ -1943,7 +1971,6 @@ class DictMethodEntityHelper(object):
                 cObj.setValue(begSeqId, "feature_positions_beg_seq_id", ii)
                 cObj.setValue(endSeqId, "feature_positions_end_seq_id", ii)
                 #
-                cObj.setValue("PDB entity", "reference_scheme", ii)
                 cObj.setValue("PDB", "provenance_source", ii)
                 cObj.setValue("V1.0", "assignment_version", ii)
                 #
@@ -2015,6 +2042,9 @@ class DictMethodEntityHelper(object):
             if not dataContainer.exists("entry"):
                 return False
             #
+            if dataContainer.exists("ma_data"):
+                return False
+            #
             # Create the new target category
             if not dataContainer.exists(catName):
                 dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
@@ -2027,12 +2057,12 @@ class DictMethodEntityHelper(object):
             ii = cObj.getRowCount()
             #
             # --- ChEMBL
-            if self.__chemblP:
+            if self.__chemblA:
                 for entityId, eType in eTypeD.items():
                     if eType not in ["polymer", "branched"]:
                         continue
                     eId = entryId + "_" + entityId
-                    tDL = self.__chemblP.getTargets(eId)
+                    tDL = self.__chemblA.getTargets(eId)
                     dupD = {}
                     for tD in tDL:
                         if tD["query_id"] in dupD:
@@ -2058,12 +2088,12 @@ class DictMethodEntityHelper(object):
                         #
                         ii += 1
             #
-            if self.__dbP:
+            if self.__dbA:
                 for entityId, eType in eTypeD.items():
                     if eType not in ["polymer", "branched"]:
                         continue
                     eId = entryId + "_" + entityId
-                    tDL = self.__dbP.getTargets(eId)
+                    tDL = self.__dbA.getTargets(eId)
                     dupD = {}
                     for tD in tDL:
                         if tD["query_id"] in dupD:
@@ -2088,12 +2118,12 @@ class DictMethodEntityHelper(object):
                         #
                         ii += 1
             #
-            if self.__phP:
+            if self.__phA:
                 for entityId, eType in eTypeD.items():
                     if eType not in ["polymer", "branched"]:
                         continue
                     eId = entryId + "_" + entityId
-                    tDL = self.__phP.getTargets(eId)
+                    tDL = self.__phA.getTargets(eId)
                     dupD = {}
                     for tD in tDL:
                         if tD["query_id"] in dupD:
@@ -2232,6 +2262,9 @@ class DictMethodEntityHelper(object):
             if not dataContainer.exists("entry"):
                 return False
             #
+            if dataContainer.exists("ma_data"):
+                return False
+            #
             # Create the new target category
             if not dataContainer.exists(catName):
                 dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
@@ -2245,12 +2278,12 @@ class DictMethodEntityHelper(object):
             #
             #  JDW "cofactor_id" -> 'cofactor_resource_id': 'DB14031', 'target_resource_id': 'P06276',
             # --- ChEMBL
-            if self.__chemblP:
+            if self.__chemblA:
                 for entityId, eType in eTypeD.items():
                     if eType not in ["polymer", "branched"]:
                         continue
                     eId = entryId + "_" + entityId
-                    tDL = self.__chemblP.getTargets(eId)
+                    tDL = self.__chemblA.getTargets(eId)
                     # --
                     dupD = {}
                     # --
@@ -2279,7 +2312,6 @@ class DictMethodEntityHelper(object):
                             cObj.setValue(tD["query_id_type"], "resource_name", ii)
                             cObj.setValue(str(tD["assignment_version"]), "resource_version", ii)
                             #
-                            cObj.setValue(tD["query_id"], "target_resource_id", ii)
                             for ky, atName, atType in atTupMap:
                                 if ky in cfD and cfD[ky]:
                                     if atType == "list":
@@ -2289,12 +2321,12 @@ class DictMethodEntityHelper(object):
                             #
                             ii += 1
             #
-            if self.__dbP:
+            if self.__dbA:
                 for entityId, eType in eTypeD.items():
                     if eType not in ["polymer", "branched"]:
                         continue
                     eId = entryId + "_" + entityId
-                    tDL = self.__dbP.getTargets(eId)
+                    tDL = self.__dbA.getTargets(eId)
                     # --
                     dupD = {}
                     # --
@@ -2315,7 +2347,6 @@ class DictMethodEntityHelper(object):
                             cObj.setValue(tD["query_id_type"], "resource_name", ii)
                             cObj.setValue(str(tD["assignment_version"]), "resource_version", ii)
                             #
-                            cObj.setValue(tD["query_id"], "target_resource_id", ii)
                             for ky, atName, atType in atTupMap:
                                 if ky in cfD and cfD[ky]:
                                     if atType == "list":
@@ -2325,12 +2356,12 @@ class DictMethodEntityHelper(object):
                             #
                             ii += 1
 
-            if self.__phP:
+            if self.__phA:
                 for entityId, eType in eTypeD.items():
                     if eType not in ["polymer", "branched"]:
                         continue
                     eId = entryId + "_" + entityId
-                    tDL = self.__phP.getTargets(eId)
+                    tDL = self.__phA.getTargets(eId)
                     # --
                     dupD = {}
                     # --
@@ -2359,7 +2390,6 @@ class DictMethodEntityHelper(object):
                             cObj.setValue(tD["query_id_type"], "resource_name", ii)
                             cObj.setValue(str(tD["assignment_version"]), "resource_version", ii)
                             #
-                            cObj.setValue(tD["query_id"], "target_resource_id", ii)
                             for ky, atName, atType in atTupMap:
                                 if ky in cfD and cfD[ky]:
                                     if atType == "list":

@@ -78,7 +78,7 @@ class DictMethodResourceCacheWorkflow(object):
             cachePath=self.__cachePath,
             restoreUseStash=True,
             restoreUseGit=True,
-            providerTypeExclude=None,
+            providerTypeExcludeL=None,
         )
         ok = rP.cacheResources(useCache=False, doBackup=True, useStash=True, useGit=False)
         logger.info("Cache rebuild status (%r)", ok)
@@ -100,7 +100,7 @@ class DictMethodResourceCacheWorkflow(object):
             cachePath=self.__cachePath,
             restoreUseStash=True,
             restoreUseGit=False,
-            providerTypeExclude=None,
+            providerTypeExcludeL=None,
         )
         ok = rP.cacheResources(useCache=True, doRestore=True, doBackup=False)
         logger.info(">>> Stash recovery test status (%r)", ok)
@@ -120,18 +120,18 @@ class DictMethodResourceCacheWorkflow(object):
             cachePath=self.__cachePath,
             restoreUseStash=False,
             restoreUseGit=True,
-            providerTypeExclude=None,
+            providerTypeExcludeL=None,
         )
         ok = rP.cacheResources(useCache=True, doRestore=True, doBackup=False)
         logger.info(">>> Git recovery test status (%r)", ok)
 
     def syncResourceCache(self):
         for providerName in [
-            "NeighborInteractionProvider instance",
             "GlycanProvider instance",
             "DrugBankTargetCofactorProvider instance",
             "ChEMBLTargetCofactorProvider instance",
             "PharosTargetCofactorProvider instance",
+            "CARDTargetOntologyProvider instance",
             "CARDTargetAnnotationProvider instance",
             "IMGTTargetFeatureProvider instance",
             "SAbDabTargetFeatureProvider instance",

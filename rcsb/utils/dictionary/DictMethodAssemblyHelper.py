@@ -11,6 +11,7 @@
 #  3-May-2022 dwp Use internal computed-model identifiers for 'entry_id' in containter_identifiers
 # 29-Jun-2022 dwp Use internal computed-model identifiers everywhere
 # 06-Jul-2022 dwp Only run addDepositedAssembly for computed model files which don't already contain pdbx_struct_assembly
+# 01-Feb-2024 bv  Update methods 'addAssemblyInfo' and '__getAssemblyComposition' to support deuterated water molecule count
 #
 ##
 """
@@ -116,6 +117,9 @@ class DictMethodAssemblyHelper(object):
 
                 num = rD["assemblyHeavyAtomCountD"][assemblyId]
                 cObj.setValue(num, "atom_count", ii)
+                #
+                num = rD["assemblyDeuWatMolCountD"][assemblyId]
+                cObj.setValue(num, "deuterated_water_count", ii)
                 #
                 num = rD["assemblyHydrogenAtomCountD"][assemblyId]
                 cObj.setValue(num, "hydrogen_atom_count", ii)
@@ -604,7 +608,8 @@ class DictMethodAssemblyHelper(object):
         epTypeD = self.__commonU.getEntityPolymerTypes(dataContainer)
         eTypeD = self.__commonU.getEntityTypes(dataContainer)
         epTypeFilteredD = self.__commonU.getPolymerEntityFilteredTypes(dataContainer)
-
+        #
+        methodL = []
         if dataContainer.exists("exptl"):
             xObj = dataContainer.getObj("exptl")
             methodL = xObj.getAttributeValueList("method")
@@ -623,6 +628,7 @@ class DictMethodAssemblyHelper(object):
         repModelId = repModelL[0]
         # JDW
         instHeavyAtomCount = self.__commonU.getInstanceHeavyAtomCounts(dataContainer, modelId=repModelId)
+        instDeuWatMolCount = self.__commonU.getInstanceDeuWatMolCounts(dataContainer, modelId=repModelId)
         instHydrogenAtomCount = self.__commonU.getInstanceHydrogenAtomCounts(dataContainer, modelId=repModelId)
         #
         instModeledMonomerCount = self.__commonU.getInstanceModeledMonomerCounts(dataContainer, modelId=repModelId)
@@ -631,6 +637,7 @@ class DictMethodAssemblyHelper(object):
         assemblyInstanceCountByTypeD = {}
         assemblyHeavyAtomCountByTypeD = {}
         assemblyHeavyAtomCountD = {}
+        assemblyDeuWatMolCountD = {}
         assemblyHydrogenAtomCountD = {}
         assemblyModeledMonomerCountD = {}
         assemblyUnmodeledMonomerCountD = {}
@@ -662,6 +669,8 @@ class DictMethodAssemblyHelper(object):
                         assemblyUnmodeledMonomerCountD[assemblyId] = 0
                     if assemblyId not in assemblyHeavyAtomCountD:
                         assemblyHeavyAtomCountD[assemblyId] = 0
+                    if assemblyId not in assemblyDeuWatMolCountD:
+                        assemblyDeuWatMolCountD[assemblyId] = 0
                     if assemblyId not in assemblyHydrogenAtomCountD:
                         assemblyHydrogenAtomCountD[assemblyId] = 0
                     #
@@ -674,6 +683,9 @@ class DictMethodAssemblyHelper(object):
                     #
                     logger.debug("%s assembly %r opExpression %r opCount %d opL %r", dataContainer.getName(), assemblyId, opExpression, opCount, opL)
                     logger.debug("%s assembly %r length asymIdList %r", dataContainer.getName(), assemblyId, len(asymIdList))
+                    #
+                    dwCountList = [instDeuWatMolCount[asymId] for asymId in asymIdList if asymId in instanceTypeD and instanceTypeD[asymId] == "water" and asymId in instDeuWatMolCount]
+                    assemblyDeuWatMolCountD[assemblyId] += sum(dwCountList) * opCount
                     #
                     for eType in ["polymer", "non-polymer", "branched", "macrolide", "water"]:
                         iList = [asymId for asymId in asymIdList if asymId in instanceTypeD and instanceTypeD[asymId] == eType]
@@ -759,6 +771,7 @@ class DictMethodAssemblyHelper(object):
             logger.debug("%s assemblyInstanceCountByTypeD %r", dataContainer.getName(), assemblyInstanceCountByTypeD.items())
             logger.debug("%s assemblyHeavyAtomCountByTypeD %r", dataContainer.getName(), assemblyHeavyAtomCountByTypeD.items())
             logger.debug("%s assemblyHeavyAtomCountD %r", dataContainer.getName(), assemblyHeavyAtomCountD.items())
+            logger.debug("%s assemblyDeuWatMolCountD %r", dataContainer.getName(), assemblyDeuWatMolCountD.items())
             logger.debug("%s assemblyHydrogenAtomCountD %r", dataContainer.getName(), assemblyHydrogenAtomCountD.items())
             logger.debug("%s assemblyModeledMonomerCountD %r", dataContainer.getName(), assemblyModeledMonomerCountD.items())
             logger.debug("%s assemblyUnmodeledMonomerCountD %r", dataContainer.getName(), assemblyUnmodeledMonomerCountD.items())
@@ -772,6 +785,7 @@ class DictMethodAssemblyHelper(object):
                 "assemblyInstanceCountByTypeD": assemblyInstanceCountByTypeD,
                 "assemblyHeavyAtomCountByTypeD": assemblyHeavyAtomCountByTypeD,
                 "assemblyHeavyAtomCountD": assemblyHeavyAtomCountD,
+                "assemblyDeuWatMolCountD": assemblyDeuWatMolCountD,
                 "assemblyHydrogenAtomCountD": assemblyHydrogenAtomCountD,
                 "assemblyModeledMonomerCountD": assemblyModeledMonomerCountD,
                 "assemblyUnmodeledMonomerCountD": assemblyUnmodeledMonomerCountD,

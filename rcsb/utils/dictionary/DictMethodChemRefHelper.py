@@ -7,6 +7,9 @@
 # Updates:
 #   29-Mar-2023 dwp Correct attribute name '_rcsb_chem_comp_target.provenance_code' to '_rcsb_chem_comp_target.provenance_source'
 #    5-Apr-2023 dwp Stop loading rcsb_chem_comp_synonyms for rcsb_chem_comp_synonyms.type 'Brand Name' (to be loaded to new separate data item later)
+#   18-Sep-2023 dwp Load COD references separately from CCDC/CSD references
+#    3-May-2024 dwp Change BIRD citation method to copy categories instead of just renaming, and only apply to BIRD entries
+#   25-Jul-2024 dwp Fix assignment logic of Pharos data for rcsb_chem_comp_related.related_mapping_method in addChemCompRelated()
 ##
 """
 Helper class implements external method references supporting chemical
@@ -115,22 +118,30 @@ class DictMethodChemRefHelper(object):
                 csdMapD = ccmProvider.getMapping()
                 #
                 if csdMapD and ccId in csdMapD:
+                    #
+                    logger.debug("Using CCDC/CSD and COD model mapping length %d", len(csdMapD))
+                    #
                     if not dataContainer.exists(catName):
                         dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
                     wObj = dataContainer.getObj(catName)
-                    logger.debug("Using CSD model mapping length %d", len(csdMapD))
-                    dbId = csdMapD[ccId][0]["db_code"]
-                    rL = wObj.selectIndices("CCDC/CSD", "resource_name")
+                    #
+                    rL = wObj.selectIndices("CCDC/CSD", "resource_name") + wObj.selectIndices("COD", "resource_name")
                     if rL:
                         ok = wObj.removeRows(rL)
                         if not ok:
                             logger.debug("Error removing rows in %r %r", catName, rL)
-                    iRow = wObj.getRowCount()
-                    wObj.setValue(ccId, "comp_id", iRow)
-                    wObj.setValue(iRow + 1, "ordinal", iRow)
-                    wObj.setValue("CCDC/CSD", "resource_name", iRow)
-                    wObj.setValue(dbId, "resource_accession_code", iRow)
-                    wObj.setValue("assigned by PDB", "related_mapping_method", iRow)
+                    #
+                    for dbi in range(len(csdMapD[ccId])):
+                        dbId = csdMapD[ccId][dbi]["db_code"]
+                        dbN = csdMapD[ccId][dbi]["db_name"]  # will either be CSD or COD
+                        dbName = "COD" if dbN == "COD" else "CCDC/CSD"
+                        #
+                        iRow = wObj.getRowCount()
+                        wObj.setValue(ccId, "comp_id", iRow)
+                        wObj.setValue(iRow + 1, "ordinal", iRow)
+                        wObj.setValue(dbName, "resource_name", iRow)
+                        wObj.setValue(dbId, "resource_accession_code", iRow)
+                        wObj.setValue("assigned by PDB", "related_mapping_method", iRow)
             #
             residProvider = rP.getResource("ResidProvider instance") if rP else None
             if residProvider:
@@ -190,12 +201,16 @@ class DictMethodChemRefHelper(object):
 
                     #
                     for rName, rIdS in xD.items():
-                        if rName in ["PubChem", "Pharos"]:
+                        aMethod = None
+                        if rName in ["PubChem"]:
                             aMethod = "matching InChIKey in PubChem"
                         elif rName in ["CAS", "ChEMBL", "ChEBI"]:
                             aMethod = "assigned by PubChem resource"
                         elif rName in ["Pharos"]:
                             aMethod = "matching ChEMBL ID in Pharos"
+                        if not aMethod:
+                            logger.error("No matching condition for rName %r", rName)
+                            continue
                         for rId in rIdS:
                             iRow = wObj.getRowCount()
                             wObj.setValue(ccId, "comp_id", iRow)
@@ -787,6 +802,7 @@ class DictMethodChemRefHelper(object):
 
     def renameCitationCategory(self, dataContainer, catName, **kwargs):
         """Rename citation and citation author categories.
+        Note that this method is run twice: once for catName 'rcsb_bird_citation', and once for 'rcsb_bird_citation_author'
 
         Args:
             dataContainer (object): mmif.api.DataContainer object instance
@@ -797,19 +813,35 @@ class DictMethodChemRefHelper(object):
         """
         try:
             _ = kwargs
+            ok = False
             logger.debug("Starting with  %r %r", dataContainer.getName(), catName)
+            #
+            catDestSrcMap = {
+                "rcsb_bird_citation": "citation",
+                "rcsb_bird_citation_author": "citation_author",
+            }
+            #
             if not (dataContainer.exists("chem_comp") and dataContainer.exists("pdbx_chem_comp_identifier")):
                 return False
+            containerName = dataContainer.getName()
+            if not containerName.upper().startswith("PRD_"):
+                return False
             #
-            # Rename target categories
-            if dataContainer.exists("citation"):
-                dataContainer.rename("citation", "rcsb_bird_citation")
-            if dataContainer.exists("citation_author"):
-                dataContainer.rename("citation_author", "rcsb_bird_citation_author")
-            return True
+            if catName not in catDestSrcMap:
+                logger.error("Unsupported catName %r", catName)
+                return False
+            #
+            # Copy target categories to new name
+            ccId = dataContainer.getObj("chem_comp").getValue("id", 0)
+            srcCat = catDestSrcMap[catName]
+            logger.debug("Working on containerName %r ccId %r srcCatName %r catName %r", containerName, ccId, srcCat, catName)
+            if dataContainer.exists(srcCat) and not dataContainer.exists(catName):
+                ok = dataContainer.copy(srcCat, catName)
+                if not ok:
+                    logger.error("Failed for containerName %r ccId %r srcCatName %r catName %r", containerName, ccId, srcCat, catName)
+            return ok
         except Exception as e:
             logger.exception("For %s failing with %s", catName, str(e))
-
         return False
 
     def addChemCompSynonyms(self, dataContainer, catName, **kwargs):

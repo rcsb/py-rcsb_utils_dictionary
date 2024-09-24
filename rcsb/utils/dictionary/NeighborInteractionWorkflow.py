@@ -6,6 +6,7 @@
 # Update:
 #  16-Mar-2023 aae  Update configuration to use HERE and CACHE folder
 #   1-Jun-2023 aae  Don't back up resources to GitHub during cache update workflows
+#  26-Mar-2024 dwp  If performing an incremental update, first restore/reload the data from stash
 #
 ##
 """
@@ -56,7 +57,7 @@ class NeighborInteractionWorkflow(object):
         self.__workPath = kwargs.get("workPath", HERE)
         self.__cachePath = kwargs.get("cachePath", os.path.join(self.__workPath, "CACHE"))
         #
-        self.__numProc = kwargs.get("numProc", 10)
+        self.__numProc = kwargs.get("numProc", 8)
         self.__chunkSize = kwargs.get("chunkSize", 10)
         self.__useCache = kwargs.get("useCache", False)
         #
@@ -73,7 +74,10 @@ class NeighborInteractionWorkflow(object):
         )
 
     def update(self, incremental=True):
-        ok = self.__tiP.generate(distLimit=5.0, updateOnly=incremental, fmt="pickle")
+        ok = True
+        if incremental:
+            ok = self.restore()
+        ok = self.__tiP.generate(distLimit=5.0, updateOnly=incremental, fmt="pickle") and ok
         return ok
 
     def backup(self):

@@ -112,3 +112,28 @@
                     Stop loading rcsb_chem_comp_synonyms for type 'Brand Name'
  2-May-2023 - V1.09 Stop loading depth data for CARD lineage annotations
  1-Jun-2023 - V1.10 Don't back up resources to GitHub during cache update workflows
+17-Jul-2023 - V1.11 RO-170: Stop populating ordinal, reference_scheme, and feature_positions_beg_comp_id for all feature objects;
+                    Remove duplicate rows after populating instance features
+19-Sep-2023 - V1.12 RO-4033: Adjust logic used for processing and assigning sequence alignment details;
+                    Add CARDTargetOntologyProvider to stashable list
+ 3-Oct-2023 - V1.13 Load COD references separately from CCDC/CSD references
+ 2-Nov-2023 - V1.14 Only populate feature summaries for features that are present (at both entity and entity instance levels)
+16-Jan-2024 - V1.15 Enforce string typing for string operations
+01-Feb-2024 - V1.16 Add support for populating deuterated water molecule counts at entry and assembly levels 
+26-Feb-2024 - V1.17 Add "HAS_NO_COVALENT_LINKAGE" to instance annotations for cases without covalent linkages (or with only metal coordination);
+                    Change provenance_source of "PDB" to "Primary Data" for linkage annotations and features
+04-Mar-2024 - V1.18 Populate rcsb_comp_model_provenance using deterministic logic instead of relying on external cache file
+18-Mar-2024 - V1.19 Add GlyGen annotations to polymer entity instances with glycosylation sites;
+                    Create separate providerType names 'pdbx_core' and 'pdbx_comp_model_core' to limit loading of unnecessary
+                    resources for each dataset (via providerTypeExclude)
+26-Mar-2024 - V1.20 Add GlyGen annotation 'type' to polymer entity instances, but temporarily turn off loading
+                    Fix incremental update method for NeighborInteractionWorkflow
+ 1-Apr-2024 - V1.21 Turn on GlyGen annotations loading
+ 3-May-2024 - V1.22 Adjust BIRD citation method in DictMethodChemRefHelper
+ 9-May-2024 - V1.23 Tweak to above update (V1.22); update setuptools config;
+                    Adjust provider type exclusion to accept a list of types (in DictMethodResourceProvider)
+13-May-2024 - V1.24 Update requirements
+25-Jul-2024 - V1.25 Update ligand neighbor calculations and populate them into polymer entity instance features;
+                    Remove NeighborInteractionProvider from DictMethodResourceProvider, since will now be calculating interactions on the fly
+20-Aug-2024 - V1.26 Add support for accessing target cofactor data from MongoDB
+27-Aug-2024 - V1.27 Update order of CARD resource cache loading

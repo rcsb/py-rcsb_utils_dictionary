@@ -19,6 +19,7 @@
 #   20-Mar-2023  dwp Adjust formula weight calculation of polymer entities to use weights of amino acids as they exist in a linked polymer chains
 #   28-Mar-2023  dwp Add transient '_entity_src_nat.rcsb_provenance_source' attribute to use later for populating '_rcsb_entity_source_organism.provenance_source';
 #                    Update assignment of '_entity_src_nat.pdbx_src_id'
+#    4-Mar-2024  dwp Populate rcsb_comp_model_provenance using deterministic logic instead of relying on external cache file
 ##
 """
 Helper class implements computed model method references in the RCSB dictionary extension.
@@ -56,6 +57,7 @@ class DictMethodCompModelHelper(object):
         #
         rP = kwargs.get("resourceProvider")
         self.__commonU = rP.getResource("DictMethodCommonUtils instance") if rP else None
+        #
         # dapw = rP.getResource("DictionaryAPIProviderWrapper instance") if rP else None
         # self.__dApi = dapw.getApiByName("pdbx_core") if dapw else None
         self.__dApi = kwargs.get("dictionaryApi", None)
@@ -63,8 +65,6 @@ class DictMethodCompModelHelper(object):
             logger.debug("Loaded API for: %r", self.__dApi.getDictionaryTitle())
         else:
             logger.error("Missing dictionary API %r", kwargs)
-        #
-        self.__mcP = rP.getResource("ModelCacheProvider instance") if rP else None
         #
         # Dictionary of amino acids and their formula weights as they exist in a linked polymer chain vs as isolated amino acids (i.e. less 1 oxygen and 2 hydrogens)
         self.aaFwDict3 = {k: v - 18.015 for k, v in {
@@ -312,6 +312,8 @@ class DictMethodCompModelHelper(object):
 
             if dataContainer.exists("ma_qa_metric_global"):
                 bObj = dataContainer.getObj("ma_qa_metric_global")
+            else:
+                return False
 
             maQaMetricTypeD = self.__commonU.getMaQaMetricType(dataContainer)
             maQaMetricGlobalTypeD = maQaMetricTypeD["maQaMetricGlobalTypeD"]
@@ -338,7 +340,7 @@ class DictMethodCompModelHelper(object):
                 mD[modelId] = bObj.selectValuesWhere("metric_id", modelId, "model_id")
             for ii in range(cObj.getRowCount()):
                 modelId = cObj.getValue("model_id", ii)
-                cObj.setValue(",".join(vD[modelId]), "ma_qa_metric_global_value", ii)
+                cObj.setValue(",".join([str(v) for v in vD[modelId]]), "ma_qa_metric_global_value", ii)
                 cObj.setValue(",".join([str(maQaMetricGlobalTypeD[mId]["type"]) for mId in mD[modelId]]), "ma_qa_metric_global_type", ii)
                 cObj.setValue(",".join([str(maQaMetricGlobalTypeD[mId]["name"]) for mId in mD[modelId]]), "ma_qa_metric_global_name", ii)
 
@@ -368,7 +370,7 @@ class DictMethodCompModelHelper(object):
         """
         try:
             logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
-            if not (dataContainer.exists("entry") and dataContainer.exists("ma_data")):
+            if not (dataContainer.exists("entry") and dataContainer.exists("ma_data") and dataContainer.exists("database_2")):
                 return False
 
             if catName != "rcsb_comp_model_provenance":
@@ -379,28 +381,44 @@ class DictMethodCompModelHelper(object):
             if not dataContainer.exists(catName):
                 dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
 
+            # Remove this when done switching to 200 million BCIF load, since only needed for original ~1 million AF load
+            rP = kwargs.get("resourceProvider")
+            mcP = rP.getResource("ModelHoldingsProvider instance") if rP else None
+
             cObj = dataContainer.getObj(catName)
 
             tObj = dataContainer.getObj("entry")
             entryId = tObj.getValue("id", 0)
 
-            # NOTE: Old approach - from when we were using the external/source ID as entry.id
-            # compModelId = self.__mcP.getInternalCompModelId(entryId)
-            # if not compModelId:
-            #     logger.error("Unable to map computed-model entryId/sourceId (%s) to internal identifier - sourceId key not found.", entryId)
-            #     return False
+            sourceDb, sourceId = None, None
+            if entryId.startswith("MA_"):
+                sourceDb = "ModelArchive"
+            elif entryId.startswith("AF_"):
+                sourceDb = "AlphaFoldDB"
 
-            compModelD = self.__mcP.getCompModelData(entryId)
+            if not sourceDb:
+                return False
 
-            cObj.setValue(compModelD["sourceId"], "entry_id", 0)
-            cObj.setValue(compModelD["sourceDb"], "source_db", 0)
-            sourceModelUrl = compModelD.get("sourceModelUrl", None)
-            if sourceModelUrl:
-                cObj.setValue(compModelD["sourceModelUrl"], "source_url", 0)
-            cObj.setValue(compModelD["sourceModelFileName"], "source_filename", 0)
-            sourceModelPaeUrl = compModelD.get("sourceModelPaeUrl", None)
-            if sourceModelPaeUrl:
-                cObj.setValue(compModelD["sourceModelPaeUrl"], "source_pae_url", 0)
+            dObj = dataContainer.getObj("database_2")
+            sourceId = dObj.selectValuesWhere("database_code", sourceDb, "database_id")[0]
+
+            if not sourceId:
+                return False
+
+            sourceModelFileName, sourceModelUrl, sourceModelPaeUrl = self.__getCompModelSourceDetails(sourceDb, sourceId)
+
+            # Remove these lines when done switching to 200 million BCIF load, since fragmented AF models are not included in the Google Cloud dataset
+            isFragmented = False
+            if mcP and mcP.getModelFragmentsDict():
+                isFragmented = mcP.checkIfFragmentedModel(entryId)
+
+            cObj.setValue(sourceId, "entry_id", 0)
+            cObj.setValue(sourceDb, "source_db", 0)
+            cObj.setValue(sourceModelFileName, "source_filename", 0)
+            if sourceModelUrl and not isFragmented:
+                cObj.setValue(sourceModelUrl, "source_url", 0)
+            if sourceModelPaeUrl and not isFragmented:
+                cObj.setValue(sourceModelPaeUrl, "source_pae_url", 0)
 
             return True
 
@@ -408,6 +426,26 @@ class DictMethodCompModelHelper(object):
             logger.exception("For %s failing with %s", catName, str(e))
 
         return False
+
+    def __getCompModelSourceDetails(self, sourceDb, sourceId):
+        """Construct the source URL based on the model name and source DB.
+
+        Args:
+            sourceDb (str): "AlphaFoldDB" or "ModelArchive"
+            sourceId (str): original entry.id as assigned by source DB
+        """
+        sourceModelFileName, sourceModelUrl, sourceModelPaeUrl = None, None, None
+        if sourceDb == "AlphaFoldDB":
+            sourceModelFileName = str(sourceId) + "-model_v4.cif.gz"  # sourceModelFileName is gzipped, URL is not
+            if sourceId.upper().endswith("F1"):
+                sourceModelUrl = "https://alphafold.ebi.ac.uk/files/" + str(sourceId) + "-model_v4.cif"
+                sourceModelPaeUrl = "https://alphafold.ebi.ac.uk/files/" + str(sourceId) + "-predicted_aligned_error_v4.json"
+        elif sourceDb == "ModelArchive":
+            sourceModelFileName = str(sourceId) + ".cif.gz"  # sourceModelFileName is gzipped, URL is not
+            sourceModelUrl = "https://www.modelarchive.org/api/projects/" + str(sourceId) + "?type=basic__model_file_name"  # for .cif file
+            # sourceModelUrl = "https://www.modelarchive.org/doi/10.5452/" + str(sourceId) + ".cif.gz"  # for .cif.gz file
+            sourceModelPaeUrl = None
+        return sourceModelFileName, sourceModelUrl, sourceModelPaeUrl
 
     def addStructInfo(self, dataContainer, catName, **kwargs):
         """Add missing struct table
