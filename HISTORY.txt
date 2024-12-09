@@ -137,3 +137,4 @@
                     Remove NeighborInteractionProvider from DictMethodResourceProvider, since will now be calculating interactions on the fly
 20-Aug-2024 - V1.26 Add support for accessing target cofactor data from MongoDB
 27-Aug-2024 - V1.27 Update order of CARD resource cache loading
+ 9-Dec-2024 - V1.28 Update Azure pipelines to use latest macOS, Ubuntu, and python 3.10
