@@ -24,6 +24,7 @@
 #   1-Apr-2024 dwp Turn on GlyGen annotations loading
 #  25-Jul-2024 dwp Add ligand interactions to polymer entity instance features;
 #                  Stop relying on NeighborInteractionProvider cache file, and instead calculate all interactions on the fly
+#  13-Dec-2024  bv Update buildInstanceValidationScores to handle validation data
 #
 ##
 """
@@ -2583,6 +2584,9 @@ class DictMethodEntityInstanceHelper(object):
                 #
                 cObj.setValue(vTup.rsr, "RSR", ii)
                 cObj.setValue(vTup.rscc, "RSCC", ii)
+                cObj.setValue(vTup.nAtomsEds, "natoms_eds", ii)
+                cObj.setValue(vTup.numAnglesRmsZ, "num_mogul_angles_RMSZ", ii)
+                cObj.setValue(vTup.numBondsRmsZ, "num_mogul_bonds_RMSZ", ii)
                 cObj.setValue(vTup.mogul_angles_rmsz, "mogul_angles_RMSZ", ii)
                 cObj.setValue(vTup.mogul_bonds_rmsz, "mogul_bonds_RMSZ", ii)
                 #
@@ -2593,7 +2597,8 @@ class DictMethodEntityInstanceHelper(object):
                 sTup = scoreD[(modelId, asymId, altId, compId)]
                 cObj.setValue(vTup.intermolecular_clashes if vTup.intermolecular_clashes else 0, "intermolecular_clashes", ii)
                 #
-                cObj.setValue("%.4f" % sTup[6], "average_occupancy", ii)
+                #cObj.setValue("%.4f" % sTup[6], "average_occupancy", ii)
+                cObj.setValue("%.4f" % vTup.avgOccupancy, "average_occupancy", ii)
                 cObj.setValue("%.4f" % sTup[5], "completeness", ii)
 
                 cObj.setValue("%.4f" % sTup[0] if sTup[0] else None, "score_model_fit", ii)

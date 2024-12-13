@@ -29,6 +29,7 @@
 # 18-Mar-2024 dwp Add method 'getPolymerEntityReferenceAlignments' to enable retrieval of all UniProt IDs
 # 24-Jul-2024 dwp Adjust ligand interaction calculation and provider to not rely on struct_conn and instead
 #                 base calculation on coordinates only
+# 10-Dec-2024  bv Update '__getInstanceModelOutliers' to handle validation data
 #
 ##
 """
@@ -88,8 +89,12 @@ NonpolymerBoundInstance = namedtuple("NonpolymerBoundInstance", BoundInstanceFie
 NonpolymerValidationFields = (
     "rsr",
     "rscc",
+    "nAtomsEds",
     "mogul_bonds_rmsz",
     "mogul_angles_rmsz",
+    "numAnglesRmsZ",
+    "numBondsRmsZ",
+    "avgOccupancy",
     "intermolecular_clashes",
     "mogul_bond_outliers",
     "mogul_angle_outliers",
@@ -4067,22 +4072,30 @@ class DictMethodCommonUtils(object):
                     rsr = None
                     rsrZ = None
                     rsrCc = None
+                    nAtomsEds = None
                     if vObj:
                         iiL = vObj.selectIndices(instId, "instance_id")
                         if len(iiL) == 1:
                             rsr = vObj.getValueOrDefault("RSR", iiL[0], defaultValue=None)
                             rsrZ = vObj.getValueOrDefault("RSRZ", iiL[0], defaultValue=None)
                             rsrCc = vObj.getValueOrDefault("RSRCC", iiL[0], defaultValue=None)
+                            nAtomsEds = vObj.getValueOrDefault("natoms_eds", iiL[0], defaultValue=None)
                     #
                     rotamerClass = gObj.getValueOrDefault("rotamer_class", ii, defaultValue=None)
                     ramaClass = gObj.getValueOrDefault("ramachandran_class", ii, defaultValue=None)
                     # Only need mogul values here
                     anglesRmsZ = None
                     bondsRmsZ = None
+                    numAnglesRmsZ = None
+                    numBondsRmsZ = None
+                    avgOccupancy = None
                     software = gObj.getValueOrDefault("program_for_bond_angle_geometry", ii, defaultValue=None)
                     if str(software).lower() == "mogul":
                         anglesRmsZ = gObj.getValueOrDefault("angles_RMSZ", ii, defaultValue=None)
                         bondsRmsZ = gObj.getValueOrDefault("bonds_RMSZ", ii, defaultValue=None)
+                        numAnglesRmsZ = gObj.getValueOrDefault("num_angles_RMSZ", ii, defaultValue=None)
+                        numBondsRmsZ = gObj.getValueOrDefault("num_bonds_RMSZ", ii, defaultValue=None)
+                        avgOccupancy = gObj.getValueOrDefault("average_occupancy", ii, defaultValue=None)
                     # ---
 
                     # ---
@@ -4136,8 +4149,12 @@ class DictMethodCommonUtils(object):
                             instanceModelValidationD[(modelId, asymId, altId, compId)] = NonpolymerValidationInstance(
                                 float(rsr) if rsr else None,
                                 float(rsrCc) if rsrCc else None,
+                                int(nAtomsEds) if nAtomsEds else None,
                                 float(bondsRmsZ) if bondsRmsZ else None,
                                 float(anglesRmsZ) if anglesRmsZ else None,
+                                int(numAnglesRmsZ) if numAnglesRmsZ else None,
+                                int(numBondsRmsZ) if numBondsRmsZ else None,
+                                float(avgOccupancy) if avgOccupancy else None,
                                 npClashD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npClashD else 0,
                                 npMogulBondOutlierD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npMogulBondOutlierD else 0,
                                 npMogulAngleOutlierD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npMogulAngleOutlierD else 0,
@@ -4743,7 +4760,8 @@ class DictMethodCommonUtils(object):
             "RSCC": "RSRCC",
             "RSR": "RSR",
             "RSRZ": "RSRZ",
-            "Q_SCORE": "Q_score"
+            "Q_SCORE": "Q_score",
+            "NATOMS_EDS": "natoms_eds"
         }
         OutlierCountFields = {
             "BOND_OUTLIERS": "count_bond_outliers",
@@ -4778,7 +4796,7 @@ class DictMethodCommonUtils(object):
             # pdbx_vrpt_model_instance_geometry
             if dataContainer.exists("pdbx_vrpt_model_instance_geometry"):
                 tObj = dataContainer.getObj("pdbx_vrpt_model_instance_geometry")
-                self.__getValidationData(dataContainer, tObj, iObj, {"OWAB": "OWAB"}, "instance_id", metricValD, dL)
+                self.__getValidationData(dataContainer, tObj, iObj, {"OWAB": "OWAB", "AVERAGE_OCCUPANCY": "average_occupancy"}, "instance_id", metricValD, dL)
 
             # pdbx_vrpt_model_instance
             if dataContainer.exists("pdbx_vrpt_model_instance"):
