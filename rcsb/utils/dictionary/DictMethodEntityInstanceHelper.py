@@ -2598,7 +2598,7 @@ class DictMethodEntityInstanceHelper(object):
                 cObj.setValue(vTup.intermolecular_clashes if vTup.intermolecular_clashes else 0, "intermolecular_clashes", ii)
                 #
                 #cObj.setValue("%.4f" % sTup[6], "average_occupancy", ii)
-                cObj.setValue("%.4f" % vTup.avgOccupancy, "average_occupancy", ii)
+                cObj.setValue("%.4f" % vTup.avgOccupancy if vTup.avgOccupancy else None, "average_occupancy", ii)
                 cObj.setValue("%.4f" % sTup[5], "completeness", ii)
 
                 cObj.setValue("%.4f" % sTup[0] if sTup[0] else None, "score_model_fit", ii)
