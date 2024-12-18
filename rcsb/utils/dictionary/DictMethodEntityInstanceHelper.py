@@ -25,6 +25,8 @@
 #  25-Jul-2024 dwp Add ligand interactions to polymer entity instance features;
 #                  Stop relying on NeighborInteractionProvider cache file, and instead calculate all interactions on the fly
 #  13-Dec-2024  bv Update buildInstanceValidationScores to handle validation data
+#  17-Dec-2024  bv Update buildEntityInstanceFeatures and buildInstanceValidationFeatures to turn off features for non-polymers 
+#                  and remove duplicate features for polymers
 #
 ##
 """
@@ -948,7 +950,9 @@ class DictMethodEntityInstanceHelper(object):
                     ii += 1
                 logger.debug("Completed populating local QA scores for computed model %r", dataContainer.getName())
 
-            npbD = self.__commonU.getBoundNonpolymersByInstance(dataContainer)
+            # Turn off features for non-polymers
+            #npbD = self.__commonU.getBoundNonpolymersByInstance(dataContainer)
+            npbD = {}
             jj = 1
             for asymId, rTupL in npbD.items():
                 for rTup in rTupL:
@@ -1258,6 +1262,13 @@ class DictMethodEntityInstanceHelper(object):
                 for fType in fTypeL:
                     if (asymId not in asymIdD) or (asymId not in asymAuthIdD):
                         continue
+                    # Turn off validation features for non-polymers
+                    if not hasSeq: 
+                        continue
+                    # Turn off specific validation features for polymers - these are handled differently and are duplicated here
+                    # Only RAMACHANDRAN_OUTLIER and ROTAMER_OUTLIER for polymers are retained
+                    if fType in ['BOND_OUTLIER', 'ANGLE_OUTLIER', 'STEREO_OUTLIER', 'RSCC_OUTLIER', 'RSRZ_OUTLIER']:
+                        continue
                     entityId = asymIdD[asymId]
                     authAsymId = asymAuthIdD[asymId]
                     #
@@ -1313,6 +1324,9 @@ class DictMethodEntityInstanceHelper(object):
                 localDataD = self.__commonU.getLocalValidationData(dataContainer)
                 if localDataD:  # No validation data at residue level
                     for (entityId, asymId, authAsymId, modelId, metricId, hasSeq), aD in localDataD.items():
+                        # Turn off validation features for non-polymers
+                        if not hasSeq:
+                            continue
                         cObj.setValue(ii + 1, "ordinal", ii)
                         cObj.setValue(entryId, "entry_id", ii)
                         cObj.setValue(entityId, "entity_id", ii)
