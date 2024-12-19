@@ -25,8 +25,11 @@
 #  25-Jul-2024 dwp Add ligand interactions to polymer entity instance features;
 #                  Stop relying on NeighborInteractionProvider cache file, and instead calculate all interactions on the fly
 #  13-Dec-2024  bv Update buildInstanceValidationScores to handle validation data
-#  17-Dec-2024  bv Update buildEntityInstanceFeatures and buildInstanceValidationFeatures to turn off features for non-polymers 
+#  19-Dec-2024  bv Update buildEntityInstanceFeatures and buildInstanceValidationFeatures to turn off features for non-polymers 
 #                  and remove duplicate features for polymers
+#                  Add filterPseudoEmptyVrptRecords and __getPseudoEmptyRowIndices
+#                  Skip non-representative models in buildInstanceValidationFeatures and buildInstanceValidationScores
+#                  Fix coverage in buildInstanceValidationFeatureSummary
 #
 ##
 """
@@ -1256,10 +1259,16 @@ class DictMethodEntityInstanceHelper(object):
             #
             logger.debug("Length instanceModelOutlierD %d", len(instanceModelOutlierD))
             #
+            # Get representative model
+            repModelId = self.__commonU.getRepresentativeModelId(dataContainer)
+            #
             for (modelId, asymId, altId, hasSeq), pTupL in instanceModelOutlierD.items():
                 fTypeL = sorted(set([pTup.outlierType for pTup in pTupL]))
                 jj = 1
                 for fType in fTypeL:
+                    # Skip non-representative models
+                    if modelId != repModelId:
+                        continue
                     if (asymId not in asymIdD) or (asymId not in asymAuthIdD):
                         continue
                     # Turn off validation features for non-polymers
@@ -1267,7 +1276,7 @@ class DictMethodEntityInstanceHelper(object):
                         continue
                     # Turn off specific validation features for polymers - these are handled differently and are duplicated here
                     # Only RAMACHANDRAN_OUTLIER and ROTAMER_OUTLIER for polymers are retained
-                    if fType in ['BOND_OUTLIER', 'ANGLE_OUTLIER', 'STEREO_OUTLIER', 'RSCC_OUTLIER', 'RSRZ_OUTLIER']:
+                    if fType in ['BOND_OUTLIER', 'ANGLE_OUTLIER', 'STEREO_OUTLIER', 'RSCC_OUTLIER', 'RSRZ_OUTLIER', "MOGUL_BOND_OUTLIER", "MOGUL_ANGLE_OUTLIER"]:
                         continue
                     entityId = asymIdD[asymId]
                     authAsymId = asymAuthIdD[asymId]
@@ -1324,6 +1333,9 @@ class DictMethodEntityInstanceHelper(object):
                 localDataD = self.__commonU.getLocalValidationData(dataContainer)
                 if localDataD:  # No validation data at residue level
                     for (entityId, asymId, authAsymId, modelId, metricId, hasSeq), aD in localDataD.items():
+                        # Skip non-representative models
+                        if modelId != repModelId:
+                            continue
                         # Turn off validation features for non-polymers
                         if not hasSeq:
                             continue
@@ -1885,7 +1897,8 @@ class DictMethodEntityInstanceHelper(object):
                     #
                     fracC = 0.0
                     if asymId in fValuesD and fType in validationCountTypes and fType in fValuesD[asymId] and fValuesD[asymId][fType]:
-                        fCount = sum(fValuesD[asymId][fType])
+                        #fCount = sum(fValuesD[asymId][fType])
+                        fCount = len(fValuesD[asymId][fType])
                         if asymId in fMonomerCountD and fType in fMonomerCountD[asymId] and entityId in entityPolymerLengthD:
                             fracC = float(fCount) / float(entityPolymerLengthD[entityId])
                         # This needs to be changed to use the correct source for all outlier types.
@@ -2528,7 +2541,12 @@ class DictMethodEntityInstanceHelper(object):
             # logger.info("%r occupancySumD %r", entryId, occupancySumD)
             # --
             # calculate scores and ranks and find best ranking
+            # Get representative model
+            repModelId = self.__commonU.getRepresentativeModelId(dataContainer)
             for (modelId, asymId, altId, compId), vTup in instanceModelValidationD.items():
+                # Skip non-representative models
+                if modelId != repModelId:
+                    continue
                 if (asymId not in asymIdD) or (asymId not in asymAuthIdD) or (modelId not in ["1"]):
                     continue
                 isBound = intIsBoundD[asymId] if asymId in intIsBoundD else False
@@ -2856,3 +2874,44 @@ class DictMethodEntityInstanceHelper(object):
         except Exception as e:
             logger.exception("For %s %r failing with %s", dataContainer.getName(), catName, str(e))
         return False
+
+    def filterPseudoEmptyVrptRecords(self, dataContainer, catName, **kwargs):
+        """Remove pseudo empty rows in vrpt categories ...
+
+        Example:
+
+        """
+        try:
+            if not (dataContainer.exists("pdbx_vrpt_summary_entity_geometry") or dataContainer.exists("pdbx_vrpt_summary_entity_entity_fit_to_map")):
+                return False
+            if dataContainer.exists("pdbx_vrpt_summary_entity_geometry"):
+                catName = "pdbx_vrpt_summary_entity_geometry"
+                cObj = dataContainer.getObj(catName)
+                aNameL = ["angles_RMSZ", "bonds_RMSZ", "num_angles_RMSZ", "num_bonds_RMSZ", "average_residue_inclusion"]
+                rL = self.__getPseudoEmptyRowIndices(dataContainer, catName, aNameL)
+                if rL:
+                    cObj.removeRows(rL)
+
+            if dataContainer.exists("pdbx_vrpt_summary_entity_fit_to_map"):
+                catName = "pdbx_vrpt_summary_entity_fit_to_map"
+                cObj = dataContainer.getObj(catName)
+                aNameL = ["Q_score", "average_residue_inclusion"]
+                rL = self.__getPseudoEmptyRowIndices(dataContainer, catName, aNameL)
+                if rL:
+                    cObj.removeRows(rL)
+            return True
+        except Exception as e:
+            logger.exception("For %s removing pseudo empty rows in vrpt categories failing with %s", dataContainer.getName(), str(e))
+        return False
+
+    def __getPseudoEmptyRowIndices(self, dataContainer, catName, attributeNameList):
+        rL = []
+        cObj = dataContainer.getObj(catName)
+        for ii in range(cObj.getRowCount()):
+            fL = []
+            for aName in attributeNameList:
+                fL.append(cObj.getValueOrDefault(aName, ii))
+            if all(val in ["?", ".", ""] for val in fL):
+                rL.append(ii)
+        return rL
+

@@ -23,13 +23,14 @@
 # 27-Jun-2022 bv  Update _rcsb_ma_qa_metric_global.ma_qa_metric_global_type to 'pLDDT' for AF models
 # 29-Jun-2022 dwp Use internal computed-model identifiers everywhere (in same manner as experimental models)
 #  3-Jul-2023 aae Update __getInstanceModelOutliers (old version is backed up as __getInstanceModelOutliersXML),
-#                 add method __getValidationData to get data from validation mmcif files
+#                 add method __getValidationData and getLocalValidationData to get data from validation mmcif files
 # 01-Feb-2024 bv  Add method 'getInstanceDeuWatMolCounts' to support deuterated water molecule count
 #                 Update methods 'getDepositedAtomCounts' and '__getAtomSiteInfo'
 # 18-Mar-2024 dwp Add method 'getPolymerEntityReferenceAlignments' to enable retrieval of all UniProt IDs
 # 24-Jul-2024 dwp Adjust ligand interaction calculation and provider to not rely on struct_conn and instead
 #                 base calculation on coordinates only
-# 10-Dec-2024  bv Update '__getInstanceModelOutliers' to handle validation data
+# 19-Dec-2024  bv Update '__getInstanceModelOutliers' to handle validation data
+#                 Add getRepresentativeModelId and getMethodList
 #
 ##
 """
@@ -4710,6 +4711,49 @@ class DictMethodCommonUtils(object):
             repModelL = ["1"] if "1" in mIdL else [mIdL[0]]
 
         return repModelL
+
+    def getMethodList(self, dataContainer):
+        """Return experimental or computational method list.
+        Args:
+            dataContainer (object): mmif.api.DataContainer object instance
+        Returns:
+            methodL (list): List of dictionary experimental method names
+        """
+        #
+        methodL = []
+        try:
+            if dataContainer.exists("exptl"):
+                xObj = dataContainer.getObj("exptl")
+                methodL = xObj.getAttributeValueList("method")
+            elif dataContainer.exists("ma_model_list"):
+                mObj = dataContainer.getObj("ma_model_list")
+                methodL = mObj.getAttributeUniqueValueList("model_type")
+        except Exception as e:
+            logger.debug("Failed to get method list with %s", str(e))
+        #
+        return methodL
+
+    def getRepresentativeModelId(self, dataContainer):
+        """Return the first representative model ID.
+        """
+
+        repModelId = "1"
+        try:
+            methodL = self.getMethodList(dataContainer)
+            repModelL = []
+            mIdL = self.getModelIdList(dataContainer)
+            if mIdL:
+                repModelL = ["1"] if "1" in mIdL else [mIdL[0]]
+                if self.hasMethodNMR(methodL):
+                    repModelL = self.getRepresentativeModels(dataContainer)
+            else:
+                logger.debug("No models available for %s", dataContainer.getName())
+            if repModelL:
+                repModelId = repModelL[0]
+        except Exception as e:
+            logger.debug("Failed to get representative model id with %s", str(e))
+
+        return repModelId
 
     def __getValidationData(self, dataContainer, tObj, iObj, fields, idField, metricValD, dL):
         for ii in range(tObj.getRowCount()):
