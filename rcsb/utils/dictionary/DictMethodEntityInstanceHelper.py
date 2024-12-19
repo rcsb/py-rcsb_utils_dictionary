@@ -2547,7 +2547,7 @@ class DictMethodEntityInstanceHelper(object):
                 # Skip non-representative models
                 if modelId != repModelId:
                     continue
-                if (asymId not in asymIdD) or (asymId not in asymAuthIdD) or (modelId not in ["1"]):
+                if (asymId not in asymIdD) or (asymId not in asymAuthIdD):
                     continue
                 isBound = intIsBoundD[asymId] if asymId in intIsBoundD else False
                 numHeavyAtoms = self.__ccP.getAtomCountHeavy(compId)
