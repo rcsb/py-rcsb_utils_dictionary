@@ -19,6 +19,7 @@
 #   2-Nov-2023 dwp Only populate rcsb_entity_feature_summary for features that are present
 #  18-Mar-2024 dwp Separate out gathering of entity reference sequence alignments from assignment step
 #  20-Aug-2024 dwp Add support for accessing target cofactor data from MongoDB
+#  19-Dec-2024  bv Stop populating rcsb_nonpolymer_instance_feature_summary from rcsb_entity_instance_validation_feature_summary
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
@@ -2490,7 +2491,8 @@ class DictMethodEntityHelper(object):
                     ("rcsb_entity_feature_summary", "rcsb_nonpolymer_entity_feature_summary", "entity_id"),
                     ("rcsb_entity_instance_feature", "rcsb_nonpolymer_instance_feature", "entity_id"),
                     ("rcsb_entity_instance_feature_summary", "rcsb_nonpolymer_instance_feature_summary", "entity_id"),
-                    ("rcsb_entity_instance_validation_feature_summary", "rcsb_nonpolymer_instance_feature_summary", "entity_id"),
+                    #("rcsb_entity_instance_validation_feature", "rcsb_nonpolymer_instance_feature", "entity_id"),
+                    #("rcsb_entity_instance_validation_feature_summary", "rcsb_nonpolymer_instance_feature_summary", "entity_id"),
                     ("rcsb_struct_conn", "rcsb_nonpolymer_struct_conn", "entity_id"),
                     ("rcsb_entity_annotation", "rcsb_nonpolymer_entity_annotation", "entity_id"),
                     ("rcsb_entity_instance_annotation", "rcsb_nonpolymer_instance_annotation", "entity_id"),
