@@ -821,15 +821,12 @@ class DictMethodEntryHelper(object):
             if dataContainer.exists("exptl"):
                 xObj = dataContainer.getObj("exptl")
                 entryId = xObj.getValue("entry_id", 0)
-                methodL = xObj.getAttributeValueList("method")
-                methodCount, expMethod = self.__commonU.filterExperimentalMethod(methodL)
+                methodCount, expMethod = self.__commonU.filterExperimentalMethod(dataContainer)
                 cObj.setValue(expMethod, "experimental_method", 0)
             elif dataContainer.exists("ma_model_list"):
                 tObj = dataContainer.getObj("entry")
                 entryId = tObj.getValue("id", 0)
-                mObj = dataContainer.getObj("ma_model_list")
-                methodL = mObj.getAttributeUniqueValueList("model_type")
-                methodCount, expMethod = self.__commonU.filterExperimentalMethod(methodL)
+                methodCount, expMethod = self.__commonU.filterExperimentalMethod(dataContainer)
             #
             if methodType not in ["experimental", "computational"]:
                 logger.error("Unexpected methodType %r found for entry %r", methodType, entryId)
@@ -942,25 +939,14 @@ class DictMethodEntryHelper(object):
             # ---------------------------------------------------------------------------------------------------------
             # INSTANCE FEATURES
             #
-            ##
-            repModelL = []
-            mIdL = self.__commonU.getModelIdList(dataContainer)
-            if mIdL:
-                repModelL = ["1"] if "1" in mIdL else [mIdL[0]]
-                if self.__commonU.hasMethodNMR(methodL):
-                    repModelL = self.__commonU.getRepresentativeModels(dataContainer)
-                logger.debug("Representative model list %r %r", repModelL, entryId)
-            else:
-                logger.debug("No models available for %s", dataContainer.getName())
+            repModelId = self.__commonU.getRepresentativeModelId(dataContainer)
             #
             instanceTypeCountD = self.__commonU.getInstanceTypeCounts(dataContainer)
             cObj.setValue(instanceTypeCountD["polymer"], "deposited_polymer_entity_instance_count", 0)
             cObj.setValue(instanceTypeCountD["non-polymer"], "deposited_nonpolymer_entity_instance_count", 0)
-
             #
             # Various atom counts -
             #
-            repModelId = repModelL[0]
             numHeavyAtomsModel, numHydrogenAtomsModel, numAtomsTotal, numModelsTotal, numDeuWatMolModel = self.__commonU.getDepositedAtomCounts(dataContainer, modelId=repModelId)
             #
             logger.debug("numAtomsTotal %d numHeavyAtomsModel %d numModelsTotal %d", numAtomsTotal, numHeavyAtomsModel, numModelsTotal)
@@ -1263,9 +1249,7 @@ class DictMethodEntryHelper(object):
             # --------------------------------------------------------------------------------------------------------
             #  Only applicable to X-ray
             #
-            xObj = dataContainer.getObj("exptl")
-            methodL = xObj.getAttributeValueList("method")
-            _, expMethod = self.__commonU.filterExperimentalMethod(methodL)
+            _, expMethod = self.__commonU.filterExperimentalMethod(dataContainer)
             if expMethod not in ["X-ray", "Neutron", "Multiple methods"]:
                 return False
             #
