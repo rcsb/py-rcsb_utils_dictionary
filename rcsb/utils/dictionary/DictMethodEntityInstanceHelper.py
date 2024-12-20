@@ -2875,12 +2875,13 @@ class DictMethodEntityInstanceHelper(object):
             logger.exception("For %s %r failing with %s", dataContainer.getName(), catName, str(e))
         return False
 
-    def filterPseudoEmptyVrptRecords(self, dataContainer, catName):
+    def filterPseudoEmptyVrptRecords(self, dataContainer, catName, **kwargs):
         """Remove pseudo empty rows in vrpt categories ...
 
         Example:
 
         """
+        logger.debug("Starting with %s %r %r", dataContainer.getName(), catName, kwargs)
         try:
             if not (dataContainer.exists("pdbx_vrpt_summary_entity_geometry") or dataContainer.exists("pdbx_vrpt_summary_entity_entity_fit_to_map")):
                 return False
