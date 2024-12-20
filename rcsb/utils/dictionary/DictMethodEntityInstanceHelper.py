@@ -25,7 +25,7 @@
 #  25-Jul-2024 dwp Add ligand interactions to polymer entity instance features;
 #                  Stop relying on NeighborInteractionProvider cache file, and instead calculate all interactions on the fly
 #  13-Dec-2024  bv Update buildInstanceValidationScores to handle validation data
-#  19-Dec-2024  bv Update buildEntityInstanceFeatures and buildInstanceValidationFeatures to turn off features for non-polymers 
+#  19-Dec-2024  bv Update buildEntityInstanceFeatures and buildInstanceValidationFeatures to turn off features for non-polymers
 #                  and remove duplicate features for polymers
 #                  Add filterPseudoEmptyVrptRecords and __getPseudoEmptyRowIndices
 #                  Skip non-representative models in buildInstanceValidationFeatures and buildInstanceValidationScores
@@ -954,7 +954,7 @@ class DictMethodEntityInstanceHelper(object):
                 logger.debug("Completed populating local QA scores for computed model %r", dataContainer.getName())
 
             # Turn off features for non-polymers
-            #npbD = self.__commonU.getBoundNonpolymersByInstance(dataContainer)
+            # npbD = self.__commonU.getBoundNonpolymersByInstance(dataContainer)
             npbD = {}
             jj = 1
             for asymId, rTupL in npbD.items():
@@ -1272,7 +1272,7 @@ class DictMethodEntityInstanceHelper(object):
                     if (asymId not in asymIdD) or (asymId not in asymAuthIdD):
                         continue
                     # Turn off validation features for non-polymers
-                    if not hasSeq: 
+                    if not hasSeq:
                         continue
                     # Turn off specific validation features for polymers - these are handled differently and are duplicated here
                     # Only RAMACHANDRAN_OUTLIER and ROTAMER_OUTLIER for polymers are retained
@@ -1897,7 +1897,7 @@ class DictMethodEntityInstanceHelper(object):
                     #
                     fracC = 0.0
                     if asymId in fValuesD and fType in validationCountTypes and fType in fValuesD[asymId] and fValuesD[asymId][fType]:
-                        #fCount = sum(fValuesD[asymId][fType])
+                        # fCount = sum(fValuesD[asymId][fType])
                         fCount = len(fValuesD[asymId][fType])
                         if asymId in fMonomerCountD and fType in fMonomerCountD[asymId] and entityId in entityPolymerLengthD:
                             fracC = float(fCount) / float(entityPolymerLengthD[entityId])
@@ -1925,14 +1925,14 @@ class DictMethodEntityInstanceHelper(object):
                         methodL = xObj.getAttributeValueList("method")
                         _, expMethod = self.__commonU.filterExperimentalMethod(methodL)
                         # -- Get existing interactions or calculate on the fly
-                        if self.__niP.hasEntry(entryId):
-                            ligandAtomCountD = self.__niP.getAtomCounts(entryId)
-                            ligandHydrogenAtomCountD = self.__niP.getHydrogenAtomCounts(entryId)
-                            intIsBoundD = self.__niP.getLigandNeighborBoundState(entryId)
-                        else:
-                            ligandAtomCountD = self.__commonU.getLigandAtomCountD(dataContainer)
-                            ligandHydrogenAtomCountD = self.__commonU.getLigandHydrogenAtomCountD(dataContainer)
-                            intIsBoundD = self.__commonU.getLigandNeighborBoundState(dataContainer)
+                        # if self.__niP.hasEntry(entryId):
+                        #     ligandAtomCountD = self.__niP.getAtomCounts(entryId)
+                        #     ligandHydrogenAtomCountD = self.__niP.getHydrogenAtomCounts(entryId)
+                        #     intIsBoundD = self.__niP.getLigandNeighborBoundState(entryId)
+                        # else:
+                        ligandAtomCountD = self.__commonU.getLigandAtomCountD(dataContainer)
+                        ligandHydrogenAtomCountD = self.__commonU.getLigandHydrogenAtomCountD(dataContainer)
+                        intIsBoundD = self.__commonU.getLigandNeighborBoundState(dataContainer)
                         isBound = intIsBoundD[asymId] if asymId in intIsBoundD else False
                         numHeavyAtoms = self.__ccP.getAtomCountHeavy(compId)
                         numAtoms = self.__ccP.getAtomCount(compId)
@@ -2367,7 +2367,7 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue(version, "assignment_version", ii)
                     #
                     ii += 1
-                   #jj += 1
+                    # jj += 1
             #  ------------
             # Glycosylation annotations
             jj = 1
@@ -2629,7 +2629,7 @@ class DictMethodEntityInstanceHelper(object):
                 sTup = scoreD[(modelId, asymId, altId, compId)]
                 cObj.setValue(vTup.intermolecular_clashes if vTup.intermolecular_clashes else 0, "intermolecular_clashes", ii)
                 #
-                #cObj.setValue("%.4f" % sTup[6], "average_occupancy", ii)
+                # cObj.setValue("%.4f" % sTup[6], "average_occupancy", ii)
                 cObj.setValue("%.4f" % vTup.avgOccupancy if vTup.avgOccupancy else None, "average_occupancy", ii)
                 cObj.setValue("%.4f" % sTup[5], "completeness", ii)
 
@@ -2875,7 +2875,7 @@ class DictMethodEntityInstanceHelper(object):
             logger.exception("For %s %r failing with %s", dataContainer.getName(), catName, str(e))
         return False
 
-    def filterPseudoEmptyVrptRecords(self, dataContainer, catName, **kwargs):
+    def filterPseudoEmptyVrptRecords(self, dataContainer, catName):
         """Remove pseudo empty rows in vrpt categories ...
 
         Example:
@@ -2914,4 +2914,3 @@ class DictMethodEntityInstanceHelper(object):
             if all(val in ["?", ".", ""] for val in fL):
                 rL.append(ii)
         return rL
-
