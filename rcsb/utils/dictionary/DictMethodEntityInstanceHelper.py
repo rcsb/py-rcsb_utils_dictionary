@@ -2883,6 +2883,8 @@ class DictMethodEntityInstanceHelper(object):
         """
         logger.debug("Starting with %s %r %r", dataContainer.getName(), catName, kwargs)
         try:
+            if not dataContainer.exists("pdbx_vrpt_summary"):
+                return False
             if not (dataContainer.exists("pdbx_vrpt_summary_entity_geometry") or dataContainer.exists("pdbx_vrpt_summary_entity_entity_fit_to_map")):
                 return False
             if dataContainer.exists("pdbx_vrpt_summary_entity_geometry"):
