@@ -27,7 +27,7 @@
 #  13-Dec-2024  bv Update buildInstanceValidationScores to handle validation data
 #  19-Dec-2024  bv Update buildEntityInstanceFeatures and buildInstanceValidationFeatures to turn off features for non-polymers
 #                  and remove duplicate features for polymers
-#                  Add filterPseudoEmptyVrptRecords and __getPseudoEmptyRowIndices
+#                  Add filterPseudoEmptyVrptRecords
 #                  Skip non-representative models in buildInstanceValidationFeatures and buildInstanceValidationScores
 #                  Fix coverage in buildInstanceValidationFeatureSummary
 #
@@ -2879,41 +2879,62 @@ class DictMethodEntityInstanceHelper(object):
         """Remove pseudo empty rows in vrpt categories ...
 
         Example:
+        Remove rows that look like this
+        loop_
+        _pdbx_vrpt_summary_entity_geometry.ordinal
+        _pdbx_vrpt_summary_entity_geometry.PDB_model_num
+        _pdbx_vrpt_summary_entity_geometry.entity_id
+        _pdbx_vrpt_summary_entity_geometry.label_asym_id
+        _pdbx_vrpt_summary_entity_geometry.auth_asym_id
+        _pdbx_vrpt_summary_entity_geometry.angles_RMSZ
+        _pdbx_vrpt_summary_entity_geometry.bonds_RMSZ
+        _pdbx_vrpt_summary_entity_geometry.num_bonds_RMSZ
+        _pdbx_vrpt_summary_entity_geometry.num_angles_RMSZ
+         2   1  2  B  A     ?     ?     ?     ?
+         3   1  3  C  A     ?     ?     ?     ?
 
         """
         logger.debug("Starting with %s %r %r", dataContainer.getName(), catName, kwargs)
         try:
             if not dataContainer.exists("pdbx_vrpt_summary"):
                 return False
-            if not (dataContainer.exists("pdbx_vrpt_summary_entity_geometry") or dataContainer.exists("pdbx_vrpt_summary_entity_entity_fit_to_map")):
+            if not (dataContainer.exists("pdbx_vrpt_summary_entity_geometry") or dataContainer.exists("pdbx_vrpt_summary_entity_entity_fit_to_map") or dataContainer.exists("pdbx_vrpt_summary_diffraction")):
                 return False
+
+            aValL = ["?", ".", "", "None"]
+
             if dataContainer.exists("pdbx_vrpt_summary_entity_geometry"):
                 catName = "pdbx_vrpt_summary_entity_geometry"
                 cObj = dataContainer.getObj(catName)
                 aNameL = ["angles_RMSZ", "bonds_RMSZ", "num_angles_RMSZ", "num_bonds_RMSZ", "average_residue_inclusion"]
-                rL = self.__getPseudoEmptyRowIndices(dataContainer, catName, aNameL)
+                cndL = [(aName, "in", aValL) for aName in aNameL]
+                rL = cObj.selectIndicesWhereOpConditions(cndL)
                 if rL:
+                    logger.debug("For %s removing pseudo empty rows %s in %s", dataContainer.getName(), rL, catName)
                     cObj.removeRows(rL)
 
             if dataContainer.exists("pdbx_vrpt_summary_entity_fit_to_map"):
                 catName = "pdbx_vrpt_summary_entity_fit_to_map"
                 cObj = dataContainer.getObj(catName)
                 aNameL = ["Q_score", "average_residue_inclusion"]
-                rL = self.__getPseudoEmptyRowIndices(dataContainer, catName, aNameL)
+                cndL = [(aName, "in", aValL) for aName in aNameL]
+                rL = cObj.selectIndicesWhereOpConditions(cndL)
                 if rL:
+                    logger.debug("For %s removing pseudo empty rows %s in %s", dataContainer.getName(), rL, catName)
                     cObj.removeRows(rL)
+
+            if dataContainer.exists("pdbx_vrpt_summary_diffraction"):
+                catName = "pdbx_vrpt_summary_diffraction"
+                cObj = dataContainer.getObj(catName)
+                attributeNameList = self.__dApi.getAttributeNameList(catName)
+                kL = ["ordinal", "exp_method", "PDB_resolution_high", "PDB_resolution_low", "PDB_R", "PDB_Rfree"]
+                cndL = [(attributeName, "in", aValL) for attributeName in attributeNameList if attributeName not in kL]
+                rL = cObj.selectIndicesWhereOpConditions(cndL)
+                if rL:
+                    logger.debug("For %s removing pseudo empty rows %s in %s", dataContainer.getName(), rL, catName)
+                    cObj.removeRows(rL)
+
             return True
         except Exception as e:
             logger.exception("For %s removing pseudo empty rows in vrpt categories failing with %s", dataContainer.getName(), str(e))
         return False
-
-    def __getPseudoEmptyRowIndices(self, dataContainer, catName, attributeNameList):
-        rL = []
-        cObj = dataContainer.getObj(catName)
-        for ii in range(cObj.getRowCount()):
-            fL = []
-            for aName in attributeNameList:
-                fL.append(cObj.getValueOrDefault(aName, ii))
-            if all(val in ["?", ".", ""] for val in fL):
-                rL.append(ii)
-        return rL
