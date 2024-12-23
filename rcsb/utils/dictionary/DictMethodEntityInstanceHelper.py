@@ -2902,6 +2902,7 @@ class DictMethodEntityInstanceHelper(object):
                 return False
 
             aValL = ["?", ".", "", "None"]
+            repModelId = self.__commonU.getRepresentativeModelId(dataContainer)
 
             if dataContainer.exists("pdbx_vrpt_summary_entity_geometry"):
                 catName = "pdbx_vrpt_summary_entity_geometry"
@@ -2909,9 +2910,13 @@ class DictMethodEntityInstanceHelper(object):
                 aNameL = ["angles_RMSZ", "bonds_RMSZ", "num_angles_RMSZ", "num_bonds_RMSZ", "average_residue_inclusion"]
                 cndL = [(aName, "in", aValL) for aName in aNameL]
                 rL = cObj.selectIndicesWhereOpConditions(cndL)
+                # Skip non-representative models
+                if repModelId:
+                    cndL2 = [("PDB_model_num", "ne", repModelId)]
+                    rL.extend(cObj.selectIndicesWhereOpConditions(cndL2))
                 if rL:
                     logger.debug("For %s removing pseudo empty rows %s in %s", dataContainer.getName(), rL, catName)
-                    cObj.removeRows(rL)
+                    cObj.removeRows(list(set(rL)))
 
             if dataContainer.exists("pdbx_vrpt_summary_entity_fit_to_map"):
                 catName = "pdbx_vrpt_summary_entity_fit_to_map"
@@ -2919,9 +2924,13 @@ class DictMethodEntityInstanceHelper(object):
                 aNameL = ["Q_score", "average_residue_inclusion"]
                 cndL = [(aName, "in", aValL) for aName in aNameL]
                 rL = cObj.selectIndicesWhereOpConditions(cndL)
+                # Skip non-representative models
+                if repModelId:
+                    cndL2 = [("PDB_model_num", "ne", repModelId)]
+                    rL.extend(cObj.selectIndicesWhereOpConditions(cndL2))
                 if rL:
                     logger.debug("For %s removing pseudo empty rows %s in %s", dataContainer.getName(), rL, catName)
-                    cObj.removeRows(rL)
+                    cObj.removeRows(list(set(rL)))
 
             if dataContainer.exists("pdbx_vrpt_summary_diffraction"):
                 catName = "pdbx_vrpt_summary_diffraction"
@@ -2932,7 +2941,7 @@ class DictMethodEntityInstanceHelper(object):
                 rL = cObj.selectIndicesWhereOpConditions(cndL)
                 if rL:
                     logger.debug("For %s removing pseudo empty rows %s in %s", dataContainer.getName(), rL, catName)
-                    cObj.removeRows(rL)
+                    cObj.removeRows(list(set(rL)))
 
             return True
         except Exception as e:
