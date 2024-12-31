@@ -1774,7 +1774,7 @@ class DictMethodEntityInstanceHelper(object):
         try:
             if catName != "rcsb_entity_instance_validation_feature_summary":
                 return False
-            if not dataContainer.exists("rcsb_entity_instance_validation_feature") and not dataContainer.exists("entry"):
+            if not dataContainer.exists("rcsb_entity_instance_validation_feature") or not dataContainer.exists("entry"):
                 return False
 
             if not dataContainer.exists(catName):
