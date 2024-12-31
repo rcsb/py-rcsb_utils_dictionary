@@ -1224,6 +1224,7 @@ class DictMethodEntityInstanceHelper(object):
 
         """
         logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
+        startTime = time.time()
         typeMapD = {
             "ROTAMER_OUTLIER": "Molprobity rotamer outlier",
             "RAMACHANDRAN_OUTLIER": "Molprobity Ramachandran outlier",
@@ -1240,6 +1241,18 @@ class DictMethodEntityInstanceHelper(object):
             # Exit if source categories are missing
             if not dataContainer.exists("entry"):
                 return False
+
+            # Get representative model
+            repModelId = self.__commonU.getRepresentativeModelId(dataContainer)
+
+            # Get number of modeled and unmodeled residues
+            modeledCount, unModeledCount = self.__commonU.getDepositedMonomerCounts(dataContainer, modelId=repModelId)
+
+            if modeledCount > 25000:
+                endTime = time.time()
+                logger.info("Skipping large entry at %s (%.4f seconds) PDBID %s", time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - startTime, dataContainer.getName())
+                return False
+
             #
             eObj = dataContainer.getObj("entry")
             entryId = eObj.getValue("id", 0)
@@ -1258,9 +1271,6 @@ class DictMethodEntityInstanceHelper(object):
             # ("OutlierValue", "compId, seqId, outlierType, description, reported, reference, uncertaintyValue, uncertaintyType")
             #
             logger.debug("Length instanceModelOutlierD %d", len(instanceModelOutlierD))
-            #
-            # Get representative model
-            repModelId = self.__commonU.getRepresentativeModelId(dataContainer)
             #
             for (modelId, asymId, altId, hasSeq), pTupL in instanceModelOutlierD.items():
                 fTypeL = sorted(set([pTup.outlierType for pTup in pTupL]))
@@ -1368,6 +1378,8 @@ class DictMethodEntityInstanceHelper(object):
                     logger.debug("Completed populating local validation report data for %r", dataContainer.getName())
 
             #
+            endTime = time.time()
+            logger.info("Completed at %s (%.4f seconds) PDBID %s", time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - startTime, dataContainer.getName())
             return True
         except Exception as e:
             logger.exception("For %s %r failing with %s", dataContainer.getName(), catName, str(e))

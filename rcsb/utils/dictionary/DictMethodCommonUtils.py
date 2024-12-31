@@ -185,6 +185,7 @@ class DictMethodCommonUtils(object):
         self.__instanceUnobservedCache = CacheUtils(size=cacheSize, label="instance unobserved details")
         self.__modelOutliersCache = CacheUtils(size=cacheSize, label="model outlier details")
         self.__neighborInfoCache = CacheUtils(size=cacheSize, label="ligand and target nearest neighbors")
+        self.__localValidationCache = CacheUtils(size=cacheSize, label="local validation data")
         #
         logger.debug("Dictionary common utilities init")
 
@@ -4755,7 +4756,7 @@ class DictMethodCommonUtils(object):
 
         return repModelId
 
-    def __getValidationData(self, dataContainer, tObj, iObj, fields, idField, metricValD, dL):
+    def __getValidationData(self, dataContainer, tObj, iObj, fields, idField, metricValD, dL, repModelId):
         for ii in range(tObj.getRowCount()):
             instId = tObj.getValue(idField, ii)
             [[entityId, asymId, compId, authAsymId, seqId, modelNum]] = iObj.selectValueListWhere(
@@ -4771,6 +4772,8 @@ class DictMethodCommonUtils(object):
             instTypeD = self.getInstanceTypes(dataContainer)
             if instTypeD[asymId] not in ["polymer", "non-polymer"]:
                 continue
+            if modelNum != repModelId:
+                continue
             for iFd, iFdv in fields.items():
                 value = tObj.getValueOrDefault(iFdv, ii, None)
                 if value is not None:
@@ -4779,7 +4782,7 @@ class DictMethodCommonUtils(object):
                         metricValD.setdefault((entityId, asymId, authAsymId, modelNum, iFd, seqId and seqId not in [".", "?"]), []).append((compId, seqId, value))
                         dL.append(tId)
 
-    def getLocalValidationData(self, dataContainer):
+    def __getLocalValidation(self, dataContainer):
         """ Get Local validation data from the Validation report
             (e.g., pdbx_vrpt_model_instance_map_fitting.Q_score) and convert to objects corresponding to
             rcsb_entity_instance_feature in the RCSB extension dictionary
@@ -4821,6 +4824,9 @@ class DictMethodCommonUtils(object):
         }
 
         try:
+            # Get representative model
+            repModelId = self.getRepresentativeModelId(dataContainer)
+
             iObj = dataContainer.getObj("pdbx_vrpt_model_instance")
             eObj = dataContainer.getObj("entry")
             entryId = eObj.getValue("id", 0)
@@ -4830,22 +4836,22 @@ class DictMethodCommonUtils(object):
             # pdbx_vrpt_model_instance_map_fitting
             if dataContainer.exists("pdbx_vrpt_model_instance_map_fitting"):
                 tObj = dataContainer.getObj("pdbx_vrpt_model_instance_map_fitting")
-                self.__getValidationData(dataContainer, tObj, iObj, ValidationFields, "instance_id", metricValD, dL)
+                self.__getValidationData(dataContainer, tObj, iObj, ValidationFields, "instance_id", metricValD, dL, repModelId)
 
             # pdbx_vrpt_model_instance_density
             if dataContainer.exists("pdbx_vrpt_model_instance_density"):
                 tObj = dataContainer.getObj("pdbx_vrpt_model_instance_density")
-                self.__getValidationData(dataContainer, tObj, iObj, ValidationFields, "instance_id", metricValD, dL)
+                self.__getValidationData(dataContainer, tObj, iObj, ValidationFields, "instance_id", metricValD, dL, repModelId)
 
             # pdbx_vrpt_model_instance_geometry
             if dataContainer.exists("pdbx_vrpt_model_instance_geometry"):
                 tObj = dataContainer.getObj("pdbx_vrpt_model_instance_geometry")
-                self.__getValidationData(dataContainer, tObj, iObj, {"OWAB": "OWAB", "AVERAGE_OCCUPANCY": "average_occupancy"}, "instance_id", metricValD, dL)
+                self.__getValidationData(dataContainer, tObj, iObj, {"OWAB": "OWAB", "AVERAGE_OCCUPANCY": "average_occupancy"}, "instance_id", metricValD, dL, repModelId)
 
             # pdbx_vrpt_model_instance
             if dataContainer.exists("pdbx_vrpt_model_instance"):
                 tObj = dataContainer.getObj("pdbx_vrpt_model_instance")
-                self.__getValidationData(dataContainer, tObj, iObj, OutlierCountFields, "id", metricValD, dL)
+                self.__getValidationData(dataContainer, tObj, iObj, OutlierCountFields, "id", metricValD, dL, repModelId)
 
             for (entityId, asymId, authAsymId, modelId, attrId, hasSeq), aL in metricValD.items():
                 tD = {}
@@ -4874,4 +4880,25 @@ class DictMethodCommonUtils(object):
         except Exception as e:
             logger.exception("Failing for %s with %s", dataContainer.getName(), str(e))
 
+        return localDataD
+
+    def getLocalValidationData(self, dataContainer):
+        """Return a dictionary of polymer local validation data.
+
+        Args:
+            dataContainer (object):  mmcif.api.DataContainer object instance
+
+        Returns:
+            dict: {(modelId, asymId): (seqId,compId), ...}
+        """
+        if not dataContainer or not dataContainer.getName():
+            return {}
+        localDataD = self.__fetchLocalValidationData(dataContainer)
+        return localDataD if localDataD else {}
+
+    def __fetchLocalValidationData(self, dataContainer):
+        localDataD = self.__localValidationCache.get(dataContainer.getName())
+        if not localDataD:
+            localDataD = self.__getLocalValidation(dataContainer)
+            self.__localValidationCache.set(dataContainer.getName(), localDataD)
         return localDataD
