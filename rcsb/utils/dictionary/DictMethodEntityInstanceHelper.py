@@ -1866,14 +1866,16 @@ class DictMethodEntityInstanceHelper(object):
                 "MOGUL_BOND_OUTLIERS",
                 "MOGUL_ANGLE_OUTLIERS",
                 "MOGUL_TORSION_OUTLIERS",
-                "MOGUL_RING_OUTLIERS"
+                "MOGUL_RING_OUTLIERS",
+                "NATOMS_EDS"
             ]
             validationValueTypes = [
                 "RSR",
                 "RSRZ",
                 "RSCC",
                 "OWAB",
-                "Q_SCORE"
+                "Q_SCORE",
+                "AVERAGE_OCCUPANCY"
             ]
             ii = 0
             # Summarize all instances -
