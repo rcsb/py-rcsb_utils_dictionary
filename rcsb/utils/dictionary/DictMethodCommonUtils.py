@@ -4188,7 +4188,6 @@ class DictMethodCommonUtils(object):
             # Exit if no source categories are present
             if not (
                     dataContainer.exists("pdbx_vrpt_model_instance")
-                    or dataContainer.exists("pdbx_vrpt_instance_stereo_outliers")
                     or dataContainer.exists("pdbx_vrpt_model_instance_geometry")
                     or dataContainer.exists("pdbx_vrpt_model_instance_density")
                     or dataContainer.exists("pdbx_vrpt_model_instance_map_fitting")
@@ -4200,7 +4199,7 @@ class DictMethodCommonUtils(object):
             #
             npMogulBondOutlierD = {}
             npMogulAngleOutlierD = {}
-            npStereoOutlierD = defaultdict(int)
+            npStereoOutlierD = {}
             npClashD = {}
             #
             iObj = dataContainer.getObj("pdbx_vrpt_model_instance")
@@ -4208,88 +4207,53 @@ class DictMethodCommonUtils(object):
                 return rD
 
             repModelId = self.getRepresentativeModelId(dataContainer)
-            iL = iObj.selectValuesWhere("id", repModelId, "PDB_model_num")
-            cndL = [("instance_id", "not in", iL)]
 
             instanceTypeD = self.getInstanceTypes(dataContainer)
-            for ii in range(iObj.getRowCount()):
+            npAsymL = [k for k, v in instanceTypeD.items() if v == "non-polymer"]
+            if not npAsymL:
+                return rD
+            cndL2 = [("label_asym_id", "in", npAsymL), ("PDB_model_num", "eq", repModelId)]
+            kL = iObj.selectIndicesWhereOpConditions(cndL2)
+            instL = []
+            for ii in kL:
                 modelId = iObj.getValueOrDefault("PDB_model_num", ii, defaultValue=None)
                 if modelId != repModelId:
                     continue
                 asymId = iObj.getValueOrDefault("label_asym_id", ii, defaultValue=None)
-                if asymId in instanceTypeD and instanceTypeD[asymId] == "non-polymer":
+                if asymId in npAsymL:
+                    instL.append(iObj.getValueOrDefault("id", ii, defaultValue=None))
                     altId = iObj.getValueOrDefault("label_alt_id", ii, defaultValue=None)
                     compId = iObj.getValueOrDefault("label_comp_id", ii, defaultValue=None)
                     countClashes = iObj.getValueOrDefault("count_clashes", ii, defaultValue=None)
                     countMogulAngleOutliers = iObj.getValueOrDefault("count_mogul_angle_outliers", ii, defaultValue=None)
                     countMogulBondOutliers = iObj.getValueOrDefault("count_mogul_bond_outliers", ii, defaultValue=None)
+                    countStereoOutliers = iObj.getValueOrDefault("count_chiral_outliers", ii, defaultValue=None)
                     npMogulBondOutlierD[(modelId, asymId, altId, compId)] = countMogulBondOutliers if countMogulBondOutliers else 0
                     npMogulAngleOutlierD[(modelId, asymId, altId, compId)] = countMogulAngleOutliers if countMogulAngleOutliers else 0
                     npClashD[(modelId, asymId, altId, compId)] = countClashes if countClashes else 0
-            # --
-            vObj = None
-            if dataContainer.exists("pdbx_vrpt_instance_stereo_outliers"):
-                vObj = dataContainer.getObj("pdbx_vrpt_instance_stereo_outliers")
-            if vObj:
-                rL = vObj.selectIndicesWhereOpConditions(cndL)
-                if rL:
-                    vObj.removeRows(list(set(rL)))
-                for ii in range(vObj.getRowCount()):
-                    instId = vObj.getValueOrDefault("instance_id", ii, defaultValue=None)
-                    [fL] = iObj.selectValueListWhere(["PDB_model_num", "label_asym_id", "label_comp_id", "label_alt_id", "label_seq_id"], instId, "id")
-                    [modelId, asymId, compId, altId, seqId] = [x if not (x in [".", "?"]) else None for x in fL]
-                    if modelId != repModelId:
-                        continue
-                    if not seqId:
-                        npStereoOutlierD[(modelId, asymId, altId, compId)] += 1
+                    npStereoOutlierD[(modelId, asymId, altId, compId)] = countStereoOutliers if countStereoOutliers else 0
+            cndL3 = [("instance_id", "in", instL)]
             # ----
             vObj = None
             if dataContainer.exists("pdbx_vrpt_model_instance_map_fitting"):
                 vObj = dataContainer.getObj("pdbx_vrpt_model_instance_map_fitting")
             elif dataContainer.exists("pdbx_vrpt_model_instance_density"):
                 vObj = dataContainer.getObj("pdbx_vrpt_model_instance_density")
-            if vObj:
-                rL = vObj.selectIndicesWhereOpConditions(cndL)
-                if rL:
-                    vObj.removeRows(list(set(rL)))
 
             gObj = None
             if dataContainer.exists("pdbx_vrpt_model_instance_geometry"):
                 gObj = dataContainer.getObj("pdbx_vrpt_model_instance_geometry")
             if gObj:
                 logger.debug("Row count for %s: %d", gObj.getName(), gObj.getRowCount())
-                rL = gObj.selectIndicesWhereOpConditions(cndL)
-                if rL:
-                    gObj.removeRows(list(set(rL)))
-                for ii in range(gObj.getRowCount()):
+                kL = gObj.selectIndicesWhereOpConditions(cndL3)
+                for ii in kL:
                     instId = gObj.getValueOrDefault("instance_id", ii, defaultValue=None)
                     [fL] = iObj.selectValueListWhere(["PDB_model_num", "label_asym_id", "label_comp_id", "label_alt_id", "label_seq_id"], instId, "id")
                     [modelId, asymId, compId, altId, seqId] = [x if not (x in [".", "?", "None"]) else None for x in fL]
                     if modelId != repModelId:
                         continue
                     # ---
-                    if seqId:
-                        rotamerClass = gObj.getValueOrDefault("rotamer_class", ii, defaultValue=None)
-                        ramaClass = gObj.getValueOrDefault("ramachandran_class", ii, defaultValue=None)
-                        if rotamerClass and rotamerClass.upper() == "OUTLIER":
-                            instanceModelOutlierD.setdefault((modelId, asymId, altId, True), []).append(
-                                OutlierValue(
-                                    compId,
-                                    int(seqId),
-                                    "ROTAMER_OUTLIER",
-                                    None,
-                                )
-                            )
-                        if ramaClass and ramaClass.upper() == "OUTLIER":
-                            instanceModelOutlierD.setdefault((modelId, asymId, altId, True), []).append(
-                                OutlierValue(
-                                    compId,
-                                    int(seqId),
-                                    "RAMACHANDRAN_OUTLIER",
-                                    None,
-                                )
-                            )
-                    else:
+                    if not seqId:
                         # Get the matching data for non-polymers from pdbx_vrpt_model_instance_density or pdbx_vrpt_model_instance_map_fitting
                         rsr = None
                         rsrZ = None
@@ -4932,11 +4896,11 @@ class DictMethodCommonUtils(object):
 
         return repModelId
 
-    def __getValidationData(self, dataContainer, tObj, iObj, fields, idField, metricValD, dL, repModelId, iL):
-        for ii in range(tObj.getRowCount()):
+    def __getValidationData(self, dataContainer, tObj, iObj, fields, idField, metricValD, dL, instL):
+        cndL4 = [(idField, "in", instL)]
+        kL = tObj.selectIndicesWhereOpConditions(cndL4)
+        for ii in kL:
             instId = tObj.getValue(idField, ii)
-            if instId not in iL:
-                continue
             [[entityId, asymId, compId, authAsymId, seqId, modelNum]] = iObj.selectValueListWhere(
                 [
                     "entity_id",
@@ -4947,11 +4911,6 @@ class DictMethodCommonUtils(object):
                     "PDB_model_num"
                 ], instId, "id"
             )
-            instTypeD = self.getInstanceTypes(dataContainer)
-            if instTypeD[asymId] not in ["polymer", "non-polymer"]:
-                continue
-            if modelNum != repModelId:
-                continue
             for iFd, iFdv in fields.items():
                 value = tObj.getValueOrDefault(iFdv, ii, None)
                 if value is not None:
@@ -5006,8 +4965,13 @@ class DictMethodCommonUtils(object):
             repModelId = self.getRepresentativeModelId(dataContainer)
 
             iObj = dataContainer.getObj("pdbx_vrpt_model_instance")
-            iL = iObj.selectValuesWhere("id", repModelId, "PDB_model_num")
-            cndL = [("instance_id", "not in", iL)]
+
+            instanceTypeD = self.getInstanceTypes(dataContainer)
+            pAsymL = [k for k, v in instanceTypeD.items() if v == "polymer"]
+            if not pAsymL:
+                return localDataD
+            cndL2 = [("label_asym_id", "in", pAsymL), ("PDB_model_num", "eq", repModelId)]
+            instL = iObj.selectValuesWhereOpConditions("id", cndL2)
 
             eObj = dataContainer.getObj("entry")
             entryId = eObj.getValue("id", 0)
@@ -5017,35 +4981,22 @@ class DictMethodCommonUtils(object):
             # pdbx_vrpt_model_instance_map_fitting
             if dataContainer.exists("pdbx_vrpt_model_instance_map_fitting"):
                 tObj = dataContainer.getObj("pdbx_vrpt_model_instance_map_fitting")
-                rL = tObj.selectIndicesWhereOpConditions(cndL)
-                if rL:
-                    tObj.removeRows(list(set(rL)))
-                self.__getValidationData(dataContainer, tObj, iObj, ValidationFields, "instance_id", metricValD, dL, repModelId, iL)
+                self.__getValidationData(dataContainer, tObj, iObj, ValidationFields, "instance_id", metricValD, dL, instL)
 
             # pdbx_vrpt_model_instance_density
             if dataContainer.exists("pdbx_vrpt_model_instance_density"):
                 tObj = dataContainer.getObj("pdbx_vrpt_model_instance_density")
-                rL = tObj.selectIndicesWhereOpConditions(cndL)
-                if rL:
-                    tObj.removeRows(list(set(rL)))
-                self.__getValidationData(dataContainer, tObj, iObj, ValidationFields, "instance_id", metricValD, dL, repModelId, iL)
+                self.__getValidationData(dataContainer, tObj, iObj, ValidationFields, "instance_id", metricValD, dL, instL)
 
             # pdbx_vrpt_model_instance_geometry
             if dataContainer.exists("pdbx_vrpt_model_instance_geometry"):
                 tObj = dataContainer.getObj("pdbx_vrpt_model_instance_geometry")
-                rL = tObj.selectIndicesWhereOpConditions(cndL)
-                if rL:
-                    tObj.removeRows(list(set(rL)))
-                self.__getValidationData(dataContainer, tObj, iObj, {"OWAB": "OWAB", "AVERAGE_OCCUPANCY": "average_occupancy"}, "instance_id", metricValD, dL, repModelId, iL)
+                self.__getValidationData(dataContainer, tObj, iObj, {"OWAB": "OWAB", "AVERAGE_OCCUPANCY": "average_occupancy"}, "instance_id", metricValD, dL, instL)
 
             # pdbx_vrpt_model_instance
             if dataContainer.exists("pdbx_vrpt_model_instance"):
                 tObj = dataContainer.getObj("pdbx_vrpt_model_instance")
-                # cndL = [("id", "not in", iL)]
-                # rL = tObj.selectIndicesWhereOpConditions(cndL)
-                # if rL:
-                #     tObj.removeRows(list(set(rL)))
-                self.__getValidationData(dataContainer, tObj, iObj, OutlierCountFields, "id", metricValD, dL, repModelId, iL)
+                self.__getValidationData(dataContainer, tObj, iObj, OutlierCountFields, "id", metricValD, dL, instL)
 
             for (entityId, asymId, authAsymId, modelId, attrId, hasSeq), aL in metricValD.items():
                 tD = {}

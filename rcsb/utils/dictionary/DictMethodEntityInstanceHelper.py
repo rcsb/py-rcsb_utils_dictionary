@@ -1266,7 +1266,9 @@ class DictMethodEntityInstanceHelper(object):
             asymIdD = self.__commonU.getInstanceEntityMap(dataContainer)
             asymAuthIdD = self.__commonU.getAsymAuthIdMap(dataContainer)
             #
-            instanceModelOutlierD = self.__commonU.getInstanceModelOutlierInfo(dataContainer)
+            # Skip loading instanceModelOutlierD for polymers; mostly duplicates, handled elsewhere
+            #instanceModelOutlierD = self.__commonU.getInstanceModelOutlierInfo(dataContainer)
+            instanceModelOutlierD = {}
             #
             # ("OutlierValue", "compId, seqId, outlierType, description, reported, reference, uncertaintyValue, uncertaintyType")
             #
