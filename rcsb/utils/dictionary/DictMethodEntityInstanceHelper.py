@@ -2420,7 +2420,8 @@ class DictMethodEntityInstanceHelper(object):
                     jj += 1
             # ------------
             # Add validation data for nonpolymer
-            instanceModelOutlierD = self.__commonU.getInstanceModelOutlierInfo(dataContainer)
+            # instanceModelOutlierD = self.__commonU.getInstanceModelOutlierInfo(dataContainer)
+            instanceModelOutlierD = self.__commonU.getNonpolyOutlierData(dataContainer)
             annotationVrptD = {}
             typeMapD = {
                 "IS_RSRZ_OUTLIER": "Real space R-value Z score > 2",
@@ -2537,7 +2538,8 @@ class DictMethodEntityInstanceHelper(object):
             asymIdD = self.__commonU.getInstanceEntityMap(dataContainer)
             asymAuthIdD = self.__commonU.getAsymAuthIdMap(dataContainer)
             #
-            instanceModelValidationD = self.__commonU.getInstanceNonpolymerValidationInfo(dataContainer)
+            # instanceModelValidationD = self.__commonU.getInstanceNonpolymerValidationInfo(dataContainer)
+            instanceModelValidationD = self.__commonU.getNonpolyValidationData(dataContainer)
             #
             # NonpolymerValidationFields = ("rsr", "rscc", "mogul_bonds_rmsz", "mogul_angles_rmsz")
             #
