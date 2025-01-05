@@ -4215,15 +4215,19 @@ class DictMethodCommonUtils(object):
             cndL2 = [("label_asym_id", "in", npAsymL), ("PDB_model_num", "eq", repModelId)]
             kL = iObj.selectIndicesWhereOpConditions(cndL2)
             instL = []
+            cD = {}
             for ii in kL:
                 modelId = iObj.getValueOrDefault("PDB_model_num", ii, defaultValue=None)
                 if modelId != repModelId:
                     continue
                 asymId = iObj.getValueOrDefault("label_asym_id", ii, defaultValue=None)
                 if asymId in npAsymL:
-                    instL.append(iObj.getValueOrDefault("id", ii, defaultValue=None))
+                    instId = iObj.getValueOrDefault("id", ii, defaultValue=None)
+                    instL.append(instId)
                     altId = iObj.getValueOrDefault("label_alt_id", ii, defaultValue=None)
                     compId = iObj.getValueOrDefault("label_comp_id", ii, defaultValue=None)
+                    seqId = iObj.getValueOrDefault("label_seq_id", ii, defaultValue=None)
+                    cD[instId] = [modelId, asymId, compId, altId, seqId]
                     countClashes = iObj.getValueOrDefault("count_clashes", ii, defaultValue=None)
                     countMogulAngleOutliers = iObj.getValueOrDefault("count_mogul_angle_outliers", ii, defaultValue=None)
                     countMogulBondOutliers = iObj.getValueOrDefault("count_mogul_bond_outliers", ii, defaultValue=None)
@@ -4240,6 +4244,17 @@ class DictMethodCommonUtils(object):
             elif dataContainer.exists("pdbx_vrpt_model_instance_density"):
                 vObj = dataContainer.getObj("pdbx_vrpt_model_instance_density")
 
+            vD = {}
+            if vObj:
+                kL = vObj.selectIndicesWhereOpConditions(cndL3)
+                for ii in kL:
+                    instId = vObj.getValueOrDefault("instance_id", ii, defaultValue=None)
+                    rsrCc = vObj.getValueOrDefault("RSRCC", ii, defaultValue=None)
+                    rsr = vObj.getValueOrDefault("RSR", ii, defaultValue=None)
+                    rsrZ = vObj.getValueOrDefault("RSRZ", ii, defaultValue=None)
+                    nAtomsEds = vObj.getValueOrDefault("natoms_eds", ii, defaultValue=None)
+                    vD[instId] = [rsrCc, rsr, rsrZ, nAtomsEds]
+
             gObj = None
             if dataContainer.exists("pdbx_vrpt_model_instance_geometry"):
                 gObj = dataContainer.getObj("pdbx_vrpt_model_instance_geometry")
@@ -4248,8 +4263,9 @@ class DictMethodCommonUtils(object):
                 kL = gObj.selectIndicesWhereOpConditions(cndL3)
                 for ii in kL:
                     instId = gObj.getValueOrDefault("instance_id", ii, defaultValue=None)
-                    [fL] = iObj.selectValueListWhere(["PDB_model_num", "label_asym_id", "label_comp_id", "label_alt_id", "label_seq_id"], instId, "id")
-                    [modelId, asymId, compId, altId, seqId] = [x if not (x in [".", "?", "None"]) else None for x in fL]
+                    # [fL] = iObj.selectValueListWhere(["PDB_model_num", "label_asym_id", "label_comp_id", "label_alt_id", "label_seq_id"], instId, "id")
+                    # [modelId, asymId, compId, altId, seqId] = [x if not (x in [".", "?", "None"]) else None for x in fL]
+                    [modelId, asymId, compId, altId, seqId] = cD[instId]
                     if modelId != repModelId:
                         continue
                     # ---
@@ -4260,12 +4276,13 @@ class DictMethodCommonUtils(object):
                         rsrCc = None
                         nAtomsEds = None
                         if vObj:
-                            iiL = vObj.selectIndices(instId, "instance_id")
-                            if len(iiL) == 1:
-                                rsr = vObj.getValueOrDefault("RSR", iiL[0], defaultValue=None)
-                                rsrZ = vObj.getValueOrDefault("RSRZ", iiL[0], defaultValue=None)
-                                rsrCc = vObj.getValueOrDefault("RSRCC", iiL[0], defaultValue=None)
-                                nAtomsEds = vObj.getValueOrDefault("natoms_eds", iiL[0], defaultValue=None)
+                            [rsrCc, rsr, rsrZ, nAtomsEds] = vD[instId]
+                            # iiL = vObj.selectIndices(instId, "instance_id")
+                            # if len(iiL) == 1:
+                                # rsr = vObj.getValueOrDefault("RSR", iiL[0], defaultValue=None)
+                                # rsrZ = vObj.getValueOrDefault("RSRZ", iiL[0], defaultValue=None)
+                                # rsrCc = vObj.getValueOrDefault("RSRCC", iiL[0], defaultValue=None)
+                                # nAtomsEds = vObj.getValueOrDefault("natoms_eds", iiL[0], defaultValue=None)
                         # Only need mogul values from pdbx_vrpt_model_instance_geometry for non-polymers
                         anglesRmsZ = None
                         bondsRmsZ = None
@@ -4919,7 +4936,7 @@ class DictMethodCommonUtils(object):
                         metricValD.setdefault((entityId, asymId, authAsymId, modelNum, iFd, seqId and seqId not in [".", "?"]), []).append((compId, seqId, value))
                         dL.append(tId)
 
-    def __getLocalValidation(self, dataContainer):
+    def __getLocalValidationPrev(self, dataContainer):
         """ Get Local validation data from the Validation report
             (e.g., pdbx_vrpt_model_instance_map_fitting.Q_score) and convert to objects corresponding to
             rcsb_entity_instance_feature in the RCSB extension dictionary
@@ -5025,6 +5042,150 @@ class DictMethodCommonUtils(object):
         except Exception as e:
             logger.exception("Failing for %s with %s", dataContainer.getName(), str(e))
 
+        return localDataD
+
+    def __processValidationData(self, instId, cL, wD, atL, vFields, metricValD, dL):
+        (entityId, asymId, authAsymId, compId, seqId, altId, modelNum) = cL
+        for ii, iFd in enumerate(atL):
+            value = wD[instId][ii]
+            if value not in [".", "?", "None"]:
+                tId = vFields[iFd] + "_" + entityId + "_" + asymId + "_" + modelNum + "_" + seqId
+                if tId not in dL:
+                    metricValD.setdefault((entityId, asymId, authAsymId, modelNum, vFields[iFd], True), []).append((compId, seqId, value))
+                    dL.append(tId)
+
+    def __getLocalValidation(self, dataContainer):
+        """ Get Local validation data from the Validation report
+            (e.g., pdbx_vrpt_model_instance_map_fitting.Q_score) and convert to objects corresponding to
+            rcsb_entity_instance_feature in the RCSB extension dictionary
+
+            Args:
+                dataContainer (object): mmif.api.DataContainer object instance
+
+        """
+        metricValD = OrderedDict()
+        localDataD = OrderedDict()
+
+        # Exit if no source categories are present
+        if not (
+                dataContainer.exists("pdbx_vrpt_model_instance_map_fitting")
+                or dataContainer.exists("pdbx_vrpt_model_instance_density")
+                or dataContainer.exists("pdbx_vrpt_model_instance_geometry")
+                or dataContainer.exists("pdbx_vrpt_model_instance")
+        ):
+            return localDataD
+
+        vFields = {
+            "RSRCC": "RSCC",
+            "RSR": "RSR",
+            "RSRZ": "RSRZ",
+            "Q_score": "Q_SCORE",
+            "natoms_eds": "NATOMS_EDS",
+            "OWAB": "OWAB",
+            "average_occupancy": "AVERAGE_OCCUPANCY",
+            "count_bond_outliers": "BOND_OUTLIERS",
+            "count_angle_outliers": "ANGLE_OUTLIERS",
+            "count_clashes": "CLASHES",
+            "count_symm_clashes": "SYMM_CLASHES",
+            "count_chiral_outliers": "CHIRAL_OUTLIERS",
+            "count_plane_outliers": "PLANE_OUTLIERS",
+            "count_mogul_bond_outliers": "MOGUL_BOND_OUTLIERS",
+            "count_mogul_angle_outliers": "MOGUL_ANGLE_OUTLIERS",
+            "count_mogul_torsion_outliers": "MOGUL_TORSION_OUTLIERS",
+            "count_mogul_ring_outliers": "MOGUL_RING_OUTLIERS"
+        }
+        startTime = time.time()
+        try:
+            logger.debug("Starting validation report feature for %s", dataContainer.getName())
+
+            # Get representative model
+            repModelId = self.getRepresentativeModelId(dataContainer)
+
+            iObj = dataContainer.getObj("pdbx_vrpt_model_instance")
+
+            instanceTypeD = self.getInstanceTypes(dataContainer)
+            pAsymL = [k for k, v in instanceTypeD.items() if v == "polymer"]
+            if not pAsymL:
+                return localDataD
+            cndL = [("label_asym_id", "in", pAsymL), ("PDB_model_num", "eq", repModelId)]
+            atL0 = ["entity_id", "label_asym_id", "auth_asym_id", "label_comp_id", "label_seq_id", "label_alt_id", "PDB_model_num"]
+            cD = iObj.getValueDictWhereOpConditions("id", atL0, cndL)
+            if not cD:
+                return localDataD
+
+            dL = []
+            wD1 = wD2 = wD3 = wD4 = {}
+            atL1 = atL2 = atL3 = atL4 = []
+
+            # pdbx_vrpt_model_instance_map_fitting
+            if dataContainer.exists("pdbx_vrpt_model_instance_map_fitting"):
+                tObj = dataContainer.getObj("pdbx_vrpt_model_instance_map_fitting")
+                atL = ["RSRCC", "RSR", "RSRZ", "Q_score", "natoms_eds"]
+                atL1 = [atName for atName in atL if atName in tObj._attributeNameList]
+                if atL1:
+                    wD1 = tObj.getValueDictWhereOpConditions("instance_id", atL1, cndL)
+
+            # pdbx_vrpt_model_instance_density
+            if dataContainer.exists("pdbx_vrpt_model_instance_density"):
+                tObj = dataContainer.getObj("pdbx_vrpt_model_instance_density")
+                atL = ["RSRCC", "RSR", "RSRZ", "Q_score", "natoms_eds"]
+                atL2 = [atName for atName in atL if atName in tObj._attributeNameList]
+                if atL2:
+                    wD2 = tObj.getValueDictWhereOpConditions("instance_id", atL2, cndL)
+
+            # pdbx_vrpt_model_instance_geometry
+            if dataContainer.exists("pdbx_vrpt_model_instance_geometry"):
+                tObj = dataContainer.getObj("pdbx_vrpt_model_instance_geometry")
+                atL = ["OWAB", "average_occupancy"]
+                atL3 = [atName for atName in atL if atName in tObj._attributeNameList]
+                if atL3:
+                    wD3 = tObj.getValueDictWhereOpConditions("instance_id", atL3, cndL)
+
+            # pdbx_vrpt_model_instance
+            if dataContainer.exists("pdbx_vrpt_model_instance"):
+                tObj = dataContainer.getObj("pdbx_vrpt_model_instance")
+                atL = ["count_bond_outliers", "count_angle_outliers", "count_clashes", "count_symm_clashes", "count_chiral_outliers", "count_plane_outliers", "count_mogul_bond_outliers", "count_mogul_angle_outliers", "count_mogul_torsion_outliers", "count_mogul_ring_outliers"]
+                atL4 = [atName for atName in atL if atName in tObj._attributeNameList]
+                if atL4:
+                    wD4 = tObj.getValueDictWhereOpConditions("id", atL4, cndL)
+
+            for instId, cL in cD.items():
+                (entityId, asymId, authAsymId, compId, seqId, altId, modelNum) = cL
+                if not seqId:
+                    continue
+                if wD1 and instId in wD1:
+                    self.__processValidationData(instId, cL, wD1, atL1, vFields, metricValD, dL)
+                if wD2 and instId in wD2:
+                    self.__processValidationData(instId, cL, wD2, atL2, vFields, metricValD, dL)
+                if wD3 and instId in wD3:
+                    self.__processValidationData(instId, cL, wD3, atL3, vFields, metricValD, dL)
+                if wD4 and instId in wD4:
+                    self.__processValidationData(instId, cL, wD4, atL4, vFields, metricValD, dL)
+
+            for (entityId, asymId, authAsymId, modelId, attrId, hasSeq), aL in metricValD.items():
+                tD = {}
+                if hasSeq:
+                    sL = sorted(aL, key=lambda i: int(i[1]))
+                    mL = [int(s[1]) for s in sL]
+                    begCompId = ""
+                    for ii in range(len(sL)):
+                        compId = sL[ii][0]
+                        seqId = sL[ii][1]
+                        metricV = sL[ii][2]
+                        for tup in list(self.__toRangeList(mL)):
+                            beg = tup[0]
+                            end = tup[1]
+                            if int(beg) == int(seqId):
+                                begCompId = compId
+                            if int(beg) <= int(seqId) <= int(end) and metricV is not None:
+                                tD.setdefault((begCompId, int(beg)), []).append(float(metricV))
+                localDataD.setdefault((entityId, asymId, authAsymId, modelId, attrId, hasSeq), []).append(tD)
+
+        except Exception as e:
+            logger.exception("Failing for %s with %s", dataContainer.getName(), str(e))
+
+        endTime = time.time()
+        logger.info("Completed at %s (%.4f seconds) PDBID %s", time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - startTime, dataContainer.getName())
         return localDataD
 
     def getLocalValidationData(self, dataContainer):
