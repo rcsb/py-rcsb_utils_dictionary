@@ -5131,8 +5131,16 @@ class DictMethodCommonUtils(object):
             # Get representative model
             repModelId = self.getRepresentativeModelId(dataContainer)
 
+            # Get number of residues
+            modeledCount, unModeledCount = self.getDepositedMonomerCounts(dataContainer, modelId=repModelId)
+            depPolyMonomerCount = modeledCount + unModeledCount
+
             instanceTypeD = self.getInstanceTypes(dataContainer)
             npAsymL = [k for k, v in instanceTypeD.items() if v in ["polymer", "non-polymer"]]
+            # Skip polymer validation features for large entries
+            if modeledCount > 25000:
+                npAsymL = [k for k, v in instanceTypeD.items() if v in ["non-polymer"]]
+                logger.info("Skipping polymer validation features for large entry PDBID %s", dataContainer.getName())
             if not npAsymL:
                 return rD
             cD = {}

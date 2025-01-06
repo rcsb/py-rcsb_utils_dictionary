@@ -1248,11 +1248,6 @@ class DictMethodEntityInstanceHelper(object):
             # Get number of modeled and unmodeled residues
             modeledCount, unModeledCount = self.__commonU.getDepositedMonomerCounts(dataContainer, modelId=repModelId)
 
-            if modeledCount > 25000:
-                endTime = time.time()
-                logger.info("Skipping large entry at %s (%.4f seconds) PDBID %s", time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - startTime, dataContainer.getName())
-                return False
-
             #
             eObj = dataContainer.getObj("entry")
             entryId = eObj.getValue("id", 0)
