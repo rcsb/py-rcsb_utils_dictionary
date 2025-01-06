@@ -5044,15 +5044,12 @@ class DictMethodCommonUtils(object):
 
         return localDataD
 
-    def __processValidationData(self, ii, instId, cL, vObj, vFields, metricValD, dL):
+    def __processValidationData(self, ii, cL, vObj, vFields, metricValD):
         [modelId, asymId, compId, altId, seqId, entityId, authAsymId] = cL
         for k, v in vFields.items():
             value = vObj.getValueOrDefault(k, ii, defaultValue=None)
             if value is not None:
-                tId = v + "_" + entityId + "_" + asymId + "_" + modelId + "_" + seqId
-                if tId not in dL:
-                    metricValD.setdefault((entityId, asymId, authAsymId, modelId, v, seqId and seqId not in [".", "?"]), []).append((compId, seqId, value))
-                    dL.append(tId)
+                metricValD.setdefault((entityId, asymId, authAsymId, modelId, v, seqId and seqId not in [".", "?"]), {}).setdefault((seqId, compId), (compId, seqId, value))
 
     def __getLocalValidation(self, dataContainer):
         """ Get Local validation data from the Validation report
@@ -5138,18 +5135,17 @@ class DictMethodCommonUtils(object):
             instanceTypeD = self.getInstanceTypes(dataContainer)
             npAsymL = [k for k, v in instanceTypeD.items() if v in ["polymer", "non-polymer"]]
             # Skip polymer validation features for large entries
-            if modeledCount > 25000:
-                npAsymL = [k for k, v in instanceTypeD.items() if v in ["non-polymer"]]
-                logger.info("Skipping polymer validation features for large entry PDBID %s", dataContainer.getName())
+            # if modeledCount > 25000:
+            #     npAsymL = [k for k, v in instanceTypeD.items() if v in ["non-polymer"]]
+            #     logger.info("Skipping polymer validation features for large entry PDBID %s", dataContainer.getName())
             if not npAsymL:
                 return rD
             cD = {}
             nD = {}
-            dL = []
             cndL2 = [("label_asym_id", "in", npAsymL), ("PDB_model_num", "eq", repModelId)]
-            kL = iObj.selectIndicesWhereOpConditions(cndL2)
-            for ii in kL:
-            # for ii in range(iObj.getRowCount()):
+            # kL = iObj.selectIndicesWhereOpConditions(cndL2)
+            # for ii in kL:
+            for ii in range(iObj.getRowCount()):
                 modelId = iObj.getValueOrDefault("PDB_model_num", ii, defaultValue=None)
                 if modelId != repModelId:
                     continue
@@ -5163,7 +5159,7 @@ class DictMethodCommonUtils(object):
                     seqId = iObj.getValueOrDefault("label_seq_id", ii, defaultValue=None)
                     cD[instId] = [modelId, asymId, compId, altId, seqId, entityId, authAsymId]
                     if seqId:
-                        self.__processValidationData(ii, instId, cD[instId], iObj, iFields, metricValD, dL)
+                        self.__processValidationData(ii, cD[instId], iObj, iFields, metricValD)
                     else:
                         countClashes = iObj.getValueOrDefault("count_clashes", ii, defaultValue=None)
                         countMogulAngleOutliers = iObj.getValueOrDefault("count_mogul_angle_outliers", ii, defaultValue=None)
@@ -5180,15 +5176,15 @@ class DictMethodCommonUtils(object):
             vD = {}
             if dataContainer.exists("pdbx_vrpt_model_instance_map_fitting"):
                 vObj = dataContainer.getObj("pdbx_vrpt_model_instance_map_fitting")
-                kL = vObj.selectIndicesWhereOpConditions(cndL3)
-                for ii in kL:
-                # for ii in range(vObj.getRowCount()):
+                # kL = vObj.selectIndicesWhereOpConditions(cndL3)
+                # for ii in kL:
+                for ii in range(vObj.getRowCount()):
                     instId = vObj.getValueOrDefault("instance_id", ii, defaultValue=None)
                     if instId not in cD:
                         continue
                     [modelId, asymId, compId, altId, seqId, entityId, authAsymId] = cD[instId]
                     if seqId:
-                        self.__processValidationData(ii, instId, cD[instId], vObj, v1Fields, metricValD, dL)
+                        self.__processValidationData(ii, cD[instId], vObj, v1Fields, metricValD)
                     else:
                         rsrCc = vObj.getValueOrDefault("RSRCC", ii, defaultValue=None)
                         rsr = vObj.getValueOrDefault("RSR", ii, defaultValue=None)
@@ -5197,15 +5193,15 @@ class DictMethodCommonUtils(object):
                         vD[instId] = [rsrCc, rsr, rsrZ, nAtomsEds]
             elif dataContainer.exists("pdbx_vrpt_model_instance_density"):
                 vObj = dataContainer.getObj("pdbx_vrpt_model_instance_density")
-                kL = vObj.selectIndicesWhereOpConditions(cndL3)
-                for ii in kL:
-                # for ii in range(vObj.getRowCount()):
+                # kL = vObj.selectIndicesWhereOpConditions(cndL3)
+                # for ii in kL:
+                for ii in range(vObj.getRowCount()):
                     instId = vObj.getValueOrDefault("instance_id", ii, defaultValue=None)
                     if instId not in cD:
                         continue
                     [modelId, asymId, compId, altId, seqId, entityId, authAsymId] = cD[instId]
                     if seqId:
-                        self.__processValidationData(ii, instId, cD[instId], vObj, v2Fields, metricValD, dL)
+                        self.__processValidationData(ii, cD[instId], vObj, v2Fields, metricValD)
                     else:
                         rsrCc = vObj.getValueOrDefault("RSRCC", ii, defaultValue=None)
                         rsr = vObj.getValueOrDefault("RSR", ii, defaultValue=None)
@@ -5217,15 +5213,15 @@ class DictMethodCommonUtils(object):
             gD = {}
             if dataContainer.exists("pdbx_vrpt_model_instance_geometry"):
                 gObj = dataContainer.getObj("pdbx_vrpt_model_instance_geometry")
-                kL = gObj.selectIndicesWhereOpConditions(cndL3)
-                for ii in kL:
-                # for ii in range(gObj.getRowCount()):
+                # kL = gObj.selectIndicesWhereOpConditions(cndL3)
+                # for ii in kL:
+                for ii in range(gObj.getRowCount()):
                     instId = gObj.getValueOrDefault("instance_id", ii, defaultValue=None)
                     if instId not in cD:
                         continue
                     [modelId, asymId, compId, altId, seqId, entityId, authAsymId] = cD[instId]
                     if seqId:
-                        self.__processValidationData(ii, instId, cD[instId], gObj, gFields, metricValD, dL)
+                        self.__processValidationData(ii, cD[instId], gObj, gFields, metricValD)
                     else:
                         anglesRmsZ = gObj.getValueOrDefault("angles_RMSZ", ii, defaultValue=None)
                         bondsRmsZ = gObj.getValueOrDefault("bonds_RMSZ", ii, defaultValue=None)
@@ -5255,7 +5251,7 @@ class DictMethodCommonUtils(object):
                     if rsrCc and float(rsrCc) < 0.650:
                         tS = "RSCC < 0.65 (altId %s)" % altId if altId else "RSCC < 0.65"
                         instanceModelOutlierD.setdefault((modelId, asymId, altId, False), []).append(OutlierValue(compId, None, "RSCC_OUTLIER", tS, rsrCc))
-                        # Set all values for non-polymer validation score
+                    # Set all values for non-polymer validation score
                     if asymId in instanceTypeD and instanceTypeD[asymId] == "non-polymer":
                         instanceModelValidationD[(modelId, asymId, altId, compId)] = NonpolymerValidationInstance(
                             float(rsr) if rsr else None,
@@ -5271,11 +5267,11 @@ class DictMethodCommonUtils(object):
                             npMogulAngleOutlierD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npMogulAngleOutlierD else 0,
                             npStereoOutlierD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npStereoOutlierD else 0,
                         )
-            # --
-            for (entityId, asymId, authAsymId, modelId, attrId, hasSeq), aL in metricValD.items():
+            # Set validation data for polymer features
+            for (entityId, asymId, authAsymId, modelId, attrId, hasSeq), aD in metricValD.items():
                 tD = {}
                 if hasSeq:
-                    sL = sorted(aL, key=lambda i: int(i[1]))
+                    sL = sorted(aD.values(), key=lambda item: item[1])
                     mL = [int(s[1]) for s in sL]
                     begCompId = ""
                     for ii in range(len(sL)):
