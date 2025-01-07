@@ -4279,10 +4279,10 @@ class DictMethodCommonUtils(object):
                             [rsrCc, rsr, rsrZ, nAtomsEds] = vD[instId]
                             # iiL = vObj.selectIndices(instId, "instance_id")
                             # if len(iiL) == 1:
-                                # rsr = vObj.getValueOrDefault("RSR", iiL[0], defaultValue=None)
-                                # rsrZ = vObj.getValueOrDefault("RSRZ", iiL[0], defaultValue=None)
-                                # rsrCc = vObj.getValueOrDefault("RSRCC", iiL[0], defaultValue=None)
-                                # nAtomsEds = vObj.getValueOrDefault("natoms_eds", iiL[0], defaultValue=None)
+                            #   rsr = vObj.getValueOrDefault("RSR", iiL[0], defaultValue=None)
+                            #   rsrZ = vObj.getValueOrDefault("RSRZ", iiL[0], defaultValue=None)
+                            #   rsrCc = vObj.getValueOrDefault("RSRCC", iiL[0], defaultValue=None)
+                            #   nAtomsEds = vObj.getValueOrDefault("natoms_eds", iiL[0], defaultValue=None)
                         # Only need mogul values from pdbx_vrpt_model_instance_geometry for non-polymers
                         anglesRmsZ = None
                         bondsRmsZ = None
@@ -4913,7 +4913,7 @@ class DictMethodCommonUtils(object):
 
         return repModelId
 
-    def __getValidationData(self, dataContainer, tObj, iObj, fields, idField, metricValD, dL, instL):
+    def __getValidationData(self, tObj, iObj, fields, idField, metricValD, dL, instL):
         cndL4 = [(idField, "in", instL)]
         kL = tObj.selectIndicesWhereOpConditions(cndL4)
         for ii in kL:
@@ -4998,22 +4998,22 @@ class DictMethodCommonUtils(object):
             # pdbx_vrpt_model_instance_map_fitting
             if dataContainer.exists("pdbx_vrpt_model_instance_map_fitting"):
                 tObj = dataContainer.getObj("pdbx_vrpt_model_instance_map_fitting")
-                self.__getValidationData(dataContainer, tObj, iObj, ValidationFields, "instance_id", metricValD, dL, instL)
+                self.__getValidationData(tObj, iObj, ValidationFields, "instance_id", metricValD, dL, instL)
 
             # pdbx_vrpt_model_instance_density
             if dataContainer.exists("pdbx_vrpt_model_instance_density"):
                 tObj = dataContainer.getObj("pdbx_vrpt_model_instance_density")
-                self.__getValidationData(dataContainer, tObj, iObj, ValidationFields, "instance_id", metricValD, dL, instL)
+                self.__getValidationData(tObj, iObj, ValidationFields, "instance_id", metricValD, dL, instL)
 
             # pdbx_vrpt_model_instance_geometry
             if dataContainer.exists("pdbx_vrpt_model_instance_geometry"):
                 tObj = dataContainer.getObj("pdbx_vrpt_model_instance_geometry")
-                self.__getValidationData(dataContainer, tObj, iObj, {"OWAB": "OWAB", "AVERAGE_OCCUPANCY": "average_occupancy"}, "instance_id", metricValD, dL, instL)
+                self.__getValidationData(tObj, iObj, {"OWAB": "OWAB", "AVERAGE_OCCUPANCY": "average_occupancy"}, "instance_id", metricValD, dL, instL)
 
             # pdbx_vrpt_model_instance
             if dataContainer.exists("pdbx_vrpt_model_instance"):
                 tObj = dataContainer.getObj("pdbx_vrpt_model_instance")
-                self.__getValidationData(dataContainer, tObj, iObj, OutlierCountFields, "id", metricValD, dL, instL)
+                self.__getValidationData(tObj, iObj, OutlierCountFields, "id", metricValD, dL, instL)
 
             for (entityId, asymId, authAsymId, modelId, attrId, hasSeq), aL in metricValD.items():
                 tD = {}
@@ -5045,7 +5045,7 @@ class DictMethodCommonUtils(object):
         return localDataD
 
     def __processValidationData(self, ii, cL, vObj, vFields, metricValD):
-        [modelId, asymId, compId, altId, seqId, entityId, authAsymId] = cL
+        [modelId, asymId, compId, _altId, seqId, entityId, authAsymId] = cL
         for k, v in vFields.items():
             value = vObj.getValueOrDefault(k, ii, defaultValue=None)
             if value is not None:
@@ -5075,20 +5075,20 @@ class DictMethodCommonUtils(object):
         ):
             return localDataD
 
-        v1Fields = { 
+        v1Fields = {
             "RSRCC": "RSCC",
             "RSR": "RSR",
             "RSRZ": "RSRZ",
             "Q_score": "Q_SCORE",
             "natoms_eds": "NATOMS_EDS"
         }
-        v2Fields = { 
+        v2Fields = {
             "RSRCC": "RSCC",
             "RSR": "RSR",
             "RSRZ": "RSRZ",
             "natoms_eds": "NATOMS_EDS"
         }
-        gFields = { 
+        gFields = {
             "OWAB": "OWAB",
             "average_occupancy": "AVERAGE_OCCUPANCY",
         }
@@ -5130,7 +5130,7 @@ class DictMethodCommonUtils(object):
 
             # Get number of residues
             modeledCount, unModeledCount = self.getDepositedMonomerCounts(dataContainer, modelId=repModelId)
-            depPolyMonomerCount = modeledCount + unModeledCount
+            # depPolyMonomerCount = modeledCount + unModeledCount
 
             instanceTypeD = self.getInstanceTypes(dataContainer)
             npAsymL = [k for k, v in instanceTypeD.items() if v in ["polymer", "non-polymer"]]
@@ -5142,7 +5142,7 @@ class DictMethodCommonUtils(object):
                 return rD
             cD = {}
             nD = {}
-            cndL2 = [("label_asym_id", "in", npAsymL), ("PDB_model_num", "eq", repModelId)]
+            # cndL2 = [("label_asym_id", "in", npAsymL), ("PDB_model_num", "eq", repModelId)]
             # kL = iObj.selectIndicesWhereOpConditions(cndL2)
             # for ii in kL:
             for ii in range(iObj.getRowCount()):
@@ -5170,7 +5170,7 @@ class DictMethodCommonUtils(object):
                         npClashD[(modelId, asymId, altId, compId)] = countClashes if countClashes else 0
                         npStereoOutlierD[(modelId, asymId, altId, compId)] = countStereoOutliers if countStereoOutliers else 0
                         nD[instId] = [modelId, asymId, compId, altId, seqId, entityId, authAsymId]
-            cndL3 = [("instance_id", "in", cD)]
+            # cndL3 = [("instance_id", "in", cD)]
 
             vObj = None
             vD = {}

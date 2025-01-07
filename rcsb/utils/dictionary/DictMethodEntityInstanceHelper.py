@@ -1246,7 +1246,7 @@ class DictMethodEntityInstanceHelper(object):
             repModelId = self.__commonU.getRepresentativeModelId(dataContainer)
 
             # Get number of modeled and unmodeled residues
-            modeledCount, unModeledCount = self.__commonU.getDepositedMonomerCounts(dataContainer, modelId=repModelId)
+            # modeledCount, unModeledCount = self.__commonU.getDepositedMonomerCounts(dataContainer, modelId=repModelId)
 
             #
             eObj = dataContainer.getObj("entry")
@@ -1262,7 +1262,7 @@ class DictMethodEntityInstanceHelper(object):
             asymAuthIdD = self.__commonU.getAsymAuthIdMap(dataContainer)
             #
             # Skip loading instanceModelOutlierD for polymers; mostly duplicates, handled elsewhere
-            #instanceModelOutlierD = self.__commonU.getInstanceModelOutlierInfo(dataContainer)
+            # instanceModelOutlierD = self.__commonU.getInstanceModelOutlierInfo(dataContainer)
             instanceModelOutlierD = {}
             #
             # ("OutlierValue", "compId, seqId, outlierType, description, reported, reference, uncertaintyValue, uncertaintyType")
@@ -2911,7 +2911,10 @@ class DictMethodEntityInstanceHelper(object):
         try:
             if not dataContainer.exists("pdbx_vrpt_summary"):
                 return False
-            if not (dataContainer.exists("pdbx_vrpt_summary_entity_geometry") or dataContainer.exists("pdbx_vrpt_summary_entity_entity_fit_to_map") or dataContainer.exists("pdbx_vrpt_summary_diffraction")):
+            if not (
+                    dataContainer.exists("pdbx_vrpt_summary_entity_geometry")
+                    or dataContainer.exists("pdbx_vrpt_summary_entity_entity_fit_to_map")
+                    or dataContainer.exists("pdbx_vrpt_summary_diffraction")):
                 return False
 
             aValL = ["?", ".", "", "None"]
