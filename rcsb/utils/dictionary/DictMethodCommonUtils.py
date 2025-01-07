@@ -5129,7 +5129,7 @@ class DictMethodCommonUtils(object):
             repModelId = self.getRepresentativeModelId(dataContainer)
 
             # Get number of residues
-            modeledCount, unModeledCount = self.getDepositedMonomerCounts(dataContainer, modelId=repModelId)
+            # modeledCount, unModeledCount = self.getDepositedMonomerCounts(dataContainer, modelId=repModelId)
             # depPolyMonomerCount = modeledCount + unModeledCount
 
             instanceTypeD = self.getInstanceTypes(dataContainer)
