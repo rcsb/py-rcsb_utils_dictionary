@@ -11,6 +11,8 @@
 #                  (rcsb_nonpolymer_instance_validation_score.is_subject_of_investigation_provenance)
 #   2-Apr-2022  bv Update buildEntityInstanceFeatures to populate ma_qa_metric_local scores for computed models
 #  21-Apr-2022  bv Update buildEntityInstanceFeatureSummary for handling ma_qa_metric_local scores
+#   3-Jul-2023 aae Update buildInstanceValidationFeatures, buildEntityInstanceAnnotations, and buildInstanceValidationFeatureSummary
+#                  for mmcif validation data, remove unused buildInstanceValidationFeatureSummaryPrev
 #  17-Jul-2023 dwp RO-170: Stop populating ordinal, reference_scheme, and feature_positions_beg_comp_id for all feature objects;
 #                  Remove duplicate rows after populating features (which may occur now that ordinal is no longer populated)
 #   2-Nov-2023 dwp Only populate rcsb_polymer_instance_feature_summary and rcsb_entity_instance_validation_feature_summary for features that are present
@@ -22,6 +24,13 @@
 #   1-Apr-2024 dwp Turn on GlyGen annotations loading
 #  25-Jul-2024 dwp Add ligand interactions to polymer entity instance features;
 #                  Stop relying on NeighborInteractionProvider cache file, and instead calculate all interactions on the fly
+#  13-Dec-2024  bv Update buildInstanceValidationScores to handle validation data
+#   7-Jan-2025  bv Update buildEntityInstanceFeatures and buildInstanceValidationFeatures to turn off features for non-polymers
+#                  and remove duplicate features for polymers
+#                  Add filterPseudoEmptyVrptRecords
+#                  Skip non-representative models in buildInstanceValidationFeatures and buildInstanceValidationScores
+#                  Fix coverage in buildInstanceValidationFeatureSummary
+#
 ##
 """
 This helper class implements methods supporting entity-instance-level functions in the RCSB dictionary extension.
@@ -944,7 +953,9 @@ class DictMethodEntityInstanceHelper(object):
                     ii += 1
                 logger.debug("Completed populating local QA scores for computed model %r", dataContainer.getName())
 
-            npbD = self.__commonU.getBoundNonpolymersByInstance(dataContainer)
+            # Turn off features for non-polymers - TO DELETE
+            # npbD = self.__commonU.getBoundNonpolymersByInstance(dataContainer)
+            npbD = {}
             jj = 1
             for asymId, rTupL in npbD.items():
                 for rTup in rTupL:
@@ -1213,6 +1224,7 @@ class DictMethodEntityInstanceHelper(object):
 
         """
         logger.debug("Starting with %r %r %r", dataContainer.getName(), catName, kwargs)
+        startTime = time.time()
         typeMapD = {
             "ROTAMER_OUTLIER": "Molprobity rotamer outlier",
             "RAMACHANDRAN_OUTLIER": "Molprobity Ramachandran outlier",
@@ -1229,6 +1241,13 @@ class DictMethodEntityInstanceHelper(object):
             # Exit if source categories are missing
             if not dataContainer.exists("entry"):
                 return False
+
+            # Get representative model
+            repModelId = self.__commonU.getRepresentativeModelId(dataContainer)
+
+            # Get number of modeled and unmodeled residues
+            # modeledCount, unModeledCount = self.__commonU.getDepositedMonomerCounts(dataContainer, modelId=repModelId)
+
             #
             eObj = dataContainer.getObj("entry")
             entryId = eObj.getValue("id", 0)
@@ -1242,7 +1261,9 @@ class DictMethodEntityInstanceHelper(object):
             asymIdD = self.__commonU.getInstanceEntityMap(dataContainer)
             asymAuthIdD = self.__commonU.getAsymAuthIdMap(dataContainer)
             #
-            instanceModelOutlierD = self.__commonU.getInstanceModelOutlierInfo(dataContainer)
+            # Skip loading instanceModelOutlierD for polymers; mostly duplicates, handled elsewhere
+            # instanceModelOutlierD = self.__commonU.getInstanceModelOutlierInfo(dataContainer)
+            instanceModelOutlierD = {}
             #
             # ("OutlierValue", "compId, seqId, outlierType, description, reported, reference, uncertaintyValue, uncertaintyType")
             #
@@ -1252,7 +1273,17 @@ class DictMethodEntityInstanceHelper(object):
                 fTypeL = sorted(set([pTup.outlierType for pTup in pTupL]))
                 jj = 1
                 for fType in fTypeL:
+                    # Skip non-representative models
+                    if modelId != repModelId:
+                        continue
                     if (asymId not in asymIdD) or (asymId not in asymAuthIdD):
+                        continue
+                    # Turn off validation features for non-polymers
+                    if not hasSeq:
+                        continue
+                    # Turn off specific validation features for polymers - these are handled differently and are duplicated here
+                    # Only RAMACHANDRAN_OUTLIER and ROTAMER_OUTLIER for polymers are retained
+                    if fType in ['BOND_OUTLIER', 'ANGLE_OUTLIER', 'STEREO_OUTLIER', 'RSCC_OUTLIER', 'RSRZ_OUTLIER', "MOGUL_BOND_OUTLIER", "MOGUL_ANGLE_OUTLIER"]:
                         continue
                     entityId = asymIdD[asymId]
                     authAsymId = asymAuthIdD[asymId]
@@ -1304,6 +1335,48 @@ class DictMethodEntityInstanceHelper(object):
                     jj += 1
                     ii += 1
             #
+            # Populate local (residue-level) validation report data values
+            if dataContainer.exists("pdbx_vrpt_model_instance"):
+                localDataD = self.__commonU.getLocalValidationData(dataContainer)
+                if localDataD:  # No validation data at residue level
+                    for (entityId, asymId, authAsymId, modelId, metricId, hasSeq), aD in localDataD.items():
+                        # Skip non-representative models
+                        if modelId != repModelId:
+                            continue
+                        # Turn off validation features for non-polymers
+                        if not hasSeq:
+                            continue
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        cObj.setValue(asymId, "asym_id", ii)
+                        cObj.setValue(authAsymId, "auth_asym_id", ii)
+                        cObj.setValue("PDB", "provenance_source", ii)
+                        cObj.setValue(metricId, "type", ii)
+                        cObj.setValue(metricId, "name", ii)
+                        cObj.setValue(metricId, "feature_id", ii)
+                        addPropTupL = [("PDB_MODEL_NUM", modelId)]
+                        cObj.setValue(";".join([str(tup1[0]) for tup1 in addPropTupL]), "additional_properties_name", ii)
+                        cObj.setValue(";".join([str(tup1[1]) for tup1 in addPropTupL]), "additional_properties_values", ii)
+                        fValL = []
+                        sId = ""
+                        cId = ""
+                        for _, vD in enumerate(aD):
+                            for k1, vL in vD.items():
+                                fVal = ",".join([str(v) for v in vL])
+                                fValL.append(fVal)
+                            cId = ";".join([str(k1[0]) for k1, vL in vD.items()])
+                            sId = ";".join([str(k1[1]) for k1, vL in vD.items()])
+                        cObj.setValue(";".join([str(tup) for tup in fValL]), "feature_positions_values", ii)
+                        cObj.setValue(sId, "feature_positions_beg_seq_id", ii)
+                        cObj.setValue(cId, "feature_positions_beg_comp_id", ii)
+
+                        ii += 1
+                    logger.debug("Completed populating local validation report data for %r", dataContainer.getName())
+
+            #
+            endTime = time.time()
+            logger.debug("Completed at %s (%.4f seconds) PDBID %s", time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - startTime, dataContainer.getName())
             return True
         except Exception as e:
             logger.exception("For %s %r failing with %s", dataContainer.getName(), catName, str(e))
@@ -1489,7 +1562,6 @@ class DictMethodEntityInstanceHelper(object):
         fTypeL = sorted(set(vTypeL).intersection(iTypeL))
         return fTypeL
 
-    # --- JDW
     def buildEntityInstanceFeatureSummary(self, dataContainer, catName, **kwargs):
         """Build category rcsb_entity_instance_feature_summary (UPDATED)
 
@@ -1699,7 +1771,7 @@ class DictMethodEntityInstanceHelper(object):
         try:
             if catName != "rcsb_entity_instance_validation_feature_summary":
                 return False
-            if not dataContainer.exists("rcsb_entity_instance_validation_feature") and not dataContainer.exists("entry"):
+            if not dataContainer.exists("rcsb_entity_instance_validation_feature") or not dataContainer.exists("entry"):
                 return False
 
             if not dataContainer.exists(catName):
@@ -1718,6 +1790,7 @@ class DictMethodEntityInstanceHelper(object):
             instTypeD = self.__commonU.getInstanceTypes(dataContainer)
 
             fCountD = OrderedDict()
+            fValuesD = OrderedDict()
             fMonomerCountD = OrderedDict()
             fInstanceCountD = OrderedDict()
             for ii in range(fObj.getRowCount()):
@@ -1751,16 +1824,56 @@ class DictMethodEntityInstanceHelper(object):
                     seqIdL = str(fObj.getValue("feature_positions_beg_seq_id", ii)).split(";")
                     fMonomerCountD.setdefault(asymId, {}).setdefault(fType, []).append(len(seqIdL))
 
+                elif fObj.hasAttribute("feature_value_reported"):
+                    tValue = fObj.getValueOrDefault("feature_value_reported", ii, defaultValue=None)
+                    if tValue:
+                        try:
+                            tvL = [float(t) for t in tValue.split(";")]
+                            fValuesD.setdefault(asymId, {}).setdefault(fType, []).extend(tvL)
+                        except Exception:
+                            pass
+                if fObj.hasAttribute("feature_positions_values"):
+                    tValue = fObj.getValueOrDefault("feature_positions_values", ii, defaultValue=None)
+                    if tValue:
+                        try:
+                            for a in tValue.split(";"):
+                                tvL = [float(t) for t in a.split(",")]
+                                fValuesD.setdefault(asymId, {}).setdefault(fType, []).extend(tvL)
+                        except Exception:
+                            pass
+
                 tS = fObj.getValueOrDefault("feature_value_details", ii, defaultValue=None)
                 if fObj.hasAttribute("feature_value_details") and tS is not None:
                     dL = str(fObj.getValue("feature_value_details", ii)).split(";")
                     fInstanceCountD.setdefault(asymId, {}).setdefault(fType, []).append(len(dL))
+
             #
             logger.debug("InstanceValidationSummary fCountD: %s - %r", entryId, fCountD)
             logger.debug("InstanceValidationSummary fMonomerCountD: %s - %r", entryId, fMonomerCountD)
             logger.debug("InstanceValidationSummary fInstanceCountD: %s - %r", entryId, fInstanceCountD)
             #
-
+            # These have the count in the feature value already.
+            validationCountTypes = [
+                "BOND_OUTLIERS",
+                "ANGLE_OUTLIERS",
+                "CHIRAL_OUTLIERS",
+                "PLANE_OUTLIERS",
+                "CLASHES",
+                "SYMM_CLASHES",
+                "MOGUL_BOND_OUTLIERS",
+                "MOGUL_ANGLE_OUTLIERS",
+                "MOGUL_TORSION_OUTLIERS",
+                "MOGUL_RING_OUTLIERS",
+                "NATOMS_EDS"
+            ]
+            validationValueTypes = [
+                "RSR",
+                "RSRZ",
+                "RSCC",
+                "OWAB",
+                "Q_SCORE",
+                "AVERAGE_OCCUPANCY"
+            ]
             ii = 0
             # Summarize all instances -
             for asymId, entityId in instEntityD.items():
@@ -1784,7 +1897,9 @@ class DictMethodEntityInstanceHelper(object):
                     sObj.setValue(entryId, "entry_id", ii)
                     sObj.setValue(entityId, "entity_id", ii)
                     sObj.setValue(asymId, "asym_id", ii)
+                    compId = None
                     if asymId in instIdMapD and "comp_id" in instIdMapD[asymId] and instIdMapD[asymId]["comp_id"]:
+                        compId = instIdMapD[asymId]["comp_id"]
                         sObj.setValue(instIdMapD[asymId]["comp_id"], "comp_id", ii)
                     sObj.setValue(authAsymId, "auth_asym_id", ii)
                     sObj.setValue(fType, "type", ii)
@@ -1792,7 +1907,23 @@ class DictMethodEntityInstanceHelper(object):
                     # Sum features with different granularity
                     #
                     fracC = 0.0
-                    if asymId in fMonomerCountD and fType in fMonomerCountD[asymId] and fMonomerCountD[asymId][fType]:
+                    if asymId in fValuesD and fType in validationCountTypes and fType in fValuesD[asymId] and fValuesD[asymId][fType]:
+                        # fCount = sum(fValuesD[asymId][fType])
+                        fCount = len(fValuesD[asymId][fType])
+                        if asymId in fMonomerCountD and fType in fMonomerCountD[asymId] and entityId in entityPolymerLengthD:
+                            fracC = float(fCount) / float(entityPolymerLengthD[entityId])
+                        # TO DELETE
+                        # This needs to be changed to use the correct source for all outlier types.
+                        # elif compId is not None:
+                        #     if fType == "MOGUL_BOND_OUTLIERS" and self.__ccP.getBondCount(compId) > 0:
+                        #         fracC = float(fCount / self.__ccP.getBondCount(compId))
+                        #     if fType in ["STEREO_OUTLIERS", "CHIRAL_OUTLIERS"] and self.__ccP.getAtomCountChiral(compId) > 0:
+                        #         fracC = float(fCount / self.__ccP.getAtomCountChiral(compId))
+                    elif asymId in fValuesD and fType in validationValueTypes and fType in fValuesD[asymId] and fValuesD[asymId][fType]:
+                        fCount = len(fValuesD[asymId][fType])
+                        if asymId in fMonomerCountD and fType in fMonomerCountD[asymId] and entityId in entityPolymerLengthD:
+                            fracC = float(fCount) / float(entityPolymerLengthD[entityId])
+                    elif asymId in fMonomerCountD and fType in fMonomerCountD[asymId] and fMonomerCountD[asymId][fType]:
                         fCount = sum(fMonomerCountD[asymId][fType])
                         if asymId in fMonomerCountD and fType in fMonomerCountD[asymId] and entityId in entityPolymerLengthD:
                             fracC = float(sum(fMonomerCountD[asymId][fType])) / float(entityPolymerLengthD[entityId])
@@ -1800,13 +1931,53 @@ class DictMethodEntityInstanceHelper(object):
                         fCount = sum(fInstanceCountD[asymId][fType])
                     elif asymId in fCountD and fType in fCountD[asymId] and fCountD[asymId][fType]:
                         fCount = len(fCountD[asymId][fType])
+                    elif fType == "MODELED_ATOMS":
+                        # Get experimental method
+                        xObj = dataContainer.getObj("exptl")
+                        methodL = xObj.getAttributeValueList("method")
+                        _, expMethod = self.__commonU.filterExperimentalMethod(methodL)
+                        ligandAtomCountD = self.__commonU.getLigandAtomCountD(dataContainer)
+                        ligandHydrogenAtomCountD = self.__commonU.getLigandHydrogenAtomCountD(dataContainer)
+                        intIsBoundD = self.__commonU.getLigandNeighborBoundState(dataContainer)
+                        isBound = intIsBoundD[asymId] if asymId in intIsBoundD else False
+                        numHeavyAtoms = self.__ccP.getAtomCountHeavy(compId)
+                        numAtoms = self.__ccP.getAtomCount(compId)
+                        numReportedAtoms = 0
+                        numReportedHydrogenAtoms = 0
+                        if not numHeavyAtoms:
+                            continue
+                        try:
+                            numReportedAtoms = ligandAtomCountD[asymId]["FL"]
+                        except KeyError as e:
+                            logger.warning("Missing ligand atom count for entry %s asymId %s with %s", entryId, asymId, str(e))
+
+                        try:
+                            numReportedHydrogenAtoms = ligandHydrogenAtomCountD[asymId]["FL"]
+                        except KeyError:
+                            pass
+                        fCount = numReportedAtoms if numReportedAtoms > numHeavyAtoms and expMethod != "X-ray" else numReportedAtoms - numReportedHydrogenAtoms
+                        fracC = self.__calculateModeledCompleteness(
+                            entryId, asymId, compId, "", isBound, ligandAtomCountD, numReportedAtoms, numReportedHydrogenAtoms, numHeavyAtoms, numAtoms, expMethod
+                        )
                     else:
                         # default zero value
                         fCount = 0
                     #
+                    minV = maxV = 0
+                    if asymId in fValuesD and fType in fValuesD[asymId]:
+                        if fType in validationValueTypes:
+                            try:
+                                minV = min(fValuesD[asymId][fType])
+                                maxV = max(fValuesD[asymId][fType])
+                            except Exception:
+                                pass
+
                     sObj.setValue(fCount, "count", ii)
                     sObj.setValue(round(fracC, 5), "coverage", ii)
-                    #
+                    if minV is not None:
+                        sObj.setValue(minV, "minimum_value", ii)
+                        sObj.setValue(maxV, "maximum_value", ii)
+
                     ii += 1
 
         except Exception as e:
@@ -2202,7 +2373,8 @@ class DictMethodEntityInstanceHelper(object):
                     cObj.setValue(version, "assignment_version", ii)
                     #
                     ii += 1
-            #
+                    # jj += 1
+            #  ------------
             # Glycosylation annotations
             jj = 1
             for asymId, rTupL in npbD.items():
@@ -2236,6 +2408,51 @@ class DictMethodEntityInstanceHelper(object):
                     #
                     ii += 1
                     jj += 1
+            # ------------
+            # Add validation data for nonpolymer
+            # instanceModelOutlierD = self.__commonU.getInstanceModelOutlierInfo(dataContainer)
+            instanceModelOutlierD = self.__commonU.getNonpolyOutlierData(dataContainer)
+            annotationVrptD = {}
+            typeMapD = {
+                "IS_RSRZ_OUTLIER": "Real space R-value Z score > 2",
+                "IS_RSCC_OUTLIER": "Real space density correlation value < 0.65"
+            }
+            for (modelId, asymId, _, _), pTupL in instanceModelOutlierD.items():
+                if instTypeD[asymId] not in ["non-polymer"]:
+                    continue
+                for pTup in pTupL:
+                    fType = "IS_" + pTup.outlierType
+                    if fType not in ["IS_RSCC_OUTLIER", "IS_RSRZ_OUTLIER"]:
+                        continue
+                    fId = fType
+
+                    # Only include one annotation for a given asymId, even if it has multiple conformations
+                    if annotationVrptD.get((modelId, asymId)) and fType in annotationVrptD.get((modelId, asymId)):
+                        continue
+                    annotationVrptD.setdefault((modelId, asymId), []).append(fType)
+
+                    entityId = asymIdD[asymId]
+                    authAsymId = asymAuthIdD[asymId]
+                    cObj.setValue(ii + 1, "ordinal", ii)
+                    cObj.setValue(entryId, "entry_id", ii)
+                    cObj.setValue(entityId, "entity_id", ii)
+                    cObj.setValue(asymId, "asym_id", ii)
+                    cObj.setValue(authAsymId, "auth_asym_id", ii)
+                    cObj.setValue(pTup.compId, "comp_id", ii)
+                    cObj.setValue(fId, "annotation_id", ii)
+                    cObj.setValue(fType, "type", ii)
+                    #
+                    tN = typeMapD[fType] if fType in typeMapD else fType
+                    cObj.setValue(
+                        tN,
+                        "description",
+                        ii,
+                    )
+                    cObj.setValue("PDB", "provenance_source", ii)
+                    cObj.setValue("V1.0", "assignment_version", ii)
+                    #
+                    ii += 1
+
             return True
         except Exception as e:
             logger.exception("%s %s failing with %s", dataContainer.getName(), catName, str(e))
@@ -2311,7 +2528,8 @@ class DictMethodEntityInstanceHelper(object):
             asymIdD = self.__commonU.getInstanceEntityMap(dataContainer)
             asymAuthIdD = self.__commonU.getAsymAuthIdMap(dataContainer)
             #
-            instanceModelValidationD = self.__commonU.getInstanceNonpolymerValidationInfo(dataContainer)
+            # instanceModelValidationD = self.__commonU.getInstanceNonpolymerValidationInfo(dataContainer)
+            instanceModelValidationD = self.__commonU.getNonpolyValidationData(dataContainer)
             #
             # NonpolymerValidationFields = ("rsr", "rscc", "mogul_bonds_rmsz", "mogul_angles_rmsz")
             #
@@ -2331,8 +2549,13 @@ class DictMethodEntityInstanceHelper(object):
             # logger.info("%r occupancySumD %r", entryId, occupancySumD)
             # --
             # calculate scores and ranks and find best ranking
+            # Get representative model
+            repModelId = self.__commonU.getRepresentativeModelId(dataContainer)
             for (modelId, asymId, altId, compId), vTup in instanceModelValidationD.items():
-                if (asymId not in asymIdD) or (asymId not in asymAuthIdD) or (modelId not in ["1"]):
+                # Skip non-representative models
+                if modelId != repModelId:
+                    continue
+                if (asymId not in asymIdD) or (asymId not in asymAuthIdD):
                     continue
                 isBound = intIsBoundD[asymId] if asymId in intIsBoundD else False
                 numHeavyAtoms = self.__ccP.getAtomCountHeavy(compId)
@@ -2401,6 +2624,9 @@ class DictMethodEntityInstanceHelper(object):
                 #
                 cObj.setValue(vTup.rsr, "RSR", ii)
                 cObj.setValue(vTup.rscc, "RSCC", ii)
+                cObj.setValue(vTup.nAtomsEds, "natoms_eds", ii)
+                cObj.setValue(vTup.numAnglesRmsZ, "num_mogul_angles_RMSZ", ii)
+                cObj.setValue(vTup.numBondsRmsZ, "num_mogul_bonds_RMSZ", ii)
                 cObj.setValue(vTup.mogul_angles_rmsz, "mogul_angles_RMSZ", ii)
                 cObj.setValue(vTup.mogul_bonds_rmsz, "mogul_bonds_RMSZ", ii)
                 #
@@ -2411,7 +2637,8 @@ class DictMethodEntityInstanceHelper(object):
                 sTup = scoreD[(modelId, asymId, altId, compId)]
                 cObj.setValue(vTup.intermolecular_clashes if vTup.intermolecular_clashes else 0, "intermolecular_clashes", ii)
                 #
-                cObj.setValue("%.4f" % sTup[6], "average_occupancy", ii)
+                # cObj.setValue("%.4f" % sTup[6], "average_occupancy", ii)
+                cObj.setValue("%.4f" % vTup.avgOccupancy if vTup.avgOccupancy else None, "average_occupancy", ii)
                 cObj.setValue("%.4f" % sTup[5], "completeness", ii)
 
                 cObj.setValue("%.4f" % sTup[0] if sTup[0] else None, "score_model_fit", ii)
@@ -2654,4 +2881,80 @@ class DictMethodEntityInstanceHelper(object):
             return True
         except Exception as e:
             logger.exception("For %s %r failing with %s", dataContainer.getName(), catName, str(e))
+        return False
+
+    def filterPseudoEmptyVrptRecords(self, dataContainer, catName, **kwargs):
+        """Remove pseudo empty rows in vrpt categories ...
+
+        Example:
+        Remove rows that look like this
+        loop_
+        _pdbx_vrpt_summary_entity_geometry.ordinal
+        _pdbx_vrpt_summary_entity_geometry.PDB_model_num
+        _pdbx_vrpt_summary_entity_geometry.entity_id
+        _pdbx_vrpt_summary_entity_geometry.label_asym_id
+        _pdbx_vrpt_summary_entity_geometry.auth_asym_id
+        _pdbx_vrpt_summary_entity_geometry.angles_RMSZ
+        _pdbx_vrpt_summary_entity_geometry.bonds_RMSZ
+        _pdbx_vrpt_summary_entity_geometry.num_bonds_RMSZ
+        _pdbx_vrpt_summary_entity_geometry.num_angles_RMSZ
+         2   1  2  B  A     ?     ?     ?     ?
+         3   1  3  C  A     ?     ?     ?     ?
+
+        """
+        logger.debug("Starting with %s %r %r", dataContainer.getName(), catName, kwargs)
+        try:
+            if not dataContainer.exists("pdbx_vrpt_summary"):
+                return False
+            if not (
+                    dataContainer.exists("pdbx_vrpt_summary_entity_geometry")
+                    or dataContainer.exists("pdbx_vrpt_summary_entity_entity_fit_to_map")
+                    or dataContainer.exists("pdbx_vrpt_summary_diffraction")):
+                return False
+
+            aValL = ["?", ".", "", "None"]
+            repModelId = self.__commonU.getRepresentativeModelId(dataContainer)
+
+            if dataContainer.exists("pdbx_vrpt_summary_entity_geometry"):
+                catName = "pdbx_vrpt_summary_entity_geometry"
+                cObj = dataContainer.getObj(catName)
+                aNameL = ["angles_RMSZ", "bonds_RMSZ", "num_angles_RMSZ", "num_bonds_RMSZ", "average_residue_inclusion"]
+                cndL = [(aName, "in", aValL) for aName in aNameL]
+                rL = cObj.selectIndicesWhereOpConditions(cndL)
+                # Skip non-representative models
+                if repModelId:
+                    cndL2 = [("PDB_model_num", "ne", repModelId)]
+                    rL.extend(cObj.selectIndicesWhereOpConditions(cndL2))
+                if rL:
+                    logger.debug("For %s removing pseudo empty rows %s in %s", dataContainer.getName(), rL, catName)
+                    cObj.removeRows(list(set(rL)))
+
+            if dataContainer.exists("pdbx_vrpt_summary_entity_fit_to_map"):
+                catName = "pdbx_vrpt_summary_entity_fit_to_map"
+                cObj = dataContainer.getObj(catName)
+                aNameL = ["Q_score", "average_residue_inclusion"]
+                cndL = [(aName, "in", aValL) for aName in aNameL]
+                rL = cObj.selectIndicesWhereOpConditions(cndL)
+                # Skip non-representative models
+                if repModelId:
+                    cndL2 = [("PDB_model_num", "ne", repModelId)]
+                    rL.extend(cObj.selectIndicesWhereOpConditions(cndL2))
+                if rL:
+                    logger.debug("For %s removing pseudo empty rows %s in %s", dataContainer.getName(), rL, catName)
+                    cObj.removeRows(list(set(rL)))
+
+            if dataContainer.exists("pdbx_vrpt_summary_diffraction"):
+                catName = "pdbx_vrpt_summary_diffraction"
+                cObj = dataContainer.getObj(catName)
+                attributeNameList = self.__dApi.getAttributeNameList(catName)
+                kL = ["ordinal", "exp_method", "PDB_resolution_high", "PDB_resolution_low", "PDB_R", "PDB_Rfree"]
+                cndL = [(attributeName, "in", aValL) for attributeName in attributeNameList if attributeName not in kL]
+                rL = cObj.selectIndicesWhereOpConditions(cndL)
+                if rL:
+                    logger.debug("For %s removing pseudo empty rows %s in %s", dataContainer.getName(), rL, catName)
+                    cObj.removeRows(list(set(rL)))
+
+            return True
+        except Exception as e:
+            logger.exception("For %s removing pseudo empty rows in vrpt categories failing with %s", dataContainer.getName(), str(e))
         return False

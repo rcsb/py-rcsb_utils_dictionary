@@ -22,11 +22,16 @@
 #  3-May-2022 dwp Use internal computed-model identifiers for 'entry_id' in containter_identifiers
 # 27-Jun-2022 bv  Update _rcsb_ma_qa_metric_global.ma_qa_metric_global_type to 'pLDDT' for AF models
 # 29-Jun-2022 dwp Use internal computed-model identifiers everywhere (in same manner as experimental models)
+#  3-Jul-2023 aae Update __getInstanceModelOutliers (old version is backed up as __getInstanceModelOutliersXML),
+#                 add method __getValidationData and getLocalValidationData to get data from validation mmcif files
 # 01-Feb-2024 bv  Add method 'getInstanceDeuWatMolCounts' to support deuterated water molecule count
 #                 Update methods 'getDepositedAtomCounts' and '__getAtomSiteInfo'
 # 18-Mar-2024 dwp Add method 'getPolymerEntityReferenceAlignments' to enable retrieval of all UniProt IDs
 # 24-Jul-2024 dwp Adjust ligand interaction calculation and provider to not rely on struct_conn and instead
 #                 base calculation on coordinates only
+#  7-Jan-2025  bv Update '__getInstanceModelOutliers' to handle validation data
+#                 Add getRepresentativeModelId and getMethodList
+#
 ##
 """
 Helper class implements common utility external method references supporting the RCSB dictionary extension.
@@ -85,8 +90,12 @@ NonpolymerBoundInstance = namedtuple("NonpolymerBoundInstance", BoundInstanceFie
 NonpolymerValidationFields = (
     "rsr",
     "rscc",
+    "nAtomsEds",
     "mogul_bonds_rmsz",
     "mogul_angles_rmsz",
+    "numAnglesRmsZ",
+    "numBondsRmsZ",
+    "avgOccupancy",
     "intermolecular_clashes",
     "mogul_bond_outliers",
     "mogul_angle_outliers",
@@ -176,6 +185,7 @@ class DictMethodCommonUtils(object):
         self.__instanceUnobservedCache = CacheUtils(size=cacheSize, label="instance unobserved details")
         self.__modelOutliersCache = CacheUtils(size=cacheSize, label="model outlier details")
         self.__neighborInfoCache = CacheUtils(size=cacheSize, label="ligand and target nearest neighbors")
+        self.__localValidationCache = CacheUtils(size=cacheSize, label="local validation data")
         #
         logger.debug("Dictionary common utilities init")
 
@@ -3460,7 +3470,8 @@ class DictMethodCommonUtils(object):
             self.__modelOutliersCache.set(dataContainer.getName(), wD)
         return wD
 
-    def __getInstanceModelOutliers(self, dataContainer):
+    # TO BE DELETED
+    def __getInstanceModelOutliersXML(self, dataContainer):
         """Internal method to assemble model outliers details.
 
         Args:
@@ -3813,6 +3824,165 @@ class DictMethodCommonUtils(object):
                                 npStereoOutlierD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npStereoOutlierD else 0,
                             )
                 #
+            logger.debug("instanceModelOutlierD %r", instanceModelOutlierD)
+            logger.debug("instanceModelValidationD %r", instanceModelValidationD)
+
+            rD = {"instanceModelOutlierD": instanceModelOutlierD, "instanceModelValidationD": instanceModelValidationD}
+        except Exception as e:
+            logger.exception("%s failing with %s", dataContainer.getName(), str(e))
+        return rD
+
+    # TO BE DELETED
+    def __getInstanceModelOutliers(self, dataContainer):
+        """Internal method to assemble model outliers details.
+
+        Args:
+            dataContainer ([type]): [description]
+
+        Returns:
+            {"instanceModelOutlierD": {(modelId, asymId): [(compId, seqId, "BOND_OUTLIER", optional_description), ...}}
+
+        """
+        logger.debug("Starting with %r", dataContainer.getName())
+        #
+        rD = {}
+        try:
+            # Exit if no source categories are present
+            if not (
+                    dataContainer.exists("pdbx_vrpt_model_instance")
+                    or dataContainer.exists("pdbx_vrpt_model_instance_geometry")
+                    or dataContainer.exists("pdbx_vrpt_model_instance_density")
+                    or dataContainer.exists("pdbx_vrpt_model_instance_map_fitting")
+            ) or not dataContainer.exists("pdbx_vrpt_model_instance"):
+                return rD
+            # ------- --------- ------- --------- ------- --------- ------- --------- ------- ---------
+            instanceModelOutlierD = {}
+            instanceModelValidationD = {}
+            #
+            npMogulBondOutlierD = {}
+            npMogulAngleOutlierD = {}
+            npStereoOutlierD = {}
+            npClashD = {}
+            #
+            iObj = dataContainer.getObj("pdbx_vrpt_model_instance")
+            if not iObj:
+                return rD
+
+            repModelId = self.getRepresentativeModelId(dataContainer)
+
+            instanceTypeD = self.getInstanceTypes(dataContainer)
+            npAsymL = [k for k, v in instanceTypeD.items() if v == "non-polymer"]
+            if not npAsymL:
+                return rD
+            cndL2 = [("label_asym_id", "in", npAsymL), ("PDB_model_num", "eq", repModelId)]
+            kL = iObj.selectIndicesWhereOpConditions(cndL2)
+            instL = []
+            cD = {}
+            for ii in kL:
+                modelId = iObj.getValueOrDefault("PDB_model_num", ii, defaultValue=None)
+                if modelId != repModelId:
+                    continue
+                asymId = iObj.getValueOrDefault("label_asym_id", ii, defaultValue=None)
+                if asymId in npAsymL:
+                    instId = iObj.getValueOrDefault("id", ii, defaultValue=None)
+                    instL.append(instId)
+                    altId = iObj.getValueOrDefault("label_alt_id", ii, defaultValue=None)
+                    compId = iObj.getValueOrDefault("label_comp_id", ii, defaultValue=None)
+                    seqId = iObj.getValueOrDefault("label_seq_id", ii, defaultValue=None)
+                    cD[instId] = [modelId, asymId, compId, altId, seqId]
+                    countClashes = iObj.getValueOrDefault("count_clashes", ii, defaultValue=None)
+                    countMogulAngleOutliers = iObj.getValueOrDefault("count_mogul_angle_outliers", ii, defaultValue=None)
+                    countMogulBondOutliers = iObj.getValueOrDefault("count_mogul_bond_outliers", ii, defaultValue=None)
+                    countStereoOutliers = iObj.getValueOrDefault("count_chiral_outliers", ii, defaultValue=None)
+                    npMogulBondOutlierD[(modelId, asymId, altId, compId)] = countMogulBondOutliers if countMogulBondOutliers else 0
+                    npMogulAngleOutlierD[(modelId, asymId, altId, compId)] = countMogulAngleOutliers if countMogulAngleOutliers else 0
+                    npClashD[(modelId, asymId, altId, compId)] = countClashes if countClashes else 0
+                    npStereoOutlierD[(modelId, asymId, altId, compId)] = countStereoOutliers if countStereoOutliers else 0
+            cndL3 = [("instance_id", "in", instL)]
+            # ----
+            vObj = None
+            if dataContainer.exists("pdbx_vrpt_model_instance_map_fitting"):
+                vObj = dataContainer.getObj("pdbx_vrpt_model_instance_map_fitting")
+            elif dataContainer.exists("pdbx_vrpt_model_instance_density"):
+                vObj = dataContainer.getObj("pdbx_vrpt_model_instance_density")
+
+            vD = {}
+            if vObj:
+                kL = vObj.selectIndicesWhereOpConditions(cndL3)
+                for ii in kL:
+                    instId = vObj.getValueOrDefault("instance_id", ii, defaultValue=None)
+                    rsrCc = vObj.getValueOrDefault("RSRCC", ii, defaultValue=None)
+                    rsr = vObj.getValueOrDefault("RSR", ii, defaultValue=None)
+                    rsrZ = vObj.getValueOrDefault("RSRZ", ii, defaultValue=None)
+                    nAtomsEds = vObj.getValueOrDefault("natoms_eds", ii, defaultValue=None)
+                    vD[instId] = [rsrCc, rsr, rsrZ, nAtomsEds]
+
+            gObj = None
+            if dataContainer.exists("pdbx_vrpt_model_instance_geometry"):
+                gObj = dataContainer.getObj("pdbx_vrpt_model_instance_geometry")
+            if gObj:
+                logger.debug("Row count for %s: %d", gObj.getName(), gObj.getRowCount())
+                kL = gObj.selectIndicesWhereOpConditions(cndL3)
+                for ii in kL:
+                    instId = gObj.getValueOrDefault("instance_id", ii, defaultValue=None)
+                    # [fL] = iObj.selectValueListWhere(["PDB_model_num", "label_asym_id", "label_comp_id", "label_alt_id", "label_seq_id"], instId, "id")
+                    # [modelId, asymId, compId, altId, seqId] = [x if not (x in [".", "?", "None"]) else None for x in fL]
+                    [modelId, asymId, compId, altId, seqId] = cD[instId]
+                    if modelId != repModelId:
+                        continue
+                    # ---
+                    if not seqId:
+                        # Get the matching data for non-polymers from pdbx_vrpt_model_instance_density or pdbx_vrpt_model_instance_map_fitting
+                        rsr = None
+                        rsrZ = None
+                        rsrCc = None
+                        nAtomsEds = None
+                        if vObj:
+                            [rsrCc, rsr, rsrZ, nAtomsEds] = vD[instId]
+                            # TO DELETE
+                            # iiL = vObj.selectIndices(instId, "instance_id")
+                            # if len(iiL) == 1:
+                            #   rsr = vObj.getValueOrDefault("RSR", iiL[0], defaultValue=None)
+                            #   rsrZ = vObj.getValueOrDefault("RSRZ", iiL[0], defaultValue=None)
+                            #   rsrCc = vObj.getValueOrDefault("RSRCC", iiL[0], defaultValue=None)
+                            #   nAtomsEds = vObj.getValueOrDefault("natoms_eds", iiL[0], defaultValue=None)
+                        # Only need mogul values from pdbx_vrpt_model_instance_geometry for non-polymers
+                        anglesRmsZ = None
+                        bondsRmsZ = None
+                        numAnglesRmsZ = None
+                        numBondsRmsZ = None
+                        avgOccupancy = None
+                        software = gObj.getValueOrDefault("program_for_bond_angle_geometry", ii, defaultValue=None)
+                        if str(software).lower() == "mogul":
+                            anglesRmsZ = gObj.getValueOrDefault("angles_RMSZ", ii, defaultValue=None)
+                            bondsRmsZ = gObj.getValueOrDefault("bonds_RMSZ", ii, defaultValue=None)
+                            numAnglesRmsZ = gObj.getValueOrDefault("num_angles_RMSZ", ii, defaultValue=None)
+                            numBondsRmsZ = gObj.getValueOrDefault("num_bonds_RMSZ", ii, defaultValue=None)
+                            avgOccupancy = gObj.getValueOrDefault("average_occupancy", ii, defaultValue=None)
+                        # Evaluate RSRZ_OUTLIER and RSCC_OUTLIER for non-polymer annotations
+                        if rsrZ and float(rsrZ) > 2.0:
+                            tS = "%s > 2.0 (altId %s)" % (rsrZ, altId) if altId else "%s > 2.0" % rsrZ
+                            instanceModelOutlierD.setdefault((modelId, asymId, altId, False), []).append(OutlierValue(compId, None, "RSRZ_OUTLIER", tS, rsr, None, rsrZ, "Z-Score"))
+                        if rsrCc and float(rsrCc) < 0.650:
+                            tS = "RSCC < 0.65 (altId %s)" % altId if altId else "RSCC < 0.65"
+                            instanceModelOutlierD.setdefault((modelId, asymId, altId, False), []).append(OutlierValue(compId, None, "RSCC_OUTLIER", tS, rsrCc))
+                        # Set all values for non-polymer validation score
+                        if asymId in instanceTypeD and instanceTypeD[asymId] == "non-polymer":
+                            instanceModelValidationD[(modelId, asymId, altId, compId)] = NonpolymerValidationInstance(
+                                float(rsr) if rsr else None,
+                                float(rsrCc) if rsrCc else None,
+                                int(nAtomsEds) if nAtomsEds else None,
+                                float(bondsRmsZ) if bondsRmsZ else None,
+                                float(anglesRmsZ) if anglesRmsZ else None,
+                                int(numAnglesRmsZ) if numAnglesRmsZ else None,
+                                int(numBondsRmsZ) if numBondsRmsZ else None,
+                                float(avgOccupancy) if avgOccupancy else None,
+                                npClashD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npClashD else 0,
+                                npMogulBondOutlierD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npMogulBondOutlierD else 0,
+                                npMogulAngleOutlierD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npMogulAngleOutlierD else 0,
+                                npStereoOutlierD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npStereoOutlierD else 0,
+                            )
+            # --
             logger.debug("instanceModelOutlierD %r", instanceModelOutlierD)
             logger.debug("instanceModelValidationD %r", instanceModelValidationD)
 
@@ -4362,3 +4532,471 @@ class DictMethodCommonUtils(object):
             repModelL = ["1"] if "1" in mIdL else [mIdL[0]]
 
         return repModelL
+
+    def getMethodList(self, dataContainer):
+        """Return experimental or computational method list.
+        Args:
+            dataContainer (object): mmif.api.DataContainer object instance
+        Returns:
+            methodL (list): List of dictionary experimental method names
+        """
+        #
+        methodL = []
+        try:
+            if dataContainer.exists("exptl"):
+                xObj = dataContainer.getObj("exptl")
+                methodL = xObj.getAttributeValueList("method")
+            elif dataContainer.exists("ma_model_list"):
+                mObj = dataContainer.getObj("ma_model_list")
+                methodL = mObj.getAttributeUniqueValueList("model_type")
+        except Exception as e:
+            logger.debug("Failed to get method list with %s", str(e))
+        #
+        return methodL
+
+    def getRepresentativeModelId(self, dataContainer):
+        """Return the first representative model ID.
+        """
+
+        repModelId = "1"
+        try:
+            methodL = self.getMethodList(dataContainer)
+            repModelL = []
+            mIdL = self.getModelIdList(dataContainer)
+            if mIdL:
+                repModelL = ["1"] if "1" in mIdL else [mIdL[0]]
+                if self.hasMethodNMR(methodL):
+                    repModelL = self.getRepresentativeModels(dataContainer)
+            else:
+                logger.debug("No models available for %s", dataContainer.getName())
+            if repModelL:
+                repModelId = repModelL[0]
+        except Exception as e:
+            logger.debug("Failed to get representative model id with %s", str(e))
+
+        return repModelId
+
+    # METHOD TO BE DELETED
+    def __getValidationData(self, tObj, iObj, fields, idField, metricValD, dL, instL):
+        cndL4 = [(idField, "in", instL)]
+        kL = tObj.selectIndicesWhereOpConditions(cndL4)
+        for ii in kL:
+            instId = tObj.getValue(idField, ii)
+            [[entityId, asymId, compId, authAsymId, seqId, modelNum]] = iObj.selectValueListWhere(
+                [
+                    "entity_id",
+                    "label_asym_id",
+                    "label_comp_id",
+                    "auth_asym_id",
+                    "label_seq_id",
+                    "PDB_model_num"
+                ], instId, "id"
+            )
+            for iFd, iFdv in fields.items():
+                value = tObj.getValueOrDefault(iFdv, ii, None)
+                if value is not None:
+                    tId = iFd + "_" + entityId + "_" + asymId + "_" + modelNum + "_" + seqId
+                    if tId not in dL:
+                        metricValD.setdefault((entityId, asymId, authAsymId, modelNum, iFd, seqId and seqId not in [".", "?"]), []).append((compId, seqId, value))
+                        dL.append(tId)
+
+    # METHOD TO BE DELETED
+    def __getLocalValidationPrev(self, dataContainer):
+        """ Get Local validation data from the Validation report
+            (e.g., pdbx_vrpt_model_instance_map_fitting.Q_score) and convert to objects corresponding to
+            rcsb_entity_instance_feature in the RCSB extension dictionary
+
+            Args:
+                dataContainer (object): mmif.api.DataContainer object instance
+
+        """
+        metricValD = OrderedDict()
+        localDataD = OrderedDict()
+
+        # Exit if no source categories are present
+        if not (
+                dataContainer.exists("pdbx_vrpt_model_instance_map_fitting")
+                or dataContainer.exists("pdbx_vrpt_model_instance_density")
+                or dataContainer.exists("pdbx_vrpt_model_instance_geometry")
+                or dataContainer.exists("pdbx_vrpt_model_instance")
+        ):
+            return localDataD
+
+        ValidationFields = {
+            "RSCC": "RSRCC",
+            "RSR": "RSR",
+            "RSRZ": "RSRZ",
+            "Q_SCORE": "Q_score",
+            "NATOMS_EDS": "natoms_eds"
+        }
+        OutlierCountFields = {
+            "BOND_OUTLIERS": "count_bond_outliers",
+            "ANGLE_OUTLIERS": "count_angle_outliers",
+            "CLASHES": "count_clashes",
+            "SYMM_CLASHES": "count_symm_clashes",
+            "CHIRAL_OUTLIERS": "count_chiral_outliers",
+            "PLANE_OUTLIERS": "count_plane_outliers",
+            "MOGUL_BOND_OUTLIERS": "count_mogul_bond_outliers",
+            "MOGUL_ANGLE_OUTLIERS": "count_mogul_angle_outliers",
+            "MOGUL_TORSION_OUTLIERS": "count_mogul_torsion_outliers",
+            "MOGUL_RING_OUTLIERS": "count_mogul_ring_outliers"
+        }
+
+        try:
+            # Get representative model
+            repModelId = self.getRepresentativeModelId(dataContainer)
+
+            iObj = dataContainer.getObj("pdbx_vrpt_model_instance")
+
+            instanceTypeD = self.getInstanceTypes(dataContainer)
+            pAsymL = [k for k, v in instanceTypeD.items() if v == "polymer"]
+            if not pAsymL:
+                return localDataD
+            cndL2 = [("label_asym_id", "in", pAsymL), ("PDB_model_num", "eq", repModelId)]
+            instL = iObj.selectValuesWhereOpConditions("id", cndL2)
+
+            eObj = dataContainer.getObj("entry")
+            entryId = eObj.getValue("id", 0)
+            logger.debug("Starting validation report feature for %s.", entryId)
+            dL = []
+
+            # pdbx_vrpt_model_instance_map_fitting
+            if dataContainer.exists("pdbx_vrpt_model_instance_map_fitting"):
+                tObj = dataContainer.getObj("pdbx_vrpt_model_instance_map_fitting")
+                self.__getValidationData(tObj, iObj, ValidationFields, "instance_id", metricValD, dL, instL)
+
+            # pdbx_vrpt_model_instance_density
+            if dataContainer.exists("pdbx_vrpt_model_instance_density"):
+                tObj = dataContainer.getObj("pdbx_vrpt_model_instance_density")
+                self.__getValidationData(tObj, iObj, ValidationFields, "instance_id", metricValD, dL, instL)
+
+            # pdbx_vrpt_model_instance_geometry
+            if dataContainer.exists("pdbx_vrpt_model_instance_geometry"):
+                tObj = dataContainer.getObj("pdbx_vrpt_model_instance_geometry")
+                self.__getValidationData(tObj, iObj, {"OWAB": "OWAB", "AVERAGE_OCCUPANCY": "average_occupancy"}, "instance_id", metricValD, dL, instL)
+
+            # pdbx_vrpt_model_instance
+            if dataContainer.exists("pdbx_vrpt_model_instance"):
+                tObj = dataContainer.getObj("pdbx_vrpt_model_instance")
+                self.__getValidationData(tObj, iObj, OutlierCountFields, "id", metricValD, dL, instL)
+
+            for (entityId, asymId, authAsymId, modelId, attrId, hasSeq), aL in metricValD.items():
+                tD = {}
+                if hasSeq:
+                    sL = sorted(aL, key=lambda i: int(i[1]))
+                    mL = [int(s[1]) for s in sL]
+                    begCompId = ""
+                    for ii in range(len(sL)):
+                        compId = sL[ii][0]
+                        seqId = sL[ii][1]
+                        metricV = sL[ii][2]
+                        for tup in list(self.__toRangeList(mL)):
+                            beg = tup[0]
+                            end = tup[1]
+                            if int(beg) == int(seqId):
+                                begCompId = compId
+                            if int(beg) <= int(seqId) <= int(end) and metricV is not None:
+                                tD.setdefault((begCompId, int(beg)), []).append(float(metricV))
+                elif len(aL) > 0:
+                    ii = 0
+                    compId = aL[ii][0]
+                    metricV = aL[ii][2]
+                    tD.setdefault((compId, 0), []).append(float(metricV))
+                localDataD.setdefault((entityId, asymId, authAsymId, modelId, attrId, hasSeq), []).append(tD)
+
+        except Exception as e:
+            logger.exception("Failing for %s with %s", dataContainer.getName(), str(e))
+
+        return localDataD
+
+    def __processValidationData(self, ii, cL, vObj, vFields, metricValD):
+        [modelId, asymId, compId, _altId, seqId, entityId, authAsymId] = cL
+        for k, v in vFields.items():
+            value = vObj.getValueOrDefault(k, ii, defaultValue=None)
+            if value is not None:
+                metricValD.setdefault((entityId, asymId, authAsymId, modelId, v, seqId and seqId not in [".", "?"]), {}).setdefault((seqId, compId), (compId, seqId, value))
+
+    def __getLocalValidation(self, dataContainer):
+        """ Get Local validation data from the Validation report
+            (e.g., pdbx_vrpt_model_instance_map_fitting.Q_score) and convert to objects corresponding to
+            rcsb_entity_instance_feature in the RCSB extension dictionary
+
+            Args:
+                dataContainer (object): mmif.api.DataContainer object instance
+
+        """
+        metricValD = OrderedDict()
+        localDataD = OrderedDict()
+        instanceModelOutlierD = {}
+        instanceModelValidationD = {}
+        rD = {}
+
+        # Exit if no source category is present
+        if not dataContainer.exists("pdbx_vrpt_model_instance"):
+            return rD
+
+        v1Fields = {
+            "RSRCC": "RSCC",
+            "RSR": "RSR",
+            "RSRZ": "RSRZ",
+            "Q_score": "Q_SCORE",
+            "natoms_eds": "NATOMS_EDS"
+        }
+        v2Fields = {
+            "RSRCC": "RSCC",
+            "RSR": "RSR",
+            "RSRZ": "RSRZ",
+            "natoms_eds": "NATOMS_EDS"
+        }
+        gFields = {
+            "OWAB": "OWAB",
+            "average_occupancy": "AVERAGE_OCCUPANCY",
+        }
+        iFields = {
+            "count_bond_outliers": "BOND_OUTLIERS",
+            "count_angle_outliers": "ANGLE_OUTLIERS",
+            "count_clashes": "CLASHES",
+            "count_symm_clashes": "SYMM_CLASHES",
+            "count_chiral_outliers": "CHIRAL_OUTLIERS",
+            "count_plane_outliers": "PLANE_OUTLIERS",
+            "count_mogul_bond_outliers": "MOGUL_BOND_OUTLIERS",
+            "count_mogul_angle_outliers": "MOGUL_ANGLE_OUTLIERS",
+            "count_mogul_torsion_outliers": "MOGUL_TORSION_OUTLIERS",
+            "count_mogul_ring_outliers": "MOGUL_RING_OUTLIERS"
+        }
+        startTime = time.time()
+
+        try:
+            logger.debug("Starting validation report feature for %s", dataContainer.getName())
+            npMogulBondOutlierD = {}
+            npMogulAngleOutlierD = {}
+            npStereoOutlierD = {}
+            npClashD = {}
+            #
+            iObj = dataContainer.getObj("pdbx_vrpt_model_instance")
+            if not iObj:
+                return rD
+
+            # Get representative model
+            repModelId = self.getRepresentativeModelId(dataContainer)
+
+            # Get number of residues - Leaving it here for debugging purposes
+            # modeledCount, unModeledCount = self.getDepositedMonomerCounts(dataContainer, modelId=repModelId)
+            # depPolyMonomerCount = modeledCount + unModeledCount
+
+            instanceTypeD = self.getInstanceTypes(dataContainer)
+            npAsymL = [k for k, v in instanceTypeD.items() if v in ["polymer", "non-polymer"]]
+            # Skip polymer validation features for large entries - Leaving it here for debugging purposes
+            # if modeledCount > 25000:
+            #     npAsymL = [k for k, v in instanceTypeD.items() if v in ["non-polymer"]]
+            #     logger.info("Skipping polymer validation features for large entry PDBID %s", dataContainer.getName())
+            if not npAsymL:
+                return rD
+            cD = {}
+            nD = {}
+            # cndL2 = [("label_asym_id", "in", npAsymL), ("PDB_model_num", "eq", repModelId)]
+            # kL = iObj.selectIndicesWhereOpConditions(cndL2)
+            # for ii in kL:
+            for ii in range(iObj.getRowCount()):
+                modelId = iObj.getValueOrDefault("PDB_model_num", ii, defaultValue=None)
+                if modelId != repModelId:
+                    continue
+                asymId = iObj.getValueOrDefault("label_asym_id", ii, defaultValue=None)
+                if asymId in npAsymL:
+                    instId = iObj.getValueOrDefault("id", ii, defaultValue=None)
+                    entityId = iObj.getValueOrDefault("entity_id", ii, defaultValue=None)
+                    authAsymId = iObj.getValueOrDefault("auth_asym_id", ii, defaultValue=None)
+                    altId = iObj.getValueOrDefault("label_alt_id", ii, defaultValue=None)
+                    compId = iObj.getValueOrDefault("label_comp_id", ii, defaultValue=None)
+                    seqId = iObj.getValueOrDefault("label_seq_id", ii, defaultValue=None)
+                    cD[instId] = [modelId, asymId, compId, altId, seqId, entityId, authAsymId]
+                    if seqId:
+                        self.__processValidationData(ii, cD[instId], iObj, iFields, metricValD)
+                    else:
+                        countClashes = iObj.getValueOrDefault("count_clashes", ii, defaultValue=None)
+                        countMogulAngleOutliers = iObj.getValueOrDefault("count_mogul_angle_outliers", ii, defaultValue=None)
+                        countMogulBondOutliers = iObj.getValueOrDefault("count_mogul_bond_outliers", ii, defaultValue=None)
+                        countStereoOutliers = iObj.getValueOrDefault("count_chiral_outliers", ii, defaultValue=None)
+                        npMogulBondOutlierD[(modelId, asymId, altId, compId)] = countMogulBondOutliers if countMogulBondOutliers else 0
+                        npMogulAngleOutlierD[(modelId, asymId, altId, compId)] = countMogulAngleOutliers if countMogulAngleOutliers else 0
+                        npClashD[(modelId, asymId, altId, compId)] = countClashes if countClashes else 0
+                        npStereoOutlierD[(modelId, asymId, altId, compId)] = countStereoOutliers if countStereoOutliers else 0
+                        nD[instId] = [modelId, asymId, compId, altId, seqId, entityId, authAsymId]
+            # cndL3 = [("instance_id", "in", cD)]
+
+            vObj = None
+            vD = {}
+            if dataContainer.exists("pdbx_vrpt_model_instance_map_fitting"):
+                vObj = dataContainer.getObj("pdbx_vrpt_model_instance_map_fitting")
+                # kL = vObj.selectIndicesWhereOpConditions(cndL3)
+                # for ii in kL:
+                for ii in range(vObj.getRowCount()):
+                    instId = vObj.getValueOrDefault("instance_id", ii, defaultValue=None)
+                    if instId not in cD:
+                        continue
+                    [modelId, asymId, compId, altId, seqId, entityId, authAsymId] = cD[instId]
+                    if seqId:
+                        self.__processValidationData(ii, cD[instId], vObj, v1Fields, metricValD)
+                    else:
+                        rsrCc = vObj.getValueOrDefault("RSRCC", ii, defaultValue=None)
+                        rsr = vObj.getValueOrDefault("RSR", ii, defaultValue=None)
+                        rsrZ = vObj.getValueOrDefault("RSRZ", ii, defaultValue=None)
+                        nAtomsEds = vObj.getValueOrDefault("natoms_eds", ii, defaultValue=None)
+                        vD[instId] = [rsrCc, rsr, rsrZ, nAtomsEds]
+            elif dataContainer.exists("pdbx_vrpt_model_instance_density"):
+                vObj = dataContainer.getObj("pdbx_vrpt_model_instance_density")
+                # kL = vObj.selectIndicesWhereOpConditions(cndL3)
+                # for ii in kL:
+                for ii in range(vObj.getRowCount()):
+                    instId = vObj.getValueOrDefault("instance_id", ii, defaultValue=None)
+                    if instId not in cD:
+                        continue
+                    [modelId, asymId, compId, altId, seqId, entityId, authAsymId] = cD[instId]
+                    if seqId:
+                        self.__processValidationData(ii, cD[instId], vObj, v2Fields, metricValD)
+                    else:
+                        rsrCc = vObj.getValueOrDefault("RSRCC", ii, defaultValue=None)
+                        rsr = vObj.getValueOrDefault("RSR", ii, defaultValue=None)
+                        rsrZ = vObj.getValueOrDefault("RSRZ", ii, defaultValue=None)
+                        nAtomsEds = vObj.getValueOrDefault("natoms_eds", ii, defaultValue=None)
+                        vD[instId] = [rsrCc, rsr, rsrZ, nAtomsEds]
+
+            gObj = None
+            gD = {}
+            if dataContainer.exists("pdbx_vrpt_model_instance_geometry"):
+                gObj = dataContainer.getObj("pdbx_vrpt_model_instance_geometry")
+                # kL = gObj.selectIndicesWhereOpConditions(cndL3)
+                # for ii in kL:
+                for ii in range(gObj.getRowCount()):
+                    instId = gObj.getValueOrDefault("instance_id", ii, defaultValue=None)
+                    if instId not in cD:
+                        continue
+                    [modelId, asymId, compId, altId, seqId, entityId, authAsymId] = cD[instId]
+                    if seqId:
+                        self.__processValidationData(ii, cD[instId], gObj, gFields, metricValD)
+                    else:
+                        anglesRmsZ = gObj.getValueOrDefault("angles_RMSZ", ii, defaultValue=None)
+                        bondsRmsZ = gObj.getValueOrDefault("bonds_RMSZ", ii, defaultValue=None)
+                        numAnglesRmsZ = gObj.getValueOrDefault("num_angles_RMSZ", ii, defaultValue=None)
+                        numBondsRmsZ = gObj.getValueOrDefault("num_bonds_RMSZ", ii, defaultValue=None)
+                        avgOccupancy = gObj.getValueOrDefault("average_occupancy", ii, defaultValue=None)
+                        software = gObj.getValueOrDefault("program_for_bond_angle_geometry", ii, defaultValue=None)
+                        gD[instId] = [anglesRmsZ, bondsRmsZ, numAnglesRmsZ, numBondsRmsZ, avgOccupancy, software]
+
+            for instId, nL in nD.items():
+                [modelId, asymId, compId, altId, seqId, entityId, authAsymId] = nL
+                if modelId != repModelId:
+                    continue
+                if not seqId:
+                    rsr = rsrZ = rsrCc = nAtomsEds = None
+                    anglesRmsZ = bondsRmsZ = numAnglesRmsZ = numBondsRmsZ = avgOccupancy = software = None
+                    # Get the matching data from pdbx_vrpt_model_instance_density or pdbx_vrpt_model_instance_map_fitting
+                    if instId in vD:
+                        [rsrCc, rsr, rsrZ, nAtomsEds] = vD[instId]
+                    # Get the matching data from pdbx_vrpt_model_instance_geometry
+                    if instId in gD:
+                        [anglesRmsZ, bondsRmsZ, numAnglesRmsZ, numBondsRmsZ, avgOccupancy, software] = gD[instId]
+                    # Evaluate RSRZ_OUTLIER and RSCC_OUTLIER for non-polymer annotations
+                    if rsrZ and float(rsrZ) > 2.0:
+                        tS = "%s > 2.0 (altId %s)" % (rsrZ, altId) if altId else "%s > 2.0" % rsrZ
+                        instanceModelOutlierD.setdefault((modelId, asymId, altId, False), []).append(OutlierValue(compId, None, "RSRZ_OUTLIER", tS, rsr, None, rsrZ, "Z-Score"))
+                    if rsrCc and float(rsrCc) < 0.650:
+                        tS = "RSCC < 0.65 (altId %s)" % altId if altId else "RSCC < 0.65"
+                        instanceModelOutlierD.setdefault((modelId, asymId, altId, False), []).append(OutlierValue(compId, None, "RSCC_OUTLIER", tS, rsrCc))
+                    # Set all values for non-polymer validation score
+                    if asymId in instanceTypeD and instanceTypeD[asymId] == "non-polymer":
+                        instanceModelValidationD[(modelId, asymId, altId, compId)] = NonpolymerValidationInstance(
+                            float(rsr) if rsr else None,
+                            float(rsrCc) if rsrCc else None,
+                            int(nAtomsEds) if nAtomsEds else None,
+                            float(bondsRmsZ) if bondsRmsZ else None,
+                            float(anglesRmsZ) if anglesRmsZ else None,
+                            int(numAnglesRmsZ) if numAnglesRmsZ else None,
+                            int(numBondsRmsZ) if numBondsRmsZ else None,
+                            float(avgOccupancy) if avgOccupancy else None,
+                            npClashD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npClashD else 0,
+                            npMogulBondOutlierD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npMogulBondOutlierD else 0,
+                            npMogulAngleOutlierD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npMogulAngleOutlierD else 0,
+                            npStereoOutlierD[(modelId, asymId, altId, compId)] if (modelId, asymId, altId, compId) in npStereoOutlierD else 0,
+                        )
+            # Set validation data for polymer features
+            for (entityId, asymId, authAsymId, modelId, attrId, hasSeq), aD in metricValD.items():
+                tD = {}
+                if hasSeq:
+                    sL = sorted(aD.values(), key=lambda item: int(item[1]))
+                    mL = [int(s[1]) for s in sL]
+                    begCompId = ""
+                    for ii in range(len(sL)):
+                        compId = sL[ii][0]
+                        seqId = sL[ii][1]
+                        metricV = sL[ii][2]
+                        for tup in list(self.__toRangeList(mL)):
+                            beg = tup[0]
+                            end = tup[1]
+                            if int(beg) == int(seqId):
+                                begCompId = compId
+                            if int(beg) <= int(seqId) <= int(end) and metricV is not None:
+                                tD.setdefault((begCompId, int(beg)), []).append(float(metricV))
+                    localDataD.setdefault((entityId, asymId, authAsymId, modelId, attrId, hasSeq), []).append(tD)
+
+            rD = {"localDataD": localDataD, "instanceModelValidationD": instanceModelValidationD, "instanceModelOutlierD": instanceModelOutlierD}
+        except Exception as e:
+            logger.exception("Failing for %s with %s", dataContainer.getName(), str(e))
+
+        endTime = time.time()
+        logger.debug("Completed at %s (%.4f seconds) PDBID %s", time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - startTime, dataContainer.getName())
+        return rD
+
+    def __fetchLocalValidationData(self, dataContainer):
+        wD = self.__localValidationCache.get(dataContainer.getName())
+        if not wD:
+            # wD = self.__getLocalValidationPrev(dataContainer)
+            wD = self.__getLocalValidation(dataContainer)
+            self.__localValidationCache.set(dataContainer.getName(), wD)
+        return wD
+
+    def getLocalValidationData(self, dataContainer):
+        """Return a dictionary of polymer model outliers.
+
+        Args:
+            dataContainer (object):  mmcif.api.DataContainer object instance
+
+        Returns:
+            dict: {(modelId, asymId): (seqId,compId), ...}
+        """
+        if not dataContainer or not dataContainer.getName():
+            return {}
+        wD = self.__fetchLocalValidationData(dataContainer)
+        return wD["localDataD"] if "localDataD" in wD else {}
+
+    def getNonpolyValidationData(self, dataContainer):
+        """Return a dictionary of nonpolymer validation details.
+
+        Args:
+            dataContainer (object):  mmcif.api.DataContainer object instance
+
+        Returns:
+            dict: {(modelId, asymId): NonpolymerValidationInstance(rsr, rsrCc, bondsRmsZ, anglesRmsZ,
+                                             intermolecular_clashes, mogul_bond_outliers, mogul_angle_outliers, stereo_outliers)}
+
+        """
+        if not dataContainer or not dataContainer.getName():
+            return {}
+        wD = self.__fetchLocalValidationData(dataContainer)
+        return wD["instanceModelValidationD"] if "instanceModelValidationD" in wD else {}
+
+    def getNonpolyOutlierData(self, dataContainer):
+        """Return a dictionary of nonpolymer validation details.
+
+        Args:
+            dataContainer (object):  mmcif.api.DataContainer object instance
+
+        Returns:
+            dict: {(modelId, asymId): NonpolymerValidationInstance(rsr, rsrCc, bondsRmsZ, anglesRmsZ,
+                                             intermolecular_clashes, mogul_bond_outliers, mogul_angle_outliers, stereo_outliers)}
+
+        """
+        if not dataContainer or not dataContainer.getName():
+            return {}
+        wD = self.__fetchLocalValidationData(dataContainer)
+        return wD["instanceModelOutlierD"] if "instanceModelOutlierD" in wD else {}
