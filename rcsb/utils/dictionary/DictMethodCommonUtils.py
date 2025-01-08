@@ -3470,6 +3470,7 @@ class DictMethodCommonUtils(object):
             self.__modelOutliersCache.set(dataContainer.getName(), wD)
         return wD
 
+    # TO BE DELETED
     def __getInstanceModelOutliersXML(self, dataContainer):
         """Internal method to assemble model outliers details.
 
@@ -3831,6 +3832,7 @@ class DictMethodCommonUtils(object):
             logger.exception("%s failing with %s", dataContainer.getName(), str(e))
         return rD
 
+    # TO BE DELETED
     def __getInstanceModelOutliers(self, dataContainer):
         """Internal method to assemble model outliers details.
 
