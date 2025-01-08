@@ -25,7 +25,7 @@
 #  25-Jul-2024 dwp Add ligand interactions to polymer entity instance features;
 #                  Stop relying on NeighborInteractionProvider cache file, and instead calculate all interactions on the fly
 #  13-Dec-2024  bv Update buildInstanceValidationScores to handle validation data
-#  19-Dec-2024  bv Update buildEntityInstanceFeatures and buildInstanceValidationFeatures to turn off features for non-polymers
+#   7-Jan-2025  bv Update buildEntityInstanceFeatures and buildInstanceValidationFeatures to turn off features for non-polymers
 #                  and remove duplicate features for polymers
 #                  Add filterPseudoEmptyVrptRecords
 #                  Skip non-representative models in buildInstanceValidationFeatures and buildInstanceValidationScores
@@ -953,7 +953,7 @@ class DictMethodEntityInstanceHelper(object):
                     ii += 1
                 logger.debug("Completed populating local QA scores for computed model %r", dataContainer.getName())
 
-            # Turn off features for non-polymers
+            # Turn off features for non-polymers - TO DELETE
             # npbD = self.__commonU.getBoundNonpolymersByInstance(dataContainer)
             npbD = {}
             jj = 1
@@ -1376,7 +1376,7 @@ class DictMethodEntityInstanceHelper(object):
 
             #
             endTime = time.time()
-            logger.info("Completed at %s (%.4f seconds) PDBID %s", time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - startTime, dataContainer.getName())
+            logger.debug("Completed at %s (%.4f seconds) PDBID %s", time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - startTime, dataContainer.getName())
             return True
         except Exception as e:
             logger.exception("For %s %r failing with %s", dataContainer.getName(), catName, str(e))
@@ -1912,6 +1912,7 @@ class DictMethodEntityInstanceHelper(object):
                         fCount = len(fValuesD[asymId][fType])
                         if asymId in fMonomerCountD and fType in fMonomerCountD[asymId] and entityId in entityPolymerLengthD:
                             fracC = float(fCount) / float(entityPolymerLengthD[entityId])
+                        # TO DELETE
                         # This needs to be changed to use the correct source for all outlier types.
                         # elif compId is not None:
                         #     if fType == "MOGUL_BOND_OUTLIERS" and self.__ccP.getBondCount(compId) > 0:
@@ -1935,12 +1936,6 @@ class DictMethodEntityInstanceHelper(object):
                         xObj = dataContainer.getObj("exptl")
                         methodL = xObj.getAttributeValueList("method")
                         _, expMethod = self.__commonU.filterExperimentalMethod(methodL)
-                        # -- Get existing interactions or calculate on the fly
-                        # if self.__niP.hasEntry(entryId):
-                        #     ligandAtomCountD = self.__niP.getAtomCounts(entryId)
-                        #     ligandHydrogenAtomCountD = self.__niP.getHydrogenAtomCounts(entryId)
-                        #     intIsBoundD = self.__niP.getLigandNeighborBoundState(entryId)
-                        # else:
                         ligandAtomCountD = self.__commonU.getLigandAtomCountD(dataContainer)
                         ligandHydrogenAtomCountD = self.__commonU.getLigandHydrogenAtomCountD(dataContainer)
                         intIsBoundD = self.__commonU.getLigandNeighborBoundState(dataContainer)
