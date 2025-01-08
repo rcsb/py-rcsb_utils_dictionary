@@ -4574,6 +4574,7 @@ class DictMethodCommonUtils(object):
 
         return repModelId
 
+    # METHOD TO BE DELETED
     def __getValidationData(self, tObj, iObj, fields, idField, metricValD, dL, instL):
         cndL4 = [(idField, "in", instL)]
         kL = tObj.selectIndicesWhereOpConditions(cndL4)
@@ -4597,6 +4598,7 @@ class DictMethodCommonUtils(object):
                         metricValD.setdefault((entityId, asymId, authAsymId, modelNum, iFd, seqId and seqId not in [".", "?"]), []).append((compId, seqId, value))
                         dL.append(tId)
 
+    # METHOD TO BE DELETED
     def __getLocalValidationPrev(self, dataContainer):
         """ Get Local validation data from the Validation report
             (e.g., pdbx_vrpt_model_instance_map_fitting.Q_score) and convert to objects corresponding to
@@ -4776,13 +4778,13 @@ class DictMethodCommonUtils(object):
             # Get representative model
             repModelId = self.getRepresentativeModelId(dataContainer)
 
-            # Get number of residues
+            # Get number of residues - Leaving it here for debugging purposes
             # modeledCount, unModeledCount = self.getDepositedMonomerCounts(dataContainer, modelId=repModelId)
             # depPolyMonomerCount = modeledCount + unModeledCount
 
             instanceTypeD = self.getInstanceTypes(dataContainer)
             npAsymL = [k for k, v in instanceTypeD.items() if v in ["polymer", "non-polymer"]]
-            # Skip polymer validation features for large entries
+            # Skip polymer validation features for large entries - Leaving it here for debugging purposes
             # if modeledCount > 25000:
             #     npAsymL = [k for k, v in instanceTypeD.items() if v in ["non-polymer"]]
             #     logger.info("Skipping polymer validation features for large entry PDBID %s", dataContainer.getName())
