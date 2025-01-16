@@ -609,23 +609,7 @@ class DictMethodAssemblyHelper(object):
         eTypeD = self.__commonU.getEntityTypes(dataContainer)
         epTypeFilteredD = self.__commonU.getPolymerEntityFilteredTypes(dataContainer)
         #
-        methodL = []
-        if dataContainer.exists("exptl"):
-            xObj = dataContainer.getObj("exptl")
-            methodL = xObj.getAttributeValueList("method")
-        elif dataContainer.exists("ma_model_list"):
-            mObj = dataContainer.getObj("ma_model_list")
-            methodL = mObj.getAttributeUniqueValueList("model_type")
-        repModelL = []
-        mIdL = self.__commonU.getModelIdList(dataContainer)
-        if mIdL:
-            repModelL = ["1"] if "1" in mIdL else [mIdL[0]]
-            if self.__commonU.hasMethodNMR(methodL):
-                repModelL = self.__commonU.getRepresentativeModels(dataContainer)
-            logger.debug("Representative model list %r %r", repModelL, dataContainer.getName())
-        else:
-            logger.debug("No models available for %s", dataContainer.getName())
-        repModelId = repModelL[0]
+        repModelId = self.__commonU.getRepresentativeModelId(dataContainer)
         # JDW
         instHeavyAtomCount = self.__commonU.getInstanceHeavyAtomCounts(dataContainer, modelId=repModelId)
         instDeuWatMolCount = self.__commonU.getInstanceDeuWatMolCounts(dataContainer, modelId=repModelId)

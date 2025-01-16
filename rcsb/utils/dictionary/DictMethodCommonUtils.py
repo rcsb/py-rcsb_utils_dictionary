@@ -2668,12 +2668,12 @@ class DictMethodCommonUtils(object):
         #
         return compClass, ptClass, naClass, cD
 
-    def filterExperimentalMethod(self, methodL):
+    def filterExperimentalMethod(self, dataContainer):
         """Apply a standard filter to the input experimental method list returning a method count and
             a simplified method name.
 
         Args:
-            methodL (list): List of dictionary compliant experimental method names
+            dataContainer (object): mmif.api.DataContainer object instance
 
         Returns:
             tuple(int,str): methodCount, simpleMethodName
@@ -2686,6 +2686,7 @@ class DictMethodCommonUtils(object):
         'Multiple methods' 'Multiple experimental methods'
         'Other'            'SOLUTION SCATTERING, EPR, INFRARED SPECTROSCOPY or FLUORESCENCE TRANSFER'
         """
+        methodL = self.getMethodList(dataContainer)
         methodCount = len(methodL)
         if methodCount > 1:
             expMethod = "Multiple methods"
@@ -2710,12 +2711,12 @@ class DictMethodCommonUtils(object):
 
         return methodCount, expMethod
 
-    def filterStructureDeterminationMethodType(self, methodL):
+    def filterStructureDeterminationMethodType(self, dataContainer):
         """Apply a standard filter to the input experimental or computational method list to return the type
             of structure determination method used--experimental, computational, or integrative.
 
         Args:
-            methodL (list): List of dictionary compliant experimental or computational method names
+            dataContainer (object): mmif.api.DataContainer object instance
 
         Returns:
             str: methodType
@@ -2725,6 +2726,7 @@ class DictMethodCommonUtils(object):
             integrative    "Integrative/Hybrid methods"
             computational  "Computational modeling"
         """
+        methodL = self.getMethodList(dataContainer)
         #
         experimentalMethodList = [
             "X-RAY DIFFRACTION", "FIBER DIFFRACTION", "POWDER DIFFRACTION",
@@ -2759,19 +2761,22 @@ class DictMethodCommonUtils(object):
 
         return methodType
 
-    def hasMethodNMR(self, methodL):
+    def hasMethodNMR(self, dataContainer):
         """Return if the input dictionary experimental method list contains an NMR experimental method.
 
         Args:
-            methodL (list): List of dictionary experimental method names
+            dataContainer (object): mmif.api.DataContainer object instance
 
         Returns:
             bool: True if the input contains NMR or False otherwise
         """
         ok = False
-        for method in methodL:
-            if method in ["SOLUTION NMR", "SOLID-STATE NMR"]:
-                return True
+        #
+        methodL = self.getMethodList(dataContainer)
+        if methodL:
+            for method in methodL:
+                if method in ["SOLUTION NMR", "SOLID-STATE NMR"]:
+                    return True
         return ok
 
     def __getTimeStamp(self):
@@ -3880,7 +3885,7 @@ class DictMethodCommonUtils(object):
             cD = {}
             for ii in kL:
                 modelId = iObj.getValueOrDefault("PDB_model_num", ii, defaultValue=None)
-                if modelId != repModelId:
+                if str(modelId) != repModelId:
                     continue
                 asymId = iObj.getValueOrDefault("label_asym_id", ii, defaultValue=None)
                 if asymId in npAsymL:
@@ -3928,7 +3933,7 @@ class DictMethodCommonUtils(object):
                     # [fL] = iObj.selectValueListWhere(["PDB_model_num", "label_asym_id", "label_comp_id", "label_alt_id", "label_seq_id"], instId, "id")
                     # [modelId, asymId, compId, altId, seqId] = [x if not (x in [".", "?", "None"]) else None for x in fL]
                     [modelId, asymId, compId, altId, seqId] = cD[instId]
-                    if modelId != repModelId:
+                    if str(modelId) != repModelId:
                         continue
                     # ---
                     if not seqId:
@@ -4509,28 +4514,39 @@ class DictMethodCommonUtils(object):
             _pdbx_nmr_representative.conformer_id         1
             _pdbx_nmr_representative.selection_criteria   'fewest violations'
         """
+        eObj = dataContainer.getObj("entry")
+        entryId = eObj.getValue("id", 0)
         repModelL = []
         mIdL = self.getModelIdList(dataContainer)
-        if dataContainer.exists("pdbx_nmr_representative"):
-            tObj = dataContainer.getObj("pdbx_nmr_representative")
-            if tObj.hasAttribute("conformer_id"):
-                for ii in range(tObj.getRowCount()):
-                    nn = tObj.getValue("conformer_id", ii)
-                    if nn is not None and nn.isdigit() and nn in mIdL:
-                        repModelL.append(nn)
-
-        if dataContainer.exists("pdbx_nmr_ensemble"):
-            tObj = dataContainer.getObj("pdbx_nmr_ensemble")
-            if tObj.hasAttribute("representative_conformer"):
-                nn = tObj.getValue("representative_conformer", 0)
-                if nn is not None and nn and nn.isdigit() and nn in mIdL:
-                    repModelL.append(nn)
         #
-        repModelL = list(set(repModelL))
-        if not repModelL:
-            logger.debug("Missing representative model data for %s using the first model", dataContainer.getName())
-            repModelL = ["1"] if "1" in mIdL else [mIdL[0]]
+        if mIdL:
+            # If NMR structure...
+            if self.hasMethodNMR(dataContainer):
+                if dataContainer.exists("pdbx_nmr_representative"):
+                    tObj = dataContainer.getObj("pdbx_nmr_representative")
+                    if tObj.hasAttribute("conformer_id"):
+                        for ii in range(tObj.getRowCount()):
+                            nn = tObj.getValue("conformer_id", ii)
+                            if nn is not None and nn.isdigit() and nn in mIdL and nn not in repModelL:
+                                repModelL.append(nn)
+                if dataContainer.exists("pdbx_nmr_ensemble"):
+                    tObj = dataContainer.getObj("pdbx_nmr_ensemble")
+                    if tObj.hasAttribute("representative_conformer"):
+                        nn = tObj.getValue("representative_conformer", 0)
+                        if nn is not None and nn and nn.isdigit() and nn in mIdL and nn not in repModelL:
+                            repModelL.append(nn)
+            #
+            if not repModelL:
+                logger.debug("Missing representative model data for %s. Using the first model.", dataContainer.getName())
+                repModelL = ["1"] if "1" in mIdL else [mIdL[0]]
 
+        # OK to always default to ["1"]? (Or are/should empty lists be possible?)
+        if not repModelL:
+            logger.debug("Missing model data for %s. Using model 1.", dataContainer.getName())
+            repModelL = ["1"]
+        #
+        logger.debug("Representative model list for entryId %r %r", entryId, repModelL)
+        #
         return repModelL
 
     def getMethodList(self, dataContainer):
@@ -4557,24 +4573,9 @@ class DictMethodCommonUtils(object):
     def getRepresentativeModelId(self, dataContainer):
         """Return the first representative model ID.
         """
-
-        repModelId = "1"
-        try:
-            methodL = self.getMethodList(dataContainer)
-            repModelL = []
-            mIdL = self.getModelIdList(dataContainer)
-            if mIdL:
-                repModelL = ["1"] if "1" in mIdL else [mIdL[0]]
-                if self.hasMethodNMR(methodL):
-                    repModelL = self.getRepresentativeModels(dataContainer)
-            else:
-                logger.debug("No models available for %s", dataContainer.getName())
-            if repModelL:
-                repModelId = repModelL[0]
-        except Exception as e:
-            logger.debug("Failed to get representative model id with %s", str(e))
-
-        return repModelId
+        repModelL = self.getRepresentativeModels(dataContainer)
+        repModelId = repModelL[0]
+        return str(repModelId)
 
     # METHOD TO BE DELETED
     def __getValidationData(self, tObj, iObj, fields, idField, metricValD, dL, instL):
@@ -4799,7 +4800,7 @@ class DictMethodCommonUtils(object):
             # for ii in kL:
             for ii in range(iObj.getRowCount()):
                 modelId = iObj.getValueOrDefault("PDB_model_num", ii, defaultValue=None)
-                if modelId != repModelId:
+                if str(modelId) != repModelId:
                     continue
                 asymId = iObj.getValueOrDefault("label_asym_id", ii, defaultValue=None)
                 if asymId in npAsymL:
@@ -4885,7 +4886,7 @@ class DictMethodCommonUtils(object):
 
             for instId, nL in nD.items():
                 [modelId, asymId, compId, altId, seqId, entityId, authAsymId] = nL
-                if modelId != repModelId:
+                if str(modelId) != repModelId:
                     continue
                 if not seqId:
                     rsr = rsrZ = rsrCc = nAtomsEds = None
