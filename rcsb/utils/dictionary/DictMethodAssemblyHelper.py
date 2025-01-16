@@ -12,6 +12,7 @@
 # 29-Jun-2022 dwp Use internal computed-model identifiers everywhere
 # 06-Jul-2022 dwp Only run addDepositedAssembly for computed model files which don't already contain pdbx_struct_assembly
 # 01-Feb-2024 bv  Update methods 'addAssemblyInfo' and '__getAssemblyComposition' to support deuterated water molecule count
+# 16-Jan-2025 dwp Use simplified method call for getting representative model ID
 #
 ##
 """
@@ -609,23 +610,7 @@ class DictMethodAssemblyHelper(object):
         eTypeD = self.__commonU.getEntityTypes(dataContainer)
         epTypeFilteredD = self.__commonU.getPolymerEntityFilteredTypes(dataContainer)
         #
-        methodL = []
-        if dataContainer.exists("exptl"):
-            xObj = dataContainer.getObj("exptl")
-            methodL = xObj.getAttributeValueList("method")
-        elif dataContainer.exists("ma_model_list"):
-            mObj = dataContainer.getObj("ma_model_list")
-            methodL = mObj.getAttributeUniqueValueList("model_type")
-        repModelL = []
-        mIdL = self.__commonU.getModelIdList(dataContainer)
-        if mIdL:
-            repModelL = ["1"] if "1" in mIdL else [mIdL[0]]
-            if self.__commonU.hasMethodNMR(methodL):
-                repModelL = self.__commonU.getRepresentativeModels(dataContainer)
-            logger.debug("Representative model list %r %r", repModelL, dataContainer.getName())
-        else:
-            logger.debug("No models available for %s", dataContainer.getName())
-        repModelId = repModelL[0]
+        repModelId = self.__commonU.getRepresentativeModelId(dataContainer)
         # JDW
         instHeavyAtomCount = self.__commonU.getInstanceHeavyAtomCounts(dataContainer, modelId=repModelId)
         instDeuWatMolCount = self.__commonU.getInstanceDeuWatMolCounts(dataContainer, modelId=repModelId)
