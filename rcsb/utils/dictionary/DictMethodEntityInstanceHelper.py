@@ -30,6 +30,7 @@
 #                  Add filterPseudoEmptyVrptRecords
 #                  Skip non-representative models in buildInstanceValidationFeatures and buildInstanceValidationScores
 #                  Fix coverage in buildInstanceValidationFeatureSummary
+#  16-Jan-2025 dwp Only load features for the representative model
 #
 ##
 """

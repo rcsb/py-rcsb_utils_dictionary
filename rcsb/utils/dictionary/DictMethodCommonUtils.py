@@ -31,6 +31,7 @@
 #                 base calculation on coordinates only
 #  7-Jan-2025  bv Update '__getInstanceModelOutliers' to handle validation data
 #                 Add getRepresentativeModelId and getMethodList
+# 16-Jan-2025 dwp Consolidate getRepresentativeModelId and associated methods/calls
 #
 ##
 """

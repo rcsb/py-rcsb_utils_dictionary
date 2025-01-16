@@ -12,6 +12,7 @@
 # 29-Jun-2022 dwp Use internal computed-model identifiers everywhere
 # 06-Jul-2022 dwp Only run addDepositedAssembly for computed model files which don't already contain pdbx_struct_assembly
 # 01-Feb-2024 bv  Update methods 'addAssemblyInfo' and '__getAssemblyComposition' to support deuterated water molecule count
+# 16-Jan-2025 dwp Use simplified method call for getting representative model ID
 #
 ##
 """

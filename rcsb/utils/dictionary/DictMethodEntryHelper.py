@@ -66,6 +66,7 @@
 # 26-Jan-2023 dwp Populate or update pdbx_database_status attributes for CSMs to make ready for RELease
 # 21-Feb-2023  bv Update '__filterExperimentalResolution' method to handle experimental resolutions properly (see RO-3559)
 # 01-Feb-2024  bv Update method 'addEntryInfo' to support deuterated water molecule count
+# 16-Jan-2025 dwp Use simplified method call for getting representative model ID
 #
 ##
 """
