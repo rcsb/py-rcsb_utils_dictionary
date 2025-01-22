@@ -31,7 +31,9 @@
 #                 base calculation on coordinates only
 #  7-Jan-2025  bv Update '__getInstanceModelOutliers' to handle validation data
 #                 Add getRepresentativeModelId and getMethodList
-# 16-Jan-2025 dwp Consolidate getRepresentativeModelId and associated methods/calls
+# 16-Jan-2025 dwp Consolidate getRepresentativeModelId and associated methods/calls;
+#                 Skip non-representative models for calculating/building content;
+#                 Fix modelId assignment in getNeighborInfo
 #
 ##
 """
@@ -124,7 +126,7 @@ LigandTargetFields = (
 )
 LigandTargetInstance = namedtuple("LigandTargetInstance", LigandTargetFields, defaults=(None,) * len(LigandTargetFields))
 
-ReferenceFields = ("entityId", "entityType", "asymId", "compId", "seqId", "authSeqId", "atomId", "altId")
+ReferenceFields = ("entityId", "entityType", "asymId", "compId", "seqId", "authSeqId", "atomId", "altId", "modelId")
 ReferenceInstance = namedtuple("ReferenceInstance", ReferenceFields, defaults=(None,) * len(ReferenceFields))
 
 
@@ -4223,10 +4225,12 @@ class DictMethodCommonUtils(object):
                 #
                 if selectType == "target":
                     targetXyzL.append((float(xC), float(yC), float(zC)))
-                    targetRefL.append(ReferenceInstance(entityId, instanceType, asymId, compId, int(seqId) if seqId not in [".", "?"] else None, authSeqId, atomId, altId))
+                    targetRefL.append(
+                        ReferenceInstance(entityId, instanceType, asymId, compId, int(seqId) if seqId not in [".", "?"] else None, authSeqId, atomId, altId, targetModelId)
+                    )
                 elif selectType == "ligand":
                     ligandXyzD.setdefault(asymId, []).append((float(xC), float(yC), float(zC)))
-                    ligandRefD.setdefault(asymId, []).append(ReferenceInstance(entityId, instanceType, asymId, compId, None, authSeqId, atomId, altId))
+                    ligandRefD.setdefault(asymId, []).append(ReferenceInstance(entityId, instanceType, asymId, compId, None, authSeqId, atomId, altId, modelId))
 
                     if not altId:
                         ligandAtomCountD.setdefault(asymId, defaultdict(int))["FL"] += 1
@@ -4286,13 +4290,13 @@ class DictMethodCommonUtils(object):
                         # ----
                         ligandTargetInstanceD.setdefault(asymId, []).append(
                             LigandTargetInstance(
-                                modelId,
+                                ligandRefD[asymId][ligIndex].modelId,
                                 asymId,
                                 ligandRefD[asymId][ligIndex].compId,
                                 ligandRefD[asymId][ligIndex].atomId,
                                 ligandRefD[asymId][ligIndex].altId,
                                 connectType,
-                                targetModelId,
+                                targetRefL[ind].modelId,
                                 targetRefL[ind].entityType,
                                 targetRefL[ind].entityId,
                                 targetRefL[ind].compId,
