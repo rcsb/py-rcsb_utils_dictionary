@@ -696,7 +696,11 @@ class DictMethodSecStructUtils(object):
             #
             if dataContainer.exists("struct_mon_prot_cis"):
                 tObj = dataContainer.getObj("struct_mon_prot_cis")
+                repModelId = self.__commonU.getRepresentativeModelId(dataContainer)
                 for ii in range(tObj.getRowCount()):
+                    modelId = int(tObj.getValue("pdbx_PDB_model_num", ii))
+                    if str(modelId) != repModelId:  # Skip non-representative models
+                        continue
                     cId = tObj.getValue("pdbx_id", ii)
                     begAsymId = tObj.getValue("label_asym_id", ii)
                     # begCompId = tObj.getValue("label_comp_id", ii)
@@ -704,7 +708,6 @@ class DictMethodSecStructUtils(object):
                     endAsymId = tObj.getValue("pdbx_label_asym_id_2", ii)
                     # endCompId = int(tObj.getValue("pdbx_label_comp_id_2", ii))
                     endSeqId = int(tObj.getValue("pdbx_label_seq_id_2", ii))
-                    modelId = int(tObj.getValue("pdbx_PDB_model_num", ii))
                     omegaAngle = float(tObj.getValue("pdbx_omega_angle", ii))
                     #
                     if (begAsymId == endAsymId) and (begSeqId <= endSeqId):

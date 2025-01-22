@@ -707,7 +707,7 @@ class DictMethodCommonUtils(object):
             list: [1,2,3]
         """
         if not dataContainer or not dataContainer.getName():
-            return {}
+            return []
         wD = self.__fetchAtomSiteInfo(dataContainer)
         return wD["modelIdList"] if "modelIdList" in wD else []
 
@@ -1135,9 +1135,6 @@ class DictMethodCommonUtils(object):
         try:
             eObj = dataContainer.getObj("entry")
             entryId = eObj.getValue("id", 0)
-            #
-            # if eObj.hasAttribute("rcsb_comp_model_id"):
-            #     entryId = eObj.getValue("rcsb_comp_model_id", 0)
             #
             psObj = dataContainer.getObj("pdbx_poly_seq_scheme")
             if psObj is not None:
@@ -3387,10 +3384,15 @@ class DictMethodCommonUtils(object):
             if dataContainer.exists("pdbx_unobs_or_zero_occ_atoms"):
                 atomObj = dataContainer.getObj("pdbx_unobs_or_zero_occ_atoms")
             #
+            # Get representative model
+            repModelId = self.getRepresentativeModelId(dataContainer)
+            #
             polyResRngD = {}
             if resObj:
                 for ii in range(resObj.getRowCount()):
                     modelId = resObj.getValueOrDefault("PDB_model_num", ii, defaultValue=None)
+                    if str(modelId) != repModelId:  # Skip non-representative models
+                        continue
                     pFlag = resObj.getValueOrDefault("polymer_flag", ii, defaultValue=None)
                     if pFlag == "Y":
                         occFlag = resObj.getValueOrDefault("occupancy_flag", ii, defaultValue=None)
@@ -3412,6 +3414,8 @@ class DictMethodCommonUtils(object):
             if atomObj:
                 for ii in range(atomObj.getRowCount()):
                     modelId = atomObj.getValueOrDefault("PDB_model_num", ii, defaultValue=None)
+                    if str(modelId) != repModelId:  # Skip non-representative models
+                        continue
                     pFlag = atomObj.getValueOrDefault("polymer_flag", ii, defaultValue=None)
                     occFlag = atomObj.getValueOrDefault("occupancy_flag", ii, defaultValue=None)
                     zeroOccFlag = occFlag and int(occFlag) == 0
@@ -3886,7 +3890,7 @@ class DictMethodCommonUtils(object):
             cD = {}
             for ii in kL:
                 modelId = iObj.getValueOrDefault("PDB_model_num", ii, defaultValue=None)
-                if str(modelId) != repModelId:
+                if str(modelId) != repModelId:  # Skip non-representative models
                     continue
                 asymId = iObj.getValueOrDefault("label_asym_id", ii, defaultValue=None)
                 if asymId in npAsymL:
@@ -3934,7 +3938,7 @@ class DictMethodCommonUtils(object):
                     # [fL] = iObj.selectValueListWhere(["PDB_model_num", "label_asym_id", "label_comp_id", "label_alt_id", "label_seq_id"], instId, "id")
                     # [modelId, asymId, compId, altId, seqId] = [x if not (x in [".", "?", "None"]) else None for x in fL]
                     [modelId, asymId, compId, altId, seqId] = cD[instId]
-                    if str(modelId) != repModelId:
+                    if str(modelId) != repModelId:  # Skip non-representative models
                         continue
                     # ---
                     if not seqId:
@@ -4130,13 +4134,13 @@ class DictMethodCommonUtils(object):
             self.__neighborInfoCache.set(dataContainer.getName(), wD)
         return wD
 
-    def getNeighborInfo(self, dataContainer, distLimit=5.0, targetModelId="1"):
+    def getNeighborInfo(self, dataContainer, distLimit=5.0, targetModelId=None):
         """Get bound and unbound neighbors for each non-polymer instance and ligand atom counts.
 
         Args:
             dataContainer (obj): DataContainer object
             distLimit (float, optional): neighbor distance limit (Angstroms). Defaults to 5.0.
-            targetModelId (str, optional):  select only for this model identifier.  Defaults to 1.
+            targetModelId (str, optional):  select only for this model identifier. Will default to representative model.
 
         Returns:
               (dict, dict, list, dict): {asymId: [LigandTargetInstance()]}, {asymId: {altId: atomcount}, }
@@ -4168,6 +4172,8 @@ class DictMethodCommonUtils(object):
             if "non-polymer" not in instanceTypeD.values():
                 return rD
             #
+            targetModelId = targetModelId if targetModelId else self.getRepresentativeModelId(dataContainer)
+            #
             entryId = dataContainer.getName()
             logger.debug("Starting with entry %s", entryId)
             nonPolymerBoundD = self.getBoundNonpolymersByInstance(dataContainer)
@@ -4184,7 +4190,7 @@ class DictMethodCommonUtils(object):
             aObj = dataContainer.getObj("atom_site")
             for ii in range(aObj.getRowCount()):
                 modelId = aObj.getValue("pdbx_PDB_model_num", ii)
-                if modelId != targetModelId:
+                if str(modelId) != targetModelId:
                     continue
 
                 asymId = aObj.getValue("label_asym_id", ii)
@@ -4458,9 +4464,12 @@ class DictMethodCommonUtils(object):
         try:
             if dataContainer.exists("ma_qa_metric_local"):
                 tObj = dataContainer.getObj("ma_qa_metric_local")
+                repModelId = self.getRepresentativeModelId(dataContainer)
                 dL = []
                 for ii in range(tObj.getRowCount()):
                     modelId = tObj.getValue("model_id", ii)
+                    if str(modelId) != repModelId:  # Skip non-representative models
+                        continue
                     seqId = tObj.getValue("label_seq_id", ii)
                     asymId = tObj.getValue("label_asym_id", ii)
                     metricId = tObj.getValue("metric_id", ii)
@@ -4538,13 +4547,15 @@ class DictMethodCommonUtils(object):
                             repModelL.append(nn)
             #
             if not repModelL:
-                logger.debug("Missing representative model data for %s. Using the first model.", dataContainer.getName())
+                logger.debug("Using the first model as representative model for %s.", dataContainer.getName())
                 repModelL = ["1"] if "1" in mIdL else [mIdL[0]]
 
-        # OK to always default to ["1"]? (Or are/should empty lists be possible?)
-        if not repModelL:
-            logger.debug("Missing model data for %s. Using model 1.", dataContainer.getName())
-            repModelL = ["1"]
+        else:
+            logger.error("Missing model data for %s. Check file for data issue (model ID should exist in atom_site.pdbx_PDB_model_num).", dataContainer.getName())
+            raise ValueError(
+                "Missing model data for %s. Check file for data issue (model ID should exist in atom_site.pdbx_PDB_model_num)."
+                % (dataContainer.getName())
+            )
         #
         logger.debug("Representative model list for entryId %r %r", entryId, repModelL)
         #
@@ -4801,7 +4812,7 @@ class DictMethodCommonUtils(object):
             # for ii in kL:
             for ii in range(iObj.getRowCount()):
                 modelId = iObj.getValueOrDefault("PDB_model_num", ii, defaultValue=None)
-                if str(modelId) != repModelId:
+                if str(modelId) != repModelId:  # Skip non-representative models
                     continue
                 asymId = iObj.getValueOrDefault("label_asym_id", ii, defaultValue=None)
                 if asymId in npAsymL:
@@ -4887,7 +4898,7 @@ class DictMethodCommonUtils(object):
 
             for instId, nL in nD.items():
                 [modelId, asymId, compId, altId, seqId, entityId, authAsymId] = nL
-                if str(modelId) != repModelId:
+                if str(modelId) != repModelId:  # Skip non-representative models
                     continue
                 if not seqId:
                     rsr = rsrZ = rsrCc = nAtomsEds = None

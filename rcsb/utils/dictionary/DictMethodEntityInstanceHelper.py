@@ -760,7 +760,7 @@ class DictMethodEntityInstanceHelper(object):
             cisPeptideD = self.__ssU.getCisPeptides(dataContainer)
             for cId, cL in cisPeptideD.items():
                 for (asymId, begSeqId, endSeqId, modelId, omegaAngle) in cL:
-                    if str(modelId) != repModelId:
+                    if str(modelId) != repModelId:  # Skip non-representative models
                         continue
                     addPropTupL = []
                     entityId = asymIdD[asymId]
@@ -863,7 +863,7 @@ class DictMethodEntityInstanceHelper(object):
             #
             unObsPolyResRngD = self.__commonU.getUnobservedPolymerResidueInfo(dataContainer)
             for (modelId, asymId, zeroOccFlag), rTupL in unObsPolyResRngD.items():
-                if str(modelId) != repModelId:
+                if str(modelId) != repModelId:  # Skip non-representative models
                     continue
                 entityId = asymIdD[asymId]
                 authAsymId = asymAuthIdD[asymId]
@@ -895,7 +895,7 @@ class DictMethodEntityInstanceHelper(object):
 
             unObsPolyAtomRngD = self.__commonU.getUnobservedPolymerAtomInfo(dataContainer)
             for (modelId, asymId, zeroOccFlag), rTupL in unObsPolyAtomRngD.items():
-                if str(modelId) != repModelId:
+                if str(modelId) != repModelId:  # Skip non-representative models
                     continue
                 entityId = asymIdD[asymId]
                 authAsymId = asymAuthIdD[asymId]
@@ -934,7 +934,7 @@ class DictMethodEntityInstanceHelper(object):
                 maQaMetricLocalTypeD = maQaMetricTypeD["maQaMetricLocalTypeD"]
 
                 for (modelId, asymId, metricId), aD in compModelLocalScoresD.items():
-                    if str(modelId) != repModelId:
+                    if str(modelId) != repModelId:  # Skip non-representative models
                         continue
                     if instTypeD[asymId] not in ["polymer"]:
                         continue
@@ -1283,8 +1283,7 @@ class DictMethodEntityInstanceHelper(object):
                 fTypeL = sorted(set([pTup.outlierType for pTup in pTupL]))
                 jj = 1
                 for fType in fTypeL:
-                    # Skip non-representative models
-                    if str(modelId) != repModelId:
+                    if str(modelId) != repModelId:  # Skip non-representative models
                         continue
                     if (asymId not in asymIdD) or (asymId not in asymAuthIdD):
                         continue
@@ -1350,8 +1349,7 @@ class DictMethodEntityInstanceHelper(object):
                 localDataD = self.__commonU.getLocalValidationData(dataContainer)
                 if localDataD:  # No validation data at residue level
                     for (entityId, asymId, authAsymId, modelId, metricId, hasSeq), aD in localDataD.items():
-                        # Skip non-representative models
-                        if str(modelId) != repModelId:
+                        if str(modelId) != repModelId:  # Skip non-representative models
                             continue
                         # Turn off validation features for non-polymers
                         if not hasSeq:
@@ -2558,8 +2556,7 @@ class DictMethodEntityInstanceHelper(object):
             # Get representative model
             repModelId = self.__commonU.getRepresentativeModelId(dataContainer)
             for (modelId, asymId, altId, compId), vTup in instanceModelValidationD.items():
-                # Skip non-representative models
-                if str(modelId) != repModelId:
+                if str(modelId) != repModelId:  # Skip non-representative models
                     continue
                 if (asymId not in asymIdD) or (asymId not in asymAuthIdD):
                     continue
