@@ -333,13 +333,20 @@ class DictMethodCompModelHelper(object):
             vD = {}
             mD = {}
 
+            # Get representative model
+            repModelId = self.__commonU.getRepresentativeModelId(dataContainer)
+
             for ii, modelId in enumerate(modelIdL):
+                if str(modelId) != repModelId:  # Skip non-representative models
+                    continue
                 cObj.setValue(entryId, "entry_id", ii)
                 cObj.setValue(modelId, "model_id", ii)
                 vD[modelId] = bObj.selectValuesWhere("metric_value", modelId, "model_id")
                 mD[modelId] = bObj.selectValuesWhere("metric_id", modelId, "model_id")
             for ii in range(cObj.getRowCount()):
                 modelId = cObj.getValue("model_id", ii)
+                if str(modelId) != repModelId:  # Skip non-representative models
+                    continue
                 cObj.setValue(",".join([str(v) for v in vD[modelId]]), "ma_qa_metric_global_value", ii)
                 cObj.setValue(",".join([str(maQaMetricGlobalTypeD[mId]["type"]) for mId in mD[modelId]]), "ma_qa_metric_global_type", ii)
                 cObj.setValue(",".join([str(maQaMetricGlobalTypeD[mId]["name"]) for mId in mD[modelId]]), "ma_qa_metric_global_name", ii)
