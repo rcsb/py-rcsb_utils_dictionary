@@ -1311,7 +1311,7 @@ class DictMethodEntryHelper(object):
         return False
 
     def filterRevisionHistory(self, dataContainer, catName, **kwargs):
-        """Remove rows that don't belong to "data_content_type" == "Structure model" 
+        """Remove rows that don't belong to "data_content_type" == "Structure model"
            in revision history categories
 
         Example:
