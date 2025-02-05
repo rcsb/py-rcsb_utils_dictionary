@@ -141,3 +141,4 @@
  7-Jan-2025 - V1.29 Add support for loading validation data from mmCIF files
 16-Jan-2025 - V1.30 Only load instance features for the representative model of multi-model structures;
                     Consolidate code for selecting the representative model
+03-Feb-2025 - V1.31 Add method 'filterRevisionHistory' in DictMethodEntryHelper to remove data not relevant to structure model

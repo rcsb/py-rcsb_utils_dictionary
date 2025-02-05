@@ -67,6 +67,7 @@
 # 21-Feb-2023  bv Update '__filterExperimentalResolution' method to handle experimental resolutions properly (see RO-3559)
 # 01-Feb-2024  bv Update method 'addEntryInfo' to support deuterated water molecule count
 # 16-Jan-2025 dwp Use simplified method call for getting representative model ID
+# 03-Feb-2025  bv Add method 'filterRevisionHistory' to remove data not relevant to structure model
 #
 ##
 """
@@ -1307,4 +1308,77 @@ class DictMethodEntryHelper(object):
                 return True
         except Exception as e:
             logger.exception("%s failing with %s", dataContainer.getName(), str(e))
+        return False
+
+    def filterRevisionHistory(self, dataContainer, catName, **kwargs):
+        """Remove rows that don't belong to "data_content_type" == "Structure model"
+           in revision history categories
+
+        Example:
+        loop_
+        _pdbx_audit_revision_history.ordinal
+        _pdbx_audit_revision_history.data_content_type
+        _pdbx_audit_revision_history.major_revision
+        _pdbx_audit_revision_history.minor_revision
+        _pdbx_audit_revision_history.revision_date
+        _pdbx_audit_revision_history.part_number
+        1 'Structure model' 1 0 2025-01-22 ?
+        2 'EM metadata' 1 0 2025-01-22 ?
+        3 'Structure model' 1 1 2025-01-29 ?
+        4 'EM metadata' 1 1 2025-01-29 ?
+        #
+        loop_
+        _pdbx_audit_revision_details.ordinal
+        _pdbx_audit_revision_details.revision_ordinal
+        _pdbx_audit_revision_details.data_content_type
+        _pdbx_audit_revision_details.provider
+        _pdbx_audit_revision_details.type
+        _pdbx_audit_revision_details.description
+        _pdbx_audit_revision_details.details
+        1 1 'Structure model' repository 'Initial release' ? ?
+        2 2 'EM metadata' repository 'Initial release' ? ?
+        3 4 'EM metadata' repository 'Data updated' ? ?
+        #
+        loop_
+        _pdbx_audit_revision_group.ordinal
+        _pdbx_audit_revision_group.revision_ordinal
+        _pdbx_audit_revision_group.data_content_type
+        _pdbx_audit_revision_group.group
+        1 3 'Structure model' 'Data collection'
+        2 3 'Structure model' Other
+        3 3 'Structure model' 'Structure summary'
+        4 4 'EM metadata' 'Experimental summary'
+        5 4 'EM metadata' 'Structure summary'
+        #
+        loop_
+        _pdbx_audit_revision_category.ordinal
+        _pdbx_audit_revision_category.revision_ordinal
+        _pdbx_audit_revision_category.data_content_type
+        _pdbx_audit_revision_category.category
+        1 3 'Structure model' em_admin
+        2 3 'Structure model' pdbx_database_status
+        3 3 'Structure model' pdbx_prerelease_seq
+        4 3 'Structure model' struct_keywords
+        5 4 'EM metadata' em_admin
+        6 4 'EM metadata' struct_keywords
+        """
+        logger.debug("Starting with %s %r %r", dataContainer.getName(), catName, kwargs)
+        try:
+            if not dataContainer.exists("pdbx_audit_revision_history"):
+                return False
+
+            cndL = [("data_content_type", "not in", "Structure model")]
+            cNameL = ["pdbx_audit_revision_history", "pdbx_audit_revision_details", "pdbx_audit_revision_group", "pdbx_audit_revision_category", "pdbx_audit_revision_item"]
+
+            for catName in cNameL:
+                if dataContainer.exists(catName):
+                    cObj = dataContainer.getObj(catName)
+                    rL = cObj.selectIndicesWhereOpConditions(cndL)
+                    if rL:
+                        logger.debug("For %s removing %s rows that don't correspond to structure model in %s", dataContainer.getName(), rL, catName)
+                        cObj.removeRows(list(set(rL)))
+
+            return True
+        except Exception as e:
+            logger.exception("For %s removing rows in revision history categories failing with %s", dataContainer.getName(), str(e))
         return False
