@@ -31,6 +31,7 @@
 #                  Skip non-representative models in buildInstanceValidationFeatures and buildInstanceValidationScores
 #                  Fix coverage in buildInstanceValidationFeatureSummary
 #  16-Jan-2025 dwp Only load features for the representative model
+#  15-Feb-2025  bv Add support for integrative structures
 #
 ##
 """
@@ -1163,6 +1164,8 @@ class DictMethodEntityInstanceHelper(object):
             # Exit if source categories are missing
             if not dataContainer.exists("entry") and not dataContainer.exists("struct_conn"):
                 return False
+            if dataContainer.exists("ihm_model_list"):
+                return False
             #
             # Create the new target category rcsb_struct_conn
             if not dataContainer.exists(catName):
@@ -2020,6 +2023,8 @@ class DictMethodEntityInstanceHelper(object):
             # Exit if source categories are missing
             if not dataContainer.exists("entry"):
                 return False
+            if dataContainer.exists("ihm_model_list"):
+                return False
             #
             # Create the new target category
             if not dataContainer.exists(catName):
@@ -2747,7 +2752,7 @@ class DictMethodEntityInstanceHelper(object):
                 return False
             if not dataContainer.exists("entry"):
                 return False
-            if dataContainer.exists("ma_data"):
+            if dataContainer.exists("ma_data") or dataContainer.exists("ihm_model_list"):
                 return False
             #
             eObj = dataContainer.getObj("entry")
@@ -2822,7 +2827,7 @@ class DictMethodEntityInstanceHelper(object):
                 return False
             if not dataContainer.exists("entry"):
                 return False
-            if dataContainer.exists("ma_data"):
+            if dataContainer.exists("ma_data") or dataContainer.exists("ihm_model_list"):
                 return False
             #
             eObj = dataContainer.getObj("entry")

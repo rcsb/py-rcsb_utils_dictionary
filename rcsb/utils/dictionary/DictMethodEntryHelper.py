@@ -68,6 +68,8 @@
 # 01-Feb-2024  bv Update method 'addEntryInfo' to support deuterated water molecule count
 # 16-Jan-2025 dwp Use simplified method call for getting representative model ID
 # 03-Feb-2025  bv Add method 'filterRevisionHistory' to remove data not relevant to structure model
+# 13-Feb-2025  bv Add method 'filterIhmRepresentativeModel' to filter all data categories for IHM representative model only
+#                 Update 'addEntryInfo' for integrative structures
 #
 ##
 """
@@ -84,6 +86,7 @@ __license__ = "Apache 2.0"
 # pylint: disable=too-many-lines
 
 import logging
+import time
 from string import capwords
 
 from mmcif.api.DataCategory import DataCategory
@@ -787,7 +790,7 @@ class DictMethodEntryHelper(object):
             # Exit if source categories are missing
             if not (dataContainer.exists("entity") and dataContainer.exists("entry")):
                 return False
-            if not (dataContainer.exists("exptl") or dataContainer.exists("ma_model_list")):
+            if not (dataContainer.exists("exptl") or dataContainer.exists("ma_model_list") or dataContainer.exists("ihm_model_list")):
                 return False
             #
             # Create the new target category rcsb_entry_info
@@ -815,8 +818,12 @@ class DictMethodEntryHelper(object):
                     methodType = "experimental"
                 if dataContainer.exists("ma_data"):
                     methodType = "computational"
+                if dataContainer.exists("ihm_model_list"):
+                    methodType = "integrative"
             if methodType == "experimental":
                 methodPriority = 10
+            elif methodType == "integrative":
+                methodPriority = 50
             elif methodType == "computational":
                 methodPriority = 100
             #
@@ -829,14 +836,63 @@ class DictMethodEntryHelper(object):
                 tObj = dataContainer.getObj("entry")
                 entryId = tObj.getValue("id", 0)
                 methodCount, expMethod = self.__commonU.filterExperimentalMethod(dataContainer)
+            elif dataContainer.exists("ihm_model_list"):
+                tObj = dataContainer.getObj("entry")
+                entryId = tObj.getValue("id", 0)
+                methodCount, expMethod = self.__commonU.filterIntegrativeMethod(dataContainer)
+                cObj.setValue(expMethod, "experimental_method", 0)
             #
-            if methodType not in ["experimental", "computational"]:
+            if methodType not in ["experimental", "computational", "integrative"]:
                 logger.error("Unexpected methodType %r found for entry %r", methodType, entryId)
             #
             cObj.setValue(entryId, "entry_id", 0)
             cObj.setValue(methodCount, "experimental_method_count", 0)
             cObj.setValue(methodType, "structure_determination_methodology", 0)
             cObj.setValue(methodPriority, "structure_determination_methodology_priority", 0)
+            #
+            # IHM specific details
+            # Set representative model
+            if dataContainer.exists("ihm_model_list"):
+                repModelId = self.__commonU.getIhmRepresentativeModelId(dataContainer)
+                cObj.setValue(str(repModelId), "representative_model", 0)
+                # Other IHM flags
+                multiScaleFlag = "N"
+                multiStateFlag = "N"
+                orderedFlag = "N"
+                ensembleFlag = "N"
+                if dataContainer.exists("ihm_modeling_protocol_details"):
+                    pdObj = dataContainer.getObj("ihm_modeling_protocol_details")
+                    mscFL = pdObj.getAttributeUniqueValueList("multi_scale_flag")
+                    mstFL = pdObj.getAttributeUniqueValueList("multi_state_flag")
+                    ordFL = pdObj.getAttributeUniqueValueList("ordered_flag")
+                    ensFL = pdObj.getAttributeUniqueValueList("ensemble_flag")
+                    for flag in mscFL:
+                        if flag.upper() == "YES":
+                            multiScaleFlag = "Y"
+                    for flag in mstFL:
+                        if flag.upper() == "YES":
+                            multiStateFlag = "Y"
+                    for flag in ordFL:
+                        if flag.upper() == "YES":
+                            orderedFlag = "Y"
+                    for flag in ensFL:
+                        if flag.upper() == "YES":
+                            ensembleFlag = "Y"
+                if dataContainer.exists("ihm_sphere_obj_site") or dataContainer.exists("ihm_gaussian_obj_site"):
+                    multiScaleFlag = "Y"
+                if dataContainer.exists("ihm_multi_state_modeling"):
+                    multiStateFlag = "Y"
+                if dataContainer.exists("ihm_ordered_model") or dataContainer.exists("ihm_ordered_ensemble"):
+                    OrderedFlag = "Y"
+                if dataContainer.exists("ihm_ensemble_info"):
+                    ensembleFlag = "Y"
+                mObj = dataContainer.getObj("ihm_model_list")
+                if mObj.getRowCount() > 1 and multiStateFlag == "N" and orderedFlag == "N":
+                    ensembleFlag = "Y"
+                cObj.setValue(multiScaleFlag, "ihm_multi_scale_flag", 0)
+                cObj.setValue(multiStateFlag, "ihm_multi_state_flag", 0)
+                cObj.setValue(orderedFlag, "ihm_ordered_state_flag", 0)
+                cObj.setValue(ensembleFlag, "ihm_ensemble_flag", 0)
             #
             # --------------------------------------------------------------------------------------------------------
             #  Experimental resolution -
@@ -1381,4 +1437,219 @@ class DictMethodEntryHelper(object):
             return True
         except Exception as e:
             logger.exception("For %s removing rows in revision history categories failing with %s", dataContainer.getName(), str(e))
+        return False
+
+    def ihmEntryPreProcess(self, dataContainer, catName, **kwargs):
+        """Pre-process IHM entries
+           Filter all data categories for information regarding representative model only
+           Chemical components are not filtered
+           Fix citation and citation author for primary citation
+           Add pdbx_struct_assembly, pdbx_struct_assembly_gen, pdbx_struct_oper_list
+        """
+        logger.debug("Starting with %s %r %r", dataContainer.getName(), catName, kwargs)
+        try:
+            startTime = time.time()
+            if not dataContainer.exists("ihm_model_list"):
+                return False
+
+            # Get representative model
+            repModelId = self.__commonU.getIhmRepresentativeModelId(dataContainer)
+
+            # Get assembly id corresponding to the representative model
+            mObj = dataContainer.getObj("ihm_model_list")
+            repAssemblyId = mObj.selectValuesWhere("assembly_id", repModelId, "model_id")[0]
+
+            # Get all entities and asyms corresponding to representative model
+            aObj = dataContainer.getObj("ihm_struct_assembly_details")
+            repEntityIdList = aObj.selectValuesWhere("entity_id", repAssemblyId, "assembly_id")
+            repAsymIdList = aObj.selectValuesWhere("asym_id", repAssemblyId, "assembly_id")
+
+            # Filter struct_ref_seq and struct_ref_seq_dif first
+            if dataContainer.exists("struct_ref"):
+                srObj = dataContainer.getObj("struct_ref")
+                cndL1 = [("entity_id", "not in", repEntityIdList)]
+                srL = srObj.selectValuesWhereOpConditions("id", cndL1)
+                if dataContainer.exists("struct_ref_seq"):
+                    srsObj = dataContainer.getObj("struct_ref_seq")
+                    cndL2 = [("ref_id", "in", srL)]
+                    srsL = srsObj.selectValuesWhereOpConditions("align_id", cndL2)
+                    if dataContainer.exists("struct_ref_seq_dif"):
+                        srsdObj = dataContainer.getObj("struct_ref_seq_dif")
+                        cndL3 = [("align_id", "in", srsL)]
+                        srsdL = srsdObj.selectIndicesWhereOpConditions(cndL3)
+                        if srsdL:
+                            logger.debug("For %s removing %s rows that don't correspond to represenative model in %s", dataContainer.getName(), srsdL, "struct_ref_seq_dif")
+                            srsdObj.removeRows(list(set(srsdL)))
+                    srsL2 = srsObj.selectIndicesWhereOpConditions(cndL2)
+                    if srsL2:
+                        logger.debug("For %s removing %s rows that don't correspond to represenative model in %s", dataContainer.getName(), srsL2, "struct_ref_seq")
+                        srsObj.removeRows(list(set(srsL2)))
+
+            # Filter other entity/asym/model level categories
+            cndL4 = [("entity_id", "not in", repEntityIdList)]
+            cndL5 = [("asym_id", "not in", repAsymIdList)]
+            cndL6 = [("PDB_model_num", "ne", repModelId)]
+            cNameL4 = ["entity_name_com", "entity_name_sys", "entity_src_gen", "entity_src_nat", "entity_poly", "pdbx_entity_nonpoly", "entity_poly_seq", "pdbx_entity_poly_na_type", "struct_ref", "pdbx_entity_branch_list", "pdbx_entity_branch_link", "pdbx_entity_branch", "pdbx_entity_branch_descriptor", "pdbx_poly_seq_scheme", "pdbx_branch_scheme"]
+            cNameL5 = ["pdbx_nonpoly_scheme"]
+            cNameL6 = ["pdbx_unobs_or_zero_occ_atoms", "pdbx_unobs_or_zero_occ_residues"]
+
+            if dataContainer.exists("entity"):
+                cObj = dataContainer.getObj("entity")
+                cndL = [("id", "not in", repEntityIdList)]
+                rL = cObj.selectIndicesWhereOpConditions(cndL)
+                if rL:
+                    logger.debug("For %s removing %s rows that don't correspond to represenative model in %s", dataContainer.getName(), rL, "entity")
+                    cObj.removeRows(list(set(rL)))
+
+            if dataContainer.exists("struct_asym"):
+                cObj = dataContainer.getObj("struct_asym")
+                cndL = [("id", "not in", repAsymIdList)]
+                rL = cObj.selectIndicesWhereOpConditions(cndL)
+                if rL:
+                    logger.debug("For %s removing %s rows that don't correspond to represenative model in %s", dataContainer.getName(), rL, "struct_asym")
+                    cObj.removeRows(list(set(rL)))
+
+            for cName in cNameL4:
+                if dataContainer.exists(cName):
+                    cObj = dataContainer.getObj(cName)
+                    rL = cObj.selectIndicesWhereOpConditions(cndL4)
+                    if rL:
+                        logger.debug("For %s removing %s rows that don't correspond to represenative model in %s", dataContainer.getName(), rL, cName)
+                        cObj.removeRows(list(set(rL)))
+
+            for cName in cNameL5:
+                if dataContainer.exists(cName):
+                    cObj = dataContainer.getObj(cName)
+                    rL = cObj.selectIndicesWhereOpConditions(cndL5)
+                    if rL:
+                        logger.debug("For %s removing %s rows that don't correspond to representative model in %s", dataContainer.getName(), rL, cName)
+                        cObj.removeRows(list(set(rL)))
+
+            for cName in cNameL6:
+                if dataContainer.exists(cName):
+                    cObj = dataContainer.getObj(cName)
+                    rL = cObj.selectIndicesWhereOpConditions(cndL6)
+                    if rL:
+                        logger.debug("For %s removing %s rows that don't correspond to representative model in %s", dataContainer.getName(), rL, cName)
+                        cObj.removeRows(list(set(rL)))
+
+            # Filter struct_conn
+            if dataContainer.exists("struct_conn"):
+                cObj = dataContainer.getObj("struct_conn")
+                cndL7 = [("ptnr1_label_asym_id", "not in", repAsymIdList)]
+                cndL8 = [("ptnr2_label_asym_id", "not in", repAsymIdList)]
+                rL = cObj.selectIndicesWhereOpConditions(cndL7)
+                rL.extend(cObj.selectIndicesWhereOpConditions(cndL8))
+                if rL:
+                    logger.debug("For %s removing %s rows that don't correspond to represenative model in %s", dataContainer.getName(), rL, "struct_conn")
+                    cObj.removeRows(list(set(rL)))
+
+            # Handle citation and citation_author
+            if dataContainer.exists("citation"):
+                cObj = dataContainer.getObj("citation")
+                iRowL = cObj.selectIndices("primary", "id")
+                jRowL = cObj.selectIndices("1", "id")
+                if not iRowL:
+                    if jRowL:
+                        ok = cObj.replaceValue("1", "primary", "id")
+                        logger.debug("For %s replacing _citation.id to primary in %s rows in %s", dataContainer.getName(), ok, "citation")
+                        if dataContainer.exists("citation_author"):
+                            caObj = dataContainer.getObj("citation_author")
+                            ok2 = caObj.replaceValue("1", "primary", "citation_id")
+                            logger.debug("For %s replacing _citation_author.citation_id to primary in %s rows in %s", dataContainer.getName(), ok2, "citation_author")
+
+            # Handle ihm_dataset_list and ihm_dataset_related_db_reference
+            if dataContainer.exists("ihm_dataset_list"):
+                cObj = dataContainer.getObj("ihm_dataset_list")
+                if cObj.hasAttribute("id"):
+                    cObj.removeAttribute("id")
+                if cObj.hasAttribute("database_hosted"):
+                    cObj.removeAttribute("database_hosted")
+                if cObj.hasAttribute("details"):
+                    cObj.removeAttribute("details")
+                cObj.removeDuplicateRows()
+                logger.debug("For %s removing duplicate rows in %s", dataContainer.getName(), "ihm_dataset_list")
+            if dataContainer.exists("ihm_dataset_related_db_reference"):
+                cObj = dataContainer.getObj("ihm_dataset_related_db_reference")
+                if cObj.hasAttribute("id"):
+                    cObj.removeAttribute("id")
+                if cObj.hasAttribute("dataset_list_id"):
+                    cObj.removeAttribute("dataset_list_id")
+                if cObj.hasAttribute("version"):
+                    cObj.removeAttribute("version")
+                if cObj.hasAttribute("details"):
+                    cObj.removeAttribute("details")
+                cObj.removeDuplicateRows()
+                logger.debug("For %s removing duplicate rows in %s", dataContainer.getName(), "ihm_dataset_related_db_reference")
+
+            # Add pdbx_struct_assembly, pdbx_struct_assembly_gen, pdbx_struct_oper_list
+            if not dataContainer.exists("pdbx_struct_assembly"):
+                dataContainer.append(
+                    DataCategory(
+                        "pdbx_struct_assembly",
+                        attributeNameList=["id", "details", "method_details", "oligomeric_details", "oligomeric_count", "rcsb_details", "rcsb_candidate_assembly"],
+                    )
+                )
+                saObj = dataContainer.getObj("pdbx_struct_assembly")
+                # rcsb_details and rcsb_candidate_assembly are assigned by subsequent methods
+                saObj.setValue("deposited", "id", 0)
+                saObj.setValue("deposited_coordinates", "details", 0)
+                saObj.setValue(str(len(repAsymIdList)), "oligomeric_count", 0)
+                saObj.setValue("?", "oligomeric_details", 0)
+                saObj.setValue("?", "method_details", 0)
+                logger.debug("For %s default values set for %s", dataContainer.getName(), "pdbx_struct_assembly")
+
+            if not dataContainer.exists("pdbx_struct_assembly_gen"):
+                dataContainer.append(DataCategory("pdbx_struct_assembly_gen", attributeNameList=["assembly_id", "oper_expression", "asym_id_list", "ordinal"]))
+                sagObj = dataContainer.getObj("pdbx_struct_assembly_gen")
+                # ordinal is set by setRowIndex method
+                sagObj.setValue("deposited", "assembly_id", 0)
+                sagObj.setValue("1", "oper_expression", 0)
+                sagObj.setValue(",".join(repAsymIdList), "asym_id_list", 0)
+                logger.debug("For %s default values set for %s", dataContainer.getName(), "pdbx_struct_assembly_gen")
+
+            if not dataContainer.exists("pdbx_struct_oper_list"):
+                row = [
+                    "1",
+                    "identity operation",
+                    "1_555",
+                    "x, y, z",
+                    "1.0000000000",
+                    "0.0000000000",
+                    "0.0000000000",
+                    "0.0000000000",
+                    "0.0000000000",
+                    "1.0000000000",
+                    "0.0000000000",
+                    "0.0000000000",
+                    "0.0000000000",
+                    "0.0000000000",
+                    "1.0000000000",
+                    "0.0000000000",
+                ]
+                atList = [
+                    "id",
+                    "type",
+                    "name",
+                    "symmetry_operation",
+                    "matrix[1][1]",
+                    "matrix[1][2]",
+                    "matrix[1][3]",
+                    "vector[1]",
+                    "matrix[2][1]",
+                    "matrix[2][2]",
+                    "matrix[2][3]",
+                    "vector[2]",
+                    "matrix[3][1]",
+                    "matrix[3][2]",
+                    "matrix[3][3]",
+                    "vector[3]",
+                ]
+                dataContainer.append(DataCategory("pdbx_struct_oper_list", attributeNameList=atList, rowList=[row]))
+                logger.debug("For %s default values set for %s", dataContainer.getName(), "pdbx_struct_oper_list")
+                endTime = time.time()
+                logger.debug("Completed IHM pre-preprocessing at %s (%.4f seconds) PDBID %s", time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - startTime, dataContainer.getName())
+            return True
+        except Exception as e:
+            logger.exception("For %s IHM pre-processing failing with %s", dataContainer.getName(), str(e))
         return False
