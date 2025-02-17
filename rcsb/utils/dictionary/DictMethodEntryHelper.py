@@ -883,7 +883,7 @@ class DictMethodEntryHelper(object):
                 if dataContainer.exists("ihm_multi_state_modeling"):
                     multiStateFlag = "Y"
                 if dataContainer.exists("ihm_ordered_model") or dataContainer.exists("ihm_ordered_ensemble"):
-                    OrderedFlag = "Y"
+                    orderedFlag = "Y"
                 if dataContainer.exists("ihm_ensemble_info"):
                     ensembleFlag = "Y"
                 mObj = dataContainer.getObj("ihm_model_list")
