@@ -373,27 +373,29 @@ class DictMethodEntityHelper(object):
                         # else fallback to struct_ref and struct_ref_seq
                         elif entityId in seqEntityRefDbD:
                             for dbD in seqEntityRefDbD[entityId]:
-                                refSeqIdD["dbName"].append(dbD["dbName"])
-                                refSeqIdD["provSource"].append(provSourceDefault)
-                                refSeqIdD["dbAccession"].append(dbD["dbAccession"])
-                                #
-                                if dbD["dbIsoform"]:
-                                    refSeqIdD["dbIsoform"].append(dbD["dbIsoform"])
-                                else:
-                                    refSeqIdD["dbIsoform"].append("?")
+                                if dbD["dbName"] not in ["PDB-DEV", "PDB-Dev"]:
+                                    refSeqIdD["dbName"].append(dbD["dbName"])
+                                    refSeqIdD["provSource"].append(provSourceDefault)
+                                    refSeqIdD["dbAccession"].append(dbD["dbAccession"])
+                                    #
+                                    if dbD["dbIsoform"]:
+                                        refSeqIdD["dbIsoform"].append(dbD["dbIsoform"])
+                                    else:
+                                        refSeqIdD["dbIsoform"].append("?")
 
                     else:
                         # try fallback to struct_ref and struct_ref_seq
                         if entityId in seqEntityRefDbD:
                             for dbD in seqEntityRefDbD[entityId]:
-                                refSeqIdD["dbName"].append(dbD["dbName"])
-                                refSeqIdD["provSource"].append(provSourceDefault)
-                                refSeqIdD["dbAccession"].append(dbD["dbAccession"])
-                                #
-                                if dbD["dbIsoform"]:
-                                    refSeqIdD["dbIsoform"].append(dbD["dbIsoform"])
-                                else:
-                                    refSeqIdD["dbIsoform"].append("?")
+                                if dbD["dbName"] not in ["PDB-DEV", "PDB-Dev"]:
+                                    refSeqIdD["dbName"].append(dbD["dbName"])
+                                    refSeqIdD["provSource"].append(provSourceDefault)
+                                    refSeqIdD["dbAccession"].append(dbD["dbAccession"])
+                                    #
+                                    if dbD["dbIsoform"]:
+                                        refSeqIdD["dbIsoform"].append(dbD["dbIsoform"])
+                                    else:
+                                        refSeqIdD["dbIsoform"].append("?")
                         # else fallback to ma_target_ref_db_details
                         elif dataContainer.exists("ma_target_ref_db_details"):
                             mObj = dataContainer.getObj("ma_target_ref_db_details")

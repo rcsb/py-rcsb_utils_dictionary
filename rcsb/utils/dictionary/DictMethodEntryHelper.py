@@ -1558,6 +1558,16 @@ class DictMethodEntryHelper(object):
                             ok2 = caObj.replaceValue("1", "primary", "citation_id")
                             logger.debug("For %s replacing _citation_author.citation_id to primary in %s rows in %s", dataContainer.getName(), ok2, "citation_author")
 
+            # Handle entity types
+            entityTypeMapD = {"POLYMER": "polymer", "NON-POLYMER": "non-polymer", "BRANCHED": "branched", "WATER": "water", "MACROLIDE": "macrolide"}
+            if dataContainer.exists("entity"):
+                cObj = dataContainer.getObj("entity")
+                for uType, lType in entityTypeMapD.items():
+                    iRowL = cObj.selectIndices(uType, "type")
+                    if iRowL:
+                        ok = cObj.replaceValue(uType, lType, "type")
+                        logger.debug("For %s replacing _entity.type to lower case in %s rows in %s", dataContainer.getName(), ok, "entity")
+
             # Handle ihm_dataset_list and ihm_dataset_related_db_reference
             if dataContainer.exists("ihm_dataset_list"):
                 cObj = dataContainer.getObj("ihm_dataset_list")
