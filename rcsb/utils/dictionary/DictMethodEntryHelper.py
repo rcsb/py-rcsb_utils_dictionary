@@ -1444,6 +1444,8 @@ class DictMethodEntryHelper(object):
            Filter all data categories for information regarding representative model only
            Chemical components are not filtered
            Fix citation and citation author for primary citation
+           Handle entity types in uppercase
+           Remove duplicate rows in ihm_external_reference_info
            Add pdbx_struct_assembly, pdbx_struct_assembly_gen, pdbx_struct_oper_list
         """
         logger.debug("Starting with %s %r %r", dataContainer.getName(), catName, kwargs)
@@ -1558,29 +1560,29 @@ class DictMethodEntryHelper(object):
                             ok2 = caObj.replaceValue("1", "primary", "citation_id")
                             logger.debug("For %s replacing _citation_author.citation_id to primary in %s rows in %s", dataContainer.getName(), ok2, "citation_author")
 
-            # Handle ihm_dataset_list and ihm_dataset_related_db_reference
-            if dataContainer.exists("ihm_dataset_list"):
-                cObj = dataContainer.getObj("ihm_dataset_list")
-                if cObj.hasAttribute("id"):
-                    cObj.removeAttribute("id")
-                if cObj.hasAttribute("database_hosted"):
-                    cObj.removeAttribute("database_hosted")
+            # Handle entity types
+            entityTypeMapD = {"POLYMER": "polymer", "NON-POLYMER": "non-polymer", "BRANCHED": "branched", "WATER": "water", "MACROLIDE": "macrolide"}
+            if dataContainer.exists("entity"):
+                cObj = dataContainer.getObj("entity")
+                for uType, lType in entityTypeMapD.items():
+                    iRowL = cObj.selectIndices(uType, "type")
+                    if iRowL:
+                        ok = cObj.replaceValue(uType, lType, "type")
+                        logger.debug("For %s replacing _entity.type to lower case in %s rows in %s", dataContainer.getName(), ok, "entity")
+
+            # Handle ihm_external_reference_info
+            if dataContainer.exists("ihm_external_reference_info"):
+                cObj = dataContainer.getObj("ihm_external_reference_info")
+                if cObj.hasAttribute("reference_id"):
+                    cObj.removeAttribute("reference_id")
+                if cObj.hasAttribute("reference_type"):
+                    cObj.removeAttribute("reference_type")
+                if cObj.hasAttribute("refers_to"):
+                    cObj.removeAttribute("refers_to")
                 if cObj.hasAttribute("details"):
                     cObj.removeAttribute("details")
                 cObj.removeDuplicateRows()
-                logger.debug("For %s removing duplicate rows in %s", dataContainer.getName(), "ihm_dataset_list")
-            if dataContainer.exists("ihm_dataset_related_db_reference"):
-                cObj = dataContainer.getObj("ihm_dataset_related_db_reference")
-                if cObj.hasAttribute("id"):
-                    cObj.removeAttribute("id")
-                if cObj.hasAttribute("dataset_list_id"):
-                    cObj.removeAttribute("dataset_list_id")
-                if cObj.hasAttribute("version"):
-                    cObj.removeAttribute("version")
-                if cObj.hasAttribute("details"):
-                    cObj.removeAttribute("details")
-                cObj.removeDuplicateRows()
-                logger.debug("For %s removing duplicate rows in %s", dataContainer.getName(), "ihm_dataset_related_db_reference")
+                logger.debug("For %s removing duplicate rows in %s", dataContainer.getName(), "ihm_external_reference_info")
 
             # Add pdbx_struct_assembly, pdbx_struct_assembly_gen, pdbx_struct_oper_list
             if not dataContainer.exists("pdbx_struct_assembly"):
@@ -1652,4 +1654,97 @@ class DictMethodEntryHelper(object):
             return True
         except Exception as e:
             logger.exception("For %s IHM pre-processing failing with %s", dataContainer.getName(), str(e))
+        return False
+
+    def ihmAddDatasetInfo(self, dataContainer, catName, **kwargs):
+        """Add input dataset information for IHM entries
+        """
+        logger.debug("Starting with %s %r %r", dataContainer.getName(), catName, kwargs)
+        dsNameTypeMapD = {
+            "NMR data": "Experimental data",
+            "3DEM volume": "Experimental data",
+            "2DEM class average": "Experimental data",
+            "EM raw micrographs": "Experimental data",
+            "X-ray diffraction data": "Experimental data",
+            "SAS data": "Experimental data",
+            "CX-MS data": "Experimental data",
+            "Crosslinking-MS data": "Experimental data",
+            "Mass Spectrometry data": "Experimental data",
+            "EPR data": "Experimental data",
+            "H/D exchange data": "Experimental data",
+            "Single molecule FRET data": "Experimental data",
+            "Ensemble FRET data": "Experimental data",
+            "Experimental model": "Starting model",
+            "Comparative model": "Starting model",
+            "Integrative model": "Starting model",
+            "De Novo model": "Starting model",
+            "Predicted contacts": "Computed restraints",
+            "Mutagenesis data": "Experimental data",
+            "DNA footprinting data": "Experimental data",
+            "Hydroxyl radical footprinting data": "Experimental data",
+            "Yeast two-hybrid screening data": "Experimental data",
+            "Quantitative measurements of genetic interactions": "Experimental data",
+            "Other": "Other"
+        }
+        dbNameL = [
+            "PDB",
+            "PDB-Dev",
+            "BMRB",
+            "EMDB",
+            "EMPIAR",
+            "SASBDB",
+            "PRIDE",
+            "ModelArchive",
+            "MASSIVE",
+            "BioGRID",
+            "ProXL",
+            "jPOSTrepo",
+            "iProX",
+            "AlphaFoldDB",
+            "ProteomeXchange",
+            "BMRbig",
+            "Other"
+        ]
+        try:
+            if not dataContainer.exists("ihm_dataset_list"):
+                return False
+
+            if not dataContainer.exists("rcsb_ihm_dataset_list"):
+                dataContainer.append(DataCategory("rcsb_ihm_dataset_list", attributeNameList=["name", "type", "count"]))
+
+            lObj = dataContainer.getObj("ihm_dataset_list")
+            dObj = dataContainer.getObj("rcsb_ihm_dataset_list")
+            ii = dObj.getRowCount()
+            dtL = lObj.getAttributeUniqueValueList("data_type")
+            for dataType in dtL:
+                if dataType in dsNameTypeMapD:
+                    cndL = [("data_type", "eq", dataType)]
+                    count = lObj.countValuesWhereOpConditions(cndL)
+                    dObj.setValue(dataType, "name", ii)
+                    dObj.setValue(dsNameTypeMapD[dataType], "type", ii)
+                    dObj.setValue(count, "count", ii)
+                    ii += 1
+                else:
+                    logger.warning("Skipping unsupported dataset type %s in %s for %s", dataType, "ihm_dataset_list", dataContainer.getName())
+
+            if dataContainer.exists("ihm_dataset_related_db_reference"):
+                if not dataContainer.exists("rcsb_ihm_dataset_source_db_reference"):
+                    dataContainer.append(DataCategory("rcsb_ihm_dataset_source_db_reference", attributeNameList=["db_name", "accession_code", "dataset_name"]))
+                rObj = dataContainer.getObj("ihm_dataset_related_db_reference")
+                sObj = dataContainer.getObj("rcsb_ihm_dataset_source_db_reference")
+                aL= ["db_name", "accession_code"]
+                cD = rObj.getCombinationCounts(aL)
+                ii = sObj.getRowCount()
+                for (dbName, accCode), _ in cD.items():
+                    if dbName == "MODEL ARCHIVE":
+                        dbName = "ModelArchive"
+                    if dbName in dbNameL:
+                        sObj.setValue(dbName, "db_name", ii)
+                        sObj.setValue(accCode, "accession_code", ii)
+                        ii += 1
+                    else:
+                        logger.warning("Skipping unsupported database name %s in %s for %s", dbName, "ihm_dataset_related_db_reference", dataContainer.getName())
+            return True
+        except Exception as e:
+            logger.exception("For %s IHM dataset assignment failing with %s", dataContainer.getName(), str(e))
         return False
