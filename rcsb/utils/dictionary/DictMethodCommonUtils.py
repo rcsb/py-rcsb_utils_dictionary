@@ -34,7 +34,7 @@
 # 16-Jan-2025 dwp Consolidate getRepresentativeModelId and associated methods/calls;
 #                 Skip non-representative models for calculating/building content;
 #                 Fix modelId assignment in getNeighborInfo
-# 13-Feb-2025  bv Add methods to support integrative models
+# 13-Feb-2025  bv Add methods to support integrative structures
 #
 ##
 """
@@ -4657,28 +4657,51 @@ class DictMethodCommonUtils(object):
             a simplified method name.
 
         """
-        experimentalMethodList = [
-            "2DEM class average", "3DEM volume", "Crosslinking-MS data", "CX-MS data",
-            "DNA footprinting data", "EPR data", "Ensemble FRET data",
-            "H/D exchange data", "Hydroxyl radical footprinting data", "Mass spectrometry data",
-            "Mutagenesis data", "NMR data", "Other", "SAS data", "Single molecule FRET data",
-            "X-ray diffraction data", "Yeast two-hybrid screening data",
-            "Quantitative measurements of genetic interactions", "Predicted contacts"
-        ]
         methodCount = 1
         expMethod = None
         mc = 0
+        dsNameTypeMapD = self.getIhmDsNameTypeMapD()
         if dataContainer.exists("ihm_model_list"):
             expMethod = "Integrative"
         if dataContainer.exists("ihm_dataset_list"):
             dObj = dataContainer.getObj("ihm_dataset_list")
             dtL = dObj.getAttributeUniqueValueList("data_type")
             for dt in dtL:
-                if dt in experimentalMethodList:
-                    mc += 1
+                if dt in dsNameTypeMapD:
+                    if dsNameTypeMapD[dt] == "Experimental data":
+                        mc += 1
         if mc:
             methodCount = mc
         return methodCount, expMethod
+
+    def getIhmDsNameTypeMapD(self):
+        dsNameTypeMapD = {
+            "NMR data": "Experimental data",
+            "3DEM volume": "Experimental data",
+            "2DEM class average": "Experimental data",
+            "EM raw micrographs": "Experimental data",
+            "X-ray diffraction data": "Experimental data",
+            "SAS data": "Experimental data",
+            "CX-MS data": "Experimental data",
+            "Crosslinking-MS data": "Experimental data",
+            "Mass Spectrometry data": "Experimental data",
+            "EPR data": "Experimental data",
+            "H/D exchange data": "Experimental data",
+            "Single molecule FRET data": "Experimental data",
+            "Ensemble FRET data": "Experimental data",
+            "Experimental model": "Starting model",
+            "Comparative model": "Starting model",
+            "Integrative model": "Starting model",
+            "De Novo model": "Starting model",
+            "Predicted contacts": "Computed restraints",
+            "Mutagenesis data": "Experimental data",
+            "DNA footprinting data": "Experimental data",
+            "Hydroxyl radical footprinting data": "Experimental data",
+            "Yeast two-hybrid screening data": "Experimental data",
+            "Quantitative measurements of genetic interactions": "Experimental data",
+            "Other": "Other"
+        }
+        return dsNameTypeMapD
 
     # METHOD TO BE DELETED
     def __getValidationData(self, tObj, iObj, fields, idField, metricValD, dL, instL):

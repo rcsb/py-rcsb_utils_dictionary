@@ -694,12 +694,22 @@ class DictMethodEntryHelper(object):
             #
             if statusSf == "REL" or statusMr == "REL" or statusCs == "REL" or statusNmrData == "REL":
                 expDataRelFlag = "Y"
+            elif dataContainer.exists("pdbx_database_related"):
+                rObj = dataContainer.getObj("pdbx_database_related")
+                ctL = rObj.getAttributeValueList("content_type")
+                if "associated EM volume" in ctL or "associated SAS data" in ctL:
+                    expDataRelFlag = "Y"
             else:
-                if dataContainer.exists("pdbx_database_related"):
-                    rObj = dataContainer.getObj("pdbx_database_related")
-                    ctL = rObj.getAttributeValueList("content_type")
-                    if "associated EM volume" in ctL or "associated SAS data" in ctL:
-                        expDataRelFlag = "Y"
+                if dataContainer.exists("ihm_dataset_list"):
+                    dObj = dataContainer.getObj("ihm_dataset_list")
+                    dsNameTypeMapD = self.__commonU.getIhmDsNameTypeMapD()
+                    aL= ["data_type", "database_hosted"]
+                    cD = dObj.getCombinationCounts(aL)
+                    for (dataType, dbFlag), _ in cD.items():
+                        if dataType in dsNameTypeMapD:
+                            if dsNameTypeMapD[dataType] == "Experimental data" and dbFlag.lower() == "yes":
+                                expDataRelFlag = "Y"
+                                break
             #
             cObj.setValue(expDataRelFlag, "has_released_experimental_data", 0)
             #
@@ -869,15 +879,19 @@ class DictMethodEntryHelper(object):
                     for flag in mscFL:
                         if flag.upper() == "YES":
                             multiScaleFlag = "Y"
+                            break
                     for flag in mstFL:
                         if flag.upper() == "YES":
                             multiStateFlag = "Y"
+                            break
                     for flag in ordFL:
                         if flag.upper() == "YES":
                             orderedFlag = "Y"
+                            break
                     for flag in ensFL:
                         if flag.upper() == "YES":
                             ensembleFlag = "Y"
+                            break
                 if dataContainer.exists("ihm_sphere_obj_site") or dataContainer.exists("ihm_gaussian_obj_site"):
                     multiScaleFlag = "Y"
                 if dataContainer.exists("ihm_multi_state_modeling"):
@@ -1464,7 +1478,9 @@ class DictMethodEntryHelper(object):
             # Get all entities and asyms corresponding to representative model
             aObj = dataContainer.getObj("ihm_struct_assembly_details")
             repEntityIdList = aObj.selectValuesWhere("entity_id", repAssemblyId, "assembly_id")
+            repEntityIdList = list(dict.fromkeys(repEntityIdList))
             repAsymIdList = aObj.selectValuesWhere("asym_id", repAssemblyId, "assembly_id")
+            repAsymIdList = list(dict.fromkeys(repAsymIdList))
 
             # Filter struct_ref_seq and struct_ref_seq_dif first
             if dataContainer.exists("struct_ref"):
@@ -1491,8 +1507,8 @@ class DictMethodEntryHelper(object):
             cndL4 = [("entity_id", "not in", repEntityIdList)]
             cndL5 = [("asym_id", "not in", repAsymIdList)]
             cndL6 = [("PDB_model_num", "ne", repModelId)]
-            cNameL4 = ["entity_name_com", "entity_name_sys", "entity_src_gen", "entity_src_nat", "entity_poly", "pdbx_entity_nonpoly", "entity_poly_seq", "pdbx_entity_poly_na_type", "struct_ref", "pdbx_entity_branch_list", "pdbx_entity_branch_link", "pdbx_entity_branch", "pdbx_entity_branch_descriptor", "pdbx_poly_seq_scheme", "pdbx_branch_scheme"]
-            cNameL5 = ["pdbx_nonpoly_scheme"]
+            cNameL4 = ["entity_name_com", "entity_name_sys", "entity_src_gen", "entity_src_nat", "entity_poly", "pdbx_entity_nonpoly", "entity_poly_seq", "pdbx_entity_poly_na_type", "struct_ref", "pdbx_entity_branch_list", "pdbx_entity_branch_link", "pdbx_entity_branch", "pdbx_entity_branch_descriptor"]
+            cNameL5 = ["pdbx_nonpoly_scheme", "pdbx_poly_seq_scheme", "pdbx_branch_scheme"]
             cNameL6 = ["pdbx_unobs_or_zero_occ_atoms", "pdbx_unobs_or_zero_occ_residues"]
 
             if dataContainer.exists("entity"):
@@ -1573,6 +1589,11 @@ class DictMethodEntryHelper(object):
             # Handle ihm_external_reference_info
             if dataContainer.exists("ihm_external_reference_info"):
                 cObj = dataContainer.getObj("ihm_external_reference_info")
+                cndL9 = [("reference_type", "not in", ["DOI", "doi", "Doi"])]
+                rL = cObj.selectIndicesWhereOpConditions(cndL9)
+                if rL:
+                    logger.debug("For %s removing %s rows that don't correspond to reference_type DOI in %s", dataContainer.getName(), rL, "ihm_external_reference_info")
+                    cObj.removeRows(list(set(rL)))
                 if cObj.hasAttribute("reference_id"):
                     cObj.removeAttribute("reference_id")
                 if cObj.hasAttribute("reference_type"):
@@ -1660,32 +1681,6 @@ class DictMethodEntryHelper(object):
         """Add input dataset information for IHM entries
         """
         logger.debug("Starting with %s %r %r", dataContainer.getName(), catName, kwargs)
-        dsNameTypeMapD = {
-            "NMR data": "Experimental data",
-            "3DEM volume": "Experimental data",
-            "2DEM class average": "Experimental data",
-            "EM raw micrographs": "Experimental data",
-            "X-ray diffraction data": "Experimental data",
-            "SAS data": "Experimental data",
-            "CX-MS data": "Experimental data",
-            "Crosslinking-MS data": "Experimental data",
-            "Mass Spectrometry data": "Experimental data",
-            "EPR data": "Experimental data",
-            "H/D exchange data": "Experimental data",
-            "Single molecule FRET data": "Experimental data",
-            "Ensemble FRET data": "Experimental data",
-            "Experimental model": "Starting model",
-            "Comparative model": "Starting model",
-            "Integrative model": "Starting model",
-            "De Novo model": "Starting model",
-            "Predicted contacts": "Computed restraints",
-            "Mutagenesis data": "Experimental data",
-            "DNA footprinting data": "Experimental data",
-            "Hydroxyl radical footprinting data": "Experimental data",
-            "Yeast two-hybrid screening data": "Experimental data",
-            "Quantitative measurements of genetic interactions": "Experimental data",
-            "Other": "Other"
-        }
         dbNameL = [
             "PDB",
             "PDB-Dev",
@@ -1705,6 +1700,7 @@ class DictMethodEntryHelper(object):
             "BMRbig",
             "Other"
         ]
+        dsNameTypeMapD = self.__commonU.getIhmDsNameTypeMapD()
         try:
             if not dataContainer.exists("ihm_dataset_list"):
                 return False
