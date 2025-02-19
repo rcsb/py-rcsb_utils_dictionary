@@ -907,6 +907,12 @@ class DictMethodEntryHelper(object):
                 cObj.setValue(multiStateFlag, "ihm_multi_state_flag", 0)
                 cObj.setValue(orderedFlag, "ihm_ordered_state_flag", 0)
                 cObj.setValue(ensembleFlag, "ihm_ensemble_flag", 0)
+                if dataContainer.exists("ihm_struct_assembly"):
+                    aObj = dataContainer.getObj("ihm_struct_assembly")
+                    rL = aObj.getAttributeUniqueValueList("id")
+                    if "1" in rL:
+                        des = aObj.selectValuesWhere("description", "1", "id")[0]
+                        cObj.setValue(des, "ihm_structure_description", 0)
             #
             # --------------------------------------------------------------------------------------------------------
             #  Experimental resolution -
