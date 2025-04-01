@@ -1019,6 +1019,9 @@ class DictMethodEntryHelper(object):
             #
             repModelId = self.__commonU.getRepresentativeModelId(dataContainer)
             #
+            if dataContainer.exists("ihm_model_list"):
+                repModelId = self.__commonU.getIhmRepresentativeModelId(dataContainer)
+            #
             instanceTypeCountD = self.__commonU.getInstanceTypeCounts(dataContainer)
             cObj.setValue(instanceTypeCountD["polymer"], "deposited_polymer_entity_instance_count", 0)
             cObj.setValue(instanceTypeCountD["non-polymer"], "deposited_nonpolymer_entity_instance_count", 0)
@@ -1035,12 +1038,14 @@ class DictMethodEntryHelper(object):
 
             if numHeavyAtomsModel > 0:
                 cObj.setValue(numHeavyAtomsModel, "deposited_atom_count", 0)
-                cObj.setValue(numModelsTotal, "deposited_model_count", 0)
+                # cObj.setValue(numModelsTotal, "deposited_model_count", 0)
                 cObj.setValue(numHydrogenAtomsModel, "deposited_hydrogen_atom_count", 0)
                 cObj.setValue(numDeuWatMolModel, "deposited_deuterated_water_count", 0)
                 tCD = self.__commonU.getEntityTypeHeavyAtomCounts(dataContainer, modelId=repModelId)
                 wCount = tCD["water"] if tCD and "water" in tCD else 0
                 cObj.setValue(wCount, "deposited_solvent_atom_count", 0)
+            if numModelsTotal > 0:
+                cObj.setValue(numModelsTotal, "deposited_model_count", 0)
             #
             # ---------------------------------------------------------------------------------------------------------
             #  Deposited monomer/residue instance counts
