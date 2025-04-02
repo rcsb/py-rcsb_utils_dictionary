@@ -360,7 +360,7 @@ class DictMethodEntryHelper(object):
             #
             cObj = dataContainer.getObj(catName)
             # if not cObj.hasAttribute("journal_abbrev") or not cObj.hasAttribute("id") or not cObj.hasAttribute("journal_id_ISSN"):
-            if not cObj.hasAttribute("journal_abbrev") or not cObj.hasAttribute("id"): 
+            if not cObj.hasAttribute("journal_abbrev") or not cObj.hasAttribute("id"):
                 return False
             #
             if not cObj.hasAttribute(atName):
@@ -1520,10 +1520,10 @@ class DictMethodEntryHelper(object):
             cndL5 = [("asym_id", "not in", repAsymIdList)]
             cndL6 = [("PDB_model_num", "ne", repModelId)]
             cNameL4 = [
-                "entity_name_com", "entity_name_sys", "entity_src_gen", 
-                "entity_src_nat", "entity_poly", "pdbx_entity_nonpoly", 
-                "entity_poly_seq", "pdbx_entity_poly_na_type", "struct_ref", 
-                "pdbx_entity_branch_list", "pdbx_entity_branch_link", 
+                "entity_name_com", "entity_name_sys", "entity_src_gen",
+                "entity_src_nat", "entity_poly", "pdbx_entity_nonpoly",
+                "entity_poly_seq", "pdbx_entity_poly_na_type", "struct_ref",
+                "pdbx_entity_branch_list", "pdbx_entity_branch_link",
                 "pdbx_entity_branch", "pdbx_entity_branch_descriptor"
             ]
             cNameL5 = ["pdbx_nonpoly_scheme", "pdbx_poly_seq_scheme", "pdbx_branch_scheme"]
