@@ -359,7 +359,8 @@ class DictMethodEntryHelper(object):
                 return False
             #
             cObj = dataContainer.getObj(catName)
-            if not cObj.hasAttribute("journal_abbrev") or not cObj.hasAttribute("id") or not cObj.hasAttribute("journal_id_ISSN"):
+            # if not cObj.hasAttribute("journal_abbrev") or not cObj.hasAttribute("id") or not cObj.hasAttribute("journal_id_ISSN"):
+            if not cObj.hasAttribute("journal_abbrev") or not cObj.hasAttribute("id"): 
                 return False
             #
             if not cObj.hasAttribute(atName):
