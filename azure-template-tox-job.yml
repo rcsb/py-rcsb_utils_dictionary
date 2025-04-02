@@ -1,6 +1,5 @@
 # File: azure-template-tox-job.yml
 # Date: 8-Jul-2019 jdw split out from original pipeline
-# Supports: fixtures=mysql,mongodb (linux)
 #
 # Updates:
 #  6-Aug-2019  jdw build source and binary wheels by default.
@@ -56,8 +55,6 @@ jobs:
             displayName: "Install bison"
           - script: which bison
             displayName: "Check bison"
-          - script: brew install mariadb
-            displayName: "Install mariadb"
       # ----------------------------------------------
       - ${{ if startsWith(parameters.os, 'linux') }}:
           - script: lsb_release -a
@@ -77,73 +74,6 @@ jobs:
             displayName: "Install flex"
           - script: sudo apt-get install bison
             displayName: "Install bison"
-      #
-      - ? ${{ if and(contains(parameters.fixtures, 'mysql'), startsWith(parameters.os, 'linux')) }}
-        : - bash: |
-              sudo apt-get install python3-dev mysql-server
-              sudo apt-get install default-libmysqlclient-dev
-              sudo apt-get install python-mysqldb
-              sudo apt list --installed | grep -i mysql
-            displayName: "Install mysql development libraries"
-          - bash: |
-              echo "Retarting mysql service"
-              sudo systemctl restart mysql.service
-              mysql -V
-              mysql --user=root --password=root -e "use mysql; select * from user;"
-              #
-              echo "Try resetting password"
-              mysqladmin --user=root --password=root password 'ChangeMeSoon'
-              #
-              # mysql -u root  -p root -e "SET PASSWORD FOR root@'localhost' = PASSWORD(‘ChangeMeSoon’);"
-              # mysql -u root  -p root -e "FLUSH PRIVILEGES; update mysql.user set password=password('ChangeMeSoon') where user='root'; FLUSH PRIVILEGES;"
-              # UPDATE mysql.user SET Password=PASSWORD('ChangeMeSoon') WHERE User='root';
-
-              echo "Running preliminary mysql setup"
-              mysql --user=root --password=ChangeMeSoon <<_EOF_
-                DELETE FROM mysql.user WHERE User='';
-                DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
-                DROP DATABASE IF EXISTS test;
-                DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
-                FLUSH PRIVILEGES;
-              _EOF_
-              ps -ef | grep -i my
-              mysql --user=root --password=ChangeMeSoon -e "show databases;"
-              #
-            displayName: "Start and configure mysql ..."
-
-        # -----
-      # Mongo install
-      - ${{ if and(contains(parameters.fixtures, 'mongodb'), startsWith(parameters.os, 'linux')) }}:
-          - script: |
-              sudo apt-get install gnupg wget
-              wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc | sudo apt-key add -
-              # sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 9DA31620334BD75D9DCB49F368818C72E52529D4
-              sudo apt list --installed | grep mongodb
-              echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
-              # echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu xenial/mongodb-org/7.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
-              sudo apt-get update
-              sudo apt-get install -y mongodb-org
-              sudo apt list --installed | grep mongo
-            displayName: "Installing mongodb"
-          #
-          - script: |
-              sudo service mongod start
-              sudo ss -tulpn
-            displayName: "Start Mongo service"
-        #
-      - ${{ if and(contains(parameters.fixtures, 'mongodb'), startsWith(parameters.os, 'macos')) }}:
-          - script: |
-              brew tap mongodb/brew
-              brew update
-              brew install mongodb-community@5.0
-            displayName: "Installing mongodb"
-          #
-          - script: brew services start mongodb-community@5.0
-            displayName: "Start Mongo service"
-          #
-          - script: brew services list
-            displayName: "Check mongodb service"
-        #
       #
       - script: 'python -c "import sys; print(sys.version); print(sys.executable)"'
         displayName: show python information
