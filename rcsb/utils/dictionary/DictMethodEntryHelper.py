@@ -704,7 +704,7 @@ class DictMethodEntryHelper(object):
                 if dataContainer.exists("ihm_dataset_list"):
                     dObj = dataContainer.getObj("ihm_dataset_list")
                     dsNameTypeMapD = self.__commonU.getIhmDsNameTypeMapD()
-                    aL= ["data_type", "database_hosted"]
+                    aL = ["data_type", "database_hosted"]
                     cD = dObj.getCombinationCounts(aL)
                     for (dataType, dbFlag), _ in cD.items():
                         if dataType in dsNameTypeMapD:
@@ -1519,7 +1519,13 @@ class DictMethodEntryHelper(object):
             cndL4 = [("entity_id", "not in", repEntityIdList)]
             cndL5 = [("asym_id", "not in", repAsymIdList)]
             cndL6 = [("PDB_model_num", "ne", repModelId)]
-            cNameL4 = ["entity_name_com", "entity_name_sys", "entity_src_gen", "entity_src_nat", "entity_poly", "pdbx_entity_nonpoly", "entity_poly_seq", "pdbx_entity_poly_na_type", "struct_ref", "pdbx_entity_branch_list", "pdbx_entity_branch_link", "pdbx_entity_branch", "pdbx_entity_branch_descriptor"]
+            cNameL4 = [
+                "entity_name_com", "entity_name_sys", "entity_src_gen", 
+                "entity_src_nat", "entity_poly", "pdbx_entity_nonpoly", 
+                "entity_poly_seq", "pdbx_entity_poly_na_type", "struct_ref", 
+                "pdbx_entity_branch_list", "pdbx_entity_branch_link", 
+                "pdbx_entity_branch", "pdbx_entity_branch_descriptor"
+            ]
             cNameL5 = ["pdbx_nonpoly_scheme", "pdbx_poly_seq_scheme", "pdbx_branch_scheme"]
             cNameL6 = ["pdbx_unobs_or_zero_occ_atoms", "pdbx_unobs_or_zero_occ_residues"]
 
@@ -1683,7 +1689,12 @@ class DictMethodEntryHelper(object):
                 dataContainer.append(DataCategory("pdbx_struct_oper_list", attributeNameList=atList, rowList=[row]))
                 logger.debug("For %s default values set for %s", dataContainer.getName(), "pdbx_struct_oper_list")
                 endTime = time.time()
-                logger.debug("Completed IHM pre-preprocessing at %s (%.4f seconds) PDBID %s", time.strftime("%Y %m %d %H:%M:%S", time.localtime()), endTime - startTime, dataContainer.getName())
+                logger.debug(
+                    "Completed IHM pre-preprocessing at %s (%.4f seconds) PDBID %s",
+                    time.strftime("%Y %m %d %H:%M:%S", time.localtime()),
+                    endTime - startTime,
+                    dataContainer.getName(),
+                )
             return True
         except Exception as e:
             logger.exception("For %s IHM pre-processing failing with %s", dataContainer.getName(), str(e))
@@ -1740,7 +1751,7 @@ class DictMethodEntryHelper(object):
                     dataContainer.append(DataCategory("rcsb_ihm_dataset_source_db_reference", attributeNameList=["db_name", "accession_code", "dataset_name"]))
                 rObj = dataContainer.getObj("ihm_dataset_related_db_reference")
                 sObj = dataContainer.getObj("rcsb_ihm_dataset_source_db_reference")
-                aL= ["db_name", "accession_code"]
+                aL = ["db_name", "accession_code"]
                 cD = rObj.getCombinationCounts(aL)
                 ii = sObj.getRowCount()
                 for (dbName, accCode), _ in cD.items():
