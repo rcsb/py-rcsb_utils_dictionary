@@ -4225,7 +4225,7 @@ class DictMethodCommonUtils(object):
                 atomType = aObj.getValue("type_symbol", ii)
                 atomId = aObj.getValue("label_atom_id", ii)
                 seqId = aObj.getValue("label_seq_id", ii)
-                authSeqId = aObj.getValue("auth_seq_id", ii)
+                authSeqId = aObj.getValueOrDefault("auth_seq_id", ii, seqId)
                 compId = aObj.getValue("label_comp_id", ii)
                 altId = aObj.getValueOrDefault("label_alt_id", ii, None)
                 xC = aObj.getValue("Cartn_x", ii)
