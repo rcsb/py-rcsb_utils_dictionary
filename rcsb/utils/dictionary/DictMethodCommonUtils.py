@@ -1785,6 +1785,7 @@ class DictMethodCommonUtils(object):
             "UNP": "UniProt",
             "GB": "GenBank",
             "PDB": "PDB",
+            # Can be deleted once all IHM entries are remediated
             # "PDB-DEV": "PDB-Dev",
             # "PDB-IHM": "PDB-IHM",
             "EMBL": "EMBL",
@@ -3860,7 +3861,7 @@ class DictMethodCommonUtils(object):
             logger.exception("%s failing with %s", dataContainer.getName(), str(e))
         return rD
 
-    # TO BE DELETED
+    # TO BE DELETED -- Needs additional testing before deletion to ensure all downstream dependencies are addressed
     def __getInstanceModelOutliers(self, dataContainer):
         """Internal method to assemble model outliers details.
 
