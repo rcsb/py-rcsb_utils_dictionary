@@ -68,7 +68,7 @@
 # 01-Feb-2024  bv Update method 'addEntryInfo' to support deuterated water molecule count
 # 16-Jan-2025 dwp Use simplified method call for getting representative model ID
 # 03-Feb-2025  bv Add method 'filterRevisionHistory' to remove data not relevant to structure model
-# 13-Feb-2025  bv Add method 'filterIhmRepresentativeModel' to filter all data categories for IHM representative model only
+# 04-May-2024  bv Add methods 'ihmEntryPreProcess' and 'ihmAddDatasetInfo' to handle integrative structures
 #                 Update 'addEntryInfo' for integrative structures
 #
 ##
@@ -870,13 +870,11 @@ class DictMethodEntryHelper(object):
                 multiScaleFlag = "N"
                 multiStateFlag = "N"
                 orderedFlag = "N"
-                ensembleFlag = "N"
                 if dataContainer.exists("ihm_modeling_protocol_details"):
                     pdObj = dataContainer.getObj("ihm_modeling_protocol_details")
                     mscFL = pdObj.getAttributeUniqueValueList("multi_scale_flag")
                     mstFL = pdObj.getAttributeUniqueValueList("multi_state_flag")
                     ordFL = pdObj.getAttributeUniqueValueList("ordered_flag")
-                    ensFL = pdObj.getAttributeUniqueValueList("ensemble_flag")
                     for flag in mscFL:
                         if flag.upper() == "YES":
                             multiScaleFlag = "Y"
@@ -889,25 +887,15 @@ class DictMethodEntryHelper(object):
                         if flag.upper() == "YES":
                             orderedFlag = "Y"
                             break
-                    for flag in ensFL:
-                        if flag.upper() == "YES":
-                            ensembleFlag = "Y"
-                            break
                 if dataContainer.exists("ihm_sphere_obj_site") or dataContainer.exists("ihm_gaussian_obj_site"):
                     multiScaleFlag = "Y"
                 if dataContainer.exists("ihm_multi_state_modeling"):
                     multiStateFlag = "Y"
                 if dataContainer.exists("ihm_ordered_model") or dataContainer.exists("ihm_ordered_ensemble"):
                     orderedFlag = "Y"
-                if dataContainer.exists("ihm_ensemble_info"):
-                    ensembleFlag = "Y"
-                mObj = dataContainer.getObj("ihm_model_list")
-                if mObj.getRowCount() > 1 and multiStateFlag == "N" and orderedFlag == "N":
-                    ensembleFlag = "Y"
                 cObj.setValue(multiScaleFlag, "ihm_multi_scale_flag", 0)
                 cObj.setValue(multiStateFlag, "ihm_multi_state_flag", 0)
                 cObj.setValue(orderedFlag, "ihm_ordered_state_flag", 0)
-                cObj.setValue(ensembleFlag, "ihm_ensemble_flag", 0)
                 if dataContainer.exists("ihm_struct_assembly"):
                     aObj = dataContainer.getObj("ihm_struct_assembly")
                     rL = aObj.getAttributeUniqueValueList("id")
@@ -1633,7 +1621,7 @@ class DictMethodEntryHelper(object):
                 )
                 saObj = dataContainer.getObj("pdbx_struct_assembly")
                 # rcsb_details and rcsb_candidate_assembly are assigned by subsequent methods
-                saObj.setValue("deposited", "id", 0)
+                saObj.setValue("1", "id", 0)
                 saObj.setValue("deposited_coordinates", "details", 0)
                 saObj.setValue(str(len(repAsymIdList)), "oligomeric_count", 0)
                 saObj.setValue("?", "oligomeric_details", 0)
@@ -1644,7 +1632,7 @@ class DictMethodEntryHelper(object):
                 dataContainer.append(DataCategory("pdbx_struct_assembly_gen", attributeNameList=["assembly_id", "oper_expression", "asym_id_list", "ordinal"]))
                 sagObj = dataContainer.getObj("pdbx_struct_assembly_gen")
                 # ordinal is set by setRowIndex method
-                sagObj.setValue("deposited", "assembly_id", 0)
+                sagObj.setValue("1", "assembly_id", 0)
                 sagObj.setValue("1", "oper_expression", 0)
                 sagObj.setValue(",".join(repAsymIdList), "asym_id_list", 0)
                 logger.debug("For %s default values set for %s", dataContainer.getName(), "pdbx_struct_assembly_gen")
