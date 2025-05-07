@@ -1621,7 +1621,7 @@ class DictMethodEntryHelper(object):
                 )
                 saObj = dataContainer.getObj("pdbx_struct_assembly")
                 # rcsb_details and rcsb_candidate_assembly are assigned by subsequent methods
-                saObj.setValue("1", "id", 0)
+                saObj.setValue("deposited", "id", 0)
                 saObj.setValue("deposited_coordinates", "details", 0)
                 saObj.setValue(str(len(repAsymIdList)), "oligomeric_count", 0)
                 saObj.setValue("?", "oligomeric_details", 0)
@@ -1632,7 +1632,7 @@ class DictMethodEntryHelper(object):
                 dataContainer.append(DataCategory("pdbx_struct_assembly_gen", attributeNameList=["assembly_id", "oper_expression", "asym_id_list", "ordinal"]))
                 sagObj = dataContainer.getObj("pdbx_struct_assembly_gen")
                 # ordinal is set by setRowIndex method
-                sagObj.setValue("1", "assembly_id", 0)
+                sagObj.setValue("deposited", "assembly_id", 0)
                 sagObj.setValue("1", "oper_expression", 0)
                 sagObj.setValue(",".join(repAsymIdList), "asym_id_list", 0)
                 logger.debug("For %s default values set for %s", dataContainer.getName(), "pdbx_struct_assembly_gen")
