@@ -34,6 +34,7 @@
 # 16-Jan-2025 dwp Consolidate getRepresentativeModelId and associated methods/calls;
 #                 Skip non-representative models for calculating/building content;
 #                 Fix modelId assignment in getNeighborInfo
+# 13-Feb-2025  bv Add methods to support integrative structures
 #
 ##
 """
@@ -1043,6 +1044,8 @@ class DictMethodCommonUtils(object):
         entityIdL = eObj.getAttributeValueList("id")
         #
         try:
+            if dataContainer.exists("ihm_model_list"):
+                modelId = self.getIhmRepresentativeModelId(dataContainer)
             if dataContainer.exists("atom_site"):
                 tObj = dataContainer.getObj("atom_site")
                 # All atoms all types deposited -
@@ -1096,6 +1099,17 @@ class DictMethodCommonUtils(object):
                         else:
                             occupancySumD.setdefault(asymId, defaultdict(float))[altId] += float(occupancy)
                 # --
+            elif dataContainer.exists("ihm_sphere_obj_site"):
+                sObj = dataContainer.getObj("ihm_sphere_obj_site")
+                numAtomsAll = numHeavyAtomsModel = numDeuWatMolModel = numHydrogenAtomsModel = 0
+                modelIdL = sObj.getAttributeUniqueValueList("model_id")
+                for asymId, _ in instanceTypeD.items():
+                    instanceHeavyAtomCountD[asymId] = 0
+                    instanceDeuWatMolCountD[asymId] = 0
+                    instanceHydrogenAtomCountD[asymId] = 0
+                    occupancySumD.setdefault(asymId, defaultdict(float))["FL"] = 0.0
+                typeHeavyAtomCountD = {k: 0 for k in ["polymer", "non-polymer", "branched", "macrolide", "water"]}
+                typeHydrogenAtomCountD = {k: 0 for k in ["polymer", "non-polymer", "branched", "macrolide", "water"]}
             else:
                 logger.warning("Missing atom_site category for %s", dataContainer.getName())
             #
@@ -1771,6 +1785,9 @@ class DictMethodCommonUtils(object):
             "UNP": "UniProt",
             "GB": "GenBank",
             "PDB": "PDB",
+            # Can be deleted once all IHM entries are remediated
+            # "PDB-DEV": "PDB-Dev",
+            # "PDB-IHM": "PDB-IHM",
             "EMBL": "EMBL",
             "GENP": "GenBank",
             "NDB": "NDB",
@@ -2033,7 +2050,7 @@ class DictMethodCommonUtils(object):
                 tS = srObj.getValue("pdbx_db_accession", ii)
                 dbAccession = tS if tS and tS not in [".", "?"] else None
                 #
-                tS = srObj.getValue("pdbx_db_isoform", ii)
+                tS = srObj.getValueOrDefault("pdbx_db_isoform", ii, defaultValue=None)
                 dbIsoform = tS if tS and tS not in [".", "?"] else None
                 # Look for a stray isoform
                 if dbName in ["UNP"] and dbAccession and "-" in dbAccession:
@@ -2065,7 +2082,7 @@ class DictMethodCommonUtils(object):
                     alignId = srsObj.getValue("align_id", iRow)
                     alignEntityMapD[alignId] = entityId
                     #
-                    authAsymId = srsObj.getValue("pdbx_strand_id", iRow)
+                    authAsymId = srsObj.getValueOrDefault("pdbx_strand_id", iRow, defaultValue=None)
                     dbSeqIdBeg = srsObj.getValue("db_align_beg", iRow)
                     dbSeqIdEnd = srsObj.getValue("db_align_end", iRow)
                     # ----
@@ -2082,7 +2099,7 @@ class DictMethodCommonUtils(object):
                         pass
                     # ----
                     #
-                    tS = srsObj.getValue("pdbx_db_accession", iRow)
+                    tS = srsObj.getValueOrDefault("pdbx_db_accession", iRow, defaultValue=None)
                     # use the parent pdbx_accession
                     dbAccessionAlign = tS if tS and tS not in [".", "?"] else dbAccession
                     # Look for a stray isoform
@@ -3844,7 +3861,7 @@ class DictMethodCommonUtils(object):
             logger.exception("%s failing with %s", dataContainer.getName(), str(e))
         return rD
 
-    # TO BE DELETED
+    # TO BE DELETED -- Needs additional testing before deletion to ensure all downstream dependencies are addressed
     def __getInstanceModelOutliers(self, dataContainer):
         """Internal method to assemble model outliers details.
 
@@ -4209,7 +4226,7 @@ class DictMethodCommonUtils(object):
                 atomType = aObj.getValue("type_symbol", ii)
                 atomId = aObj.getValue("label_atom_id", ii)
                 seqId = aObj.getValue("label_seq_id", ii)
-                authSeqId = aObj.getValue("auth_seq_id", ii)
+                authSeqId = aObj.getValueOrDefault("auth_seq_id", ii, seqId)
                 compId = aObj.getValue("label_comp_id", ii)
                 altId = aObj.getValueOrDefault("label_alt_id", ii, None)
                 xC = aObj.getValue("Cartn_x", ii)
@@ -4592,6 +4609,100 @@ class DictMethodCommonUtils(object):
         repModelL = self.getRepresentativeModels(dataContainer)
         repModelId = repModelL[0]
         return str(repModelId)
+
+    def getIhmRepresentativeModelId(self, dataContainer):
+        """Return the first representative model ID for integrative structures
+        """
+        modelIdL = []
+        repModelIdL = []
+        repModelId = None
+        try:
+            if dataContainer.exists("ihm_model_list"):
+                mObj = dataContainer.getObj("ihm_model_list")
+                modelIdL = mObj.getAttributeUniqueValueList("model_id")
+                modelIdL.sort(key=int)
+            if dataContainer.exists("ihm_model_representative"):
+                mrObj = dataContainer.getObj("ihm_model_representative")
+                repModelIdL = mrObj.getAttributeUniqueValueList("model_id")
+                repModelIdL.sort(key=int)
+                if repModelIdL:
+                    repModelId = self.__getIhmLargestModel(dataContainer, repModelIdL)
+            if not repModelId:
+                if modelIdL:
+                    repModelId = self.__getIhmLargestModel(dataContainer, modelIdL)
+            if not repModelId:
+                repModelId = modelIdL[0]
+        except Exception as e:
+            logger.exception("Failing for %s with %s", dataContainer.getName(), str(e))
+        return str(repModelId)
+
+    def __getIhmLargestModel(self, dataContainer, modelIdL):
+        """Return the largest model in assembly size
+        """
+        sD = {}
+        mObj = dataContainer.getObj("ihm_model_list")
+        for modelId in modelIdL:
+            repAssemblyId = mObj.selectValuesWhere("assembly_id", modelId, "model_id")[0]
+            if dataContainer.exists("ihm_struct_assembly_details"):
+                sdObj = dataContainer.getObj("ihm_struct_assembly_details")
+                sdL = sdObj.selectValuesWhere("asym_id", repAssemblyId, "assembly_id")
+                sD[modelId] = len(list(set(sdL)))
+        if sD:
+            rModelId = max(sD, key=sD.get)
+        else:
+            rModelId = modelIdL[0]
+        return str(rModelId)
+
+    def filterIntegrativeMethod(self, dataContainer):
+        """Apply a standard filter to the input integrative method list returning a method count and
+            a simplified method name.
+
+        """
+        methodCount = 1
+        expMethod = None
+        mc = 0
+        dsNameTypeMapD = self.getIhmDsNameTypeMapD()
+        if dataContainer.exists("ihm_model_list"):
+            expMethod = "Integrative"
+        if dataContainer.exists("ihm_dataset_list"):
+            dObj = dataContainer.getObj("ihm_dataset_list")
+            dtL = dObj.getAttributeUniqueValueList("data_type")
+            for dt in dtL:
+                if dt in dsNameTypeMapD:
+                    if dsNameTypeMapD[dt] == "Experimental data":
+                        mc += 1
+        if mc:
+            methodCount = mc
+        return methodCount, expMethod
+
+    def getIhmDsNameTypeMapD(self):
+        dsNameTypeMapD = {
+            "NMR data": "Experimental data",
+            "3DEM volume": "Experimental data",
+            "2DEM class average": "Experimental data",
+            "EM raw micrographs": "Experimental data",
+            "X-ray diffraction data": "Experimental data",
+            "SAS data": "Experimental data",
+            "CX-MS data": "Experimental data",
+            "Crosslinking-MS data": "Experimental data",
+            "Mass Spectrometry data": "Experimental data",
+            "EPR data": "Experimental data",
+            "H/D exchange data": "Experimental data",
+            "Single molecule FRET data": "Experimental data",
+            "Ensemble FRET data": "Experimental data",
+            "Experimental model": "Starting model",
+            "Comparative model": "Starting model",
+            "Integrative model": "Starting model",
+            "De Novo model": "Starting model",
+            "Predicted contacts": "Computed restraints",
+            "Mutagenesis data": "Experimental data",
+            "DNA footprinting data": "Experimental data",
+            "Hydroxyl radical footprinting data": "Experimental data",
+            "Yeast two-hybrid screening data": "Experimental data",
+            "Quantitative measurements of genetic interactions": "Experimental data",
+            "Other": "Other"
+        }
+        return dsNameTypeMapD
 
     # METHOD TO BE DELETED
     def __getValidationData(self, tObj, iObj, fields, idField, metricValD, dL, instL):

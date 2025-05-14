@@ -142,3 +142,4 @@
 16-Jan-2025 - V1.30 Only load instance features for the representative model of multi-model structures;
                     Consolidate code for selecting the representative model
 03-Feb-2025 - V1.31 Add method 'filterRevisionHistory' in DictMethodEntryHelper to remove data not relevant to structure model
+04-May-2025 - V1.32 Add methods and support for IHM structure loading

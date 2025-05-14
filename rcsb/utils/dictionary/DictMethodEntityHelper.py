@@ -20,6 +20,7 @@
 #  18-Mar-2024 dwp Separate out gathering of entity reference sequence alignments from assignment step
 #  20-Aug-2024 dwp Add support for accessing target cofactor data from MongoDB
 #   7-Jan-2025  bv Stop populating rcsb_nonpolymer_instance_feature_summary from rcsb_entity_instance_validation_feature_summary
+#  15-Feb-2025  bv Add support for integrative structures
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
@@ -213,7 +214,7 @@ class DictMethodEntityHelper(object):
                 for (dbName, dbAcc, dbIsoform), saoL in refD.items():
                     #
                     if dbName not in dbNameMapD:
-                        logger.error("Skipping unsupported reference database %r for entry %s entity %s", dbName, entryId, entityId)
+                        logger.warning("Skipping unsupported reference database %r for entry %s entity %s", dbName, entryId, entityId)
                         continue
                     #
                     cObj.setValue(iRow + 1, "ordinal", iRow)
@@ -372,27 +373,29 @@ class DictMethodEntityHelper(object):
                         # else fallback to struct_ref and struct_ref_seq
                         elif entityId in seqEntityRefDbD:
                             for dbD in seqEntityRefDbD[entityId]:
-                                refSeqIdD["dbName"].append(dbD["dbName"])
-                                refSeqIdD["provSource"].append(provSourceDefault)
-                                refSeqIdD["dbAccession"].append(dbD["dbAccession"])
-                                #
-                                if dbD["dbIsoform"]:
-                                    refSeqIdD["dbIsoform"].append(dbD["dbIsoform"])
-                                else:
-                                    refSeqIdD["dbIsoform"].append("?")
+                                if dbD["dbName"] not in ["PDB-DEV", "PDB-Dev"]:
+                                    refSeqIdD["dbName"].append(dbD["dbName"])
+                                    refSeqIdD["provSource"].append(provSourceDefault)
+                                    refSeqIdD["dbAccession"].append(dbD["dbAccession"])
+                                    #
+                                    if dbD["dbIsoform"]:
+                                        refSeqIdD["dbIsoform"].append(dbD["dbIsoform"])
+                                    else:
+                                        refSeqIdD["dbIsoform"].append("?")
 
                     else:
                         # try fallback to struct_ref and struct_ref_seq
                         if entityId in seqEntityRefDbD:
                             for dbD in seqEntityRefDbD[entityId]:
-                                refSeqIdD["dbName"].append(dbD["dbName"])
-                                refSeqIdD["provSource"].append(provSourceDefault)
-                                refSeqIdD["dbAccession"].append(dbD["dbAccession"])
-                                #
-                                if dbD["dbIsoform"]:
-                                    refSeqIdD["dbIsoform"].append(dbD["dbIsoform"])
-                                else:
-                                    refSeqIdD["dbIsoform"].append("?")
+                                if dbD["dbName"] not in ["PDB-DEV", "PDB-Dev"]:
+                                    refSeqIdD["dbName"].append(dbD["dbName"])
+                                    refSeqIdD["provSource"].append(provSourceDefault)
+                                    refSeqIdD["dbAccession"].append(dbD["dbAccession"])
+                                    #
+                                    if dbD["dbIsoform"]:
+                                        refSeqIdD["dbIsoform"].append(dbD["dbIsoform"])
+                                    else:
+                                        refSeqIdD["dbIsoform"].append("?")
                         # else fallback to ma_target_ref_db_details
                         elif dataContainer.exists("ma_target_ref_db_details"):
                             mObj = dataContainer.getObj("ma_target_ref_db_details")
@@ -2043,7 +2046,7 @@ class DictMethodEntityHelper(object):
             if not dataContainer.exists("entry"):
                 return False
             #
-            if dataContainer.exists("ma_data"):
+            if dataContainer.exists("ma_data") or dataContainer.exists("ihm_model_list"):
                 return False
             #
             # Create the new target category
@@ -2263,7 +2266,7 @@ class DictMethodEntityHelper(object):
             if not dataContainer.exists("entry"):
                 return False
             #
-            if dataContainer.exists("ma_data"):
+            if dataContainer.exists("ma_data") or dataContainer.exists("ihm_model_list"):
                 return False
             #
             # Create the new target category

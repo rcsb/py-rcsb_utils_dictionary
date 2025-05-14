@@ -13,6 +13,7 @@
 # 06-Jul-2022 dwp Only run addDepositedAssembly for computed model files which don't already contain pdbx_struct_assembly
 # 01-Feb-2024 bv  Update methods 'addAssemblyInfo' and '__getAssemblyComposition' to support deuterated water molecule count
 # 16-Jan-2025 dwp Use simplified method call for getting representative model ID
+# 13-Feb-2025 bv  Update methods 'filterAssemblyDetails' and assignAssemblyCandidates to support integrative structures
 #
 ##
 """
@@ -405,7 +406,7 @@ class DictMethodAssemblyHelper(object):
                     tObj.setValue(mD[details], "rcsb_details", iRow)
                 else:
                     tObj.setValue("software_defined_assembly", "rcsb_details", iRow)
-                if dataContainer.exists("ma_data"):
+                if dataContainer.exists("ma_data") or dataContainer.exists("ihm_model_list"):
                     tObj.setValue("?", "rcsb_details", iRow)
                 # logger.debug("Full row is %r", tObj.getRow(iRow))
             return True
@@ -479,7 +480,7 @@ class DictMethodAssemblyHelper(object):
                 details = tObj.getValue("details", iRow)
                 if details in mD and details not in eD:
                     tObj.setValue("Y", "rcsb_candidate_assembly", iRow)
-                elif dataContainer.exists("ma_data"):
+                elif dataContainer.exists("ma_data") or dataContainer.exists("ihm_model_list"):
                     tObj.setValue("Y", "rcsb_candidate_assembly", iRow)
                 else:
                     tObj.setValue("N", "rcsb_candidate_assembly", iRow)
