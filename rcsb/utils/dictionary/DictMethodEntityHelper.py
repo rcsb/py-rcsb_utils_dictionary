@@ -21,7 +21,6 @@
 #  20-Aug-2024 dwp Add support for accessing target cofactor data from MongoDB
 #   7-Jan-2025  bv Stop populating rcsb_nonpolymer_instance_feature_summary from rcsb_entity_instance_validation_feature_summary
 #  15-Feb-2025  bv Add support for integrative structures
-#  12-June-2025 bv Add tranformation to populate rcsb_polymer_entity_container_identifiers.uniprot_ids
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
@@ -449,12 +448,6 @@ class DictMethodEntityHelper(object):
                     cObj.setValue(",".join(refSeqIdD["dbAccession"]).strip(), "reference_sequence_identifiers_database_accession", ii)
                     cObj.setValue(",".join(refSeqIdD["provSource"]).strip(), "reference_sequence_identifiers_provenance_source", ii)
                     cObj.setValue(",".join(refSeqIdD["dbIsoform"]).strip(), "reference_sequence_identifiers_database_isoform", ii)
-                    uDbName = "UniProt"
-                    uDbIndexL = [i for i, x in enumerate(refSeqIdD["dbName"]) if x == uDbName]
-                    uDbAccessionL = [refSeqIdD["dbAccession"][i] for i in uDbIndexL]
-                    uL = list(dict.fromkeys(uDbAccessionL))
-                    if uL:
-                        cObj.setValue(",".join(uL).strip(), "uniprot_ids", ii)
                 #
                 if refIdD["resName"]:
                     cObj.setValue(",".join(refIdD["resName"]).strip(), "reference_identifiers_resource_name", ii)

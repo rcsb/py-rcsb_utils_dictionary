@@ -143,4 +143,3 @@
                     Consolidate code for selecting the representative model
 03-Feb-2025 - V1.31 Add method 'filterRevisionHistory' in DictMethodEntryHelper to remove data not relevant to structure model
 04-May-2025 - V1.32 Add methods and support for IHM structure loading
-12-Jun-2025 - V1.33 Add tranformation to populate rcsb_entry_container_identifiers.pubmed_id and rcsb_polymer_entity_container_identifiers.uniprot_ids
