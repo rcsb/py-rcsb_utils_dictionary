@@ -68,8 +68,9 @@
 # 01-Feb-2024  bv Update method 'addEntryInfo' to support deuterated water molecule count
 # 16-Jan-2025 dwp Use simplified method call for getting representative model ID
 # 03-Feb-2025  bv Add method 'filterRevisionHistory' to remove data not relevant to structure model
-# 04-May-2024  bv Add methods 'ihmEntryPreProcess' and 'ihmAddDatasetInfo' to handle integrative structures
+# 04-May-2025  bv Add methods 'ihmEntryPreProcess' and 'ihmAddDatasetInfo' to handle integrative structures
 #                 Update 'addEntryInfo' for integrative structures
+# 12-Jun-2025  bv Add tranformation to populate rcsb_entry_container_identifiers.pubmed_id
 #
 ##
 """
@@ -569,6 +570,15 @@ class DictMethodEntryHelper(object):
             modelIdList = self.__commonU.getModelIdList(dataContainer)
             tV = ",".join([str(tId) for tId in modelIdList]) if modelIdList else "?"
             cObj.setValue(tV, "model_ids", 0)
+            #
+            if dataContainer.exists("citation"):
+                tObj = dataContainer.getObj("citation")
+                for ii in range(tObj.getRowCount()):
+                    pv = tObj.getValue("id", ii)
+                    pm = tObj.getValue("pdbx_database_id_PubMed", ii)
+                    if pv.upper() == "PRIMARY" and pm:
+                        cObj.setValue(pm, "pubmed_id", 0)
+                        break
             #
             return True
         except Exception as e:
