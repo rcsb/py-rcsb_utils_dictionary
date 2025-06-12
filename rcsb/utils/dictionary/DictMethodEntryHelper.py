@@ -576,7 +576,7 @@ class DictMethodEntryHelper(object):
                 for ii in range(tObj.getRowCount()):
                     pv = tObj.getValueOrDefault("id", ii, defaultValue=None)
                     pm = tObj.getValueOrDefault("pdbx_database_id_PubMed", ii, defaultValue=None)
-                    if pv.upper() == "PRIMARY" and pm:
+                    if pv and pv.upper() == "PRIMARY" and pm:
                         cObj.setValue(pm, "pubmed_id", 0)
                         break
             #
