@@ -449,8 +449,7 @@ class DictMethodEntityHelper(object):
                     cObj.setValue(",".join(refSeqIdD["dbAccession"]).strip(), "reference_sequence_identifiers_database_accession", ii)
                     cObj.setValue(",".join(refSeqIdD["provSource"]).strip(), "reference_sequence_identifiers_provenance_source", ii)
                     cObj.setValue(",".join(refSeqIdD["dbIsoform"]).strip(), "reference_sequence_identifiers_database_isoform", ii)
-                    uDbName = "UniProt"
-                    uDbIndexL = [i for i, x in enumerate(refSeqIdD["dbName"]) if x == uDbName]
+                    uDbIndexL = [i for i, x in enumerate(refSeqIdD["dbName"]) if x == "UniProt"]
                     uDbAccessionL = [refSeqIdD["dbAccession"][i] for i in uDbIndexL]
                     uL = list(dict.fromkeys(uDbAccessionL))
                     if uL:

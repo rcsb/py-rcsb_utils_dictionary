@@ -574,8 +574,8 @@ class DictMethodEntryHelper(object):
             if dataContainer.exists("citation"):
                 tObj = dataContainer.getObj("citation")
                 for ii in range(tObj.getRowCount()):
-                    pv = tObj.getValue("id", ii)
-                    pm = tObj.getValue("pdbx_database_id_PubMed", ii)
+                    pv = tObj.getValueOrDefault("id", ii, defaultValue=None)
+                    pm = tObj.getValueOrDefault("pdbx_database_id_PubMed", ii, defaultValue=None)
                     if pv.upper() == "PRIMARY" and pm:
                         cObj.setValue(pm, "pubmed_id", 0)
                         break
