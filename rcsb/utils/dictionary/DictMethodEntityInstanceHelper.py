@@ -32,6 +32,7 @@
 #                  Fix coverage in buildInstanceValidationFeatureSummary
 #  16-Jan-2025 dwp Only load features for the representative model
 #  15-Feb-2025  bv Add support for integrative structures
+#  27-Jun-2025  bv Add transformation to populate rcsb_polymer_instance_info
 #
 ##
 """
@@ -2965,4 +2966,59 @@ class DictMethodEntityInstanceHelper(object):
             return True
         except Exception as e:
             logger.exception("For %s removing pseudo empty rows in vrpt categories failing with %s", dataContainer.getName(), str(e))
+        return False
+
+    def addPolymerInstanceInfo(self, dataContainer, catName, **kwargs):
+        """Populate rcsb_polymer_instance_info category
+
+        Example:
+        loop_
+        _rcsb_polymer_instance_info.entry_id
+        _rcsb_polymer_instance_info.entity_id
+        _rcsb_polymer_instance_info.asym_id
+        _rcsb_polymer_instance_info.auth_asym_id
+        _rcsb_polymer_instance_info.model_id
+        _rcsb_polymer_instance_info.modeled_residue_count
+
+        """
+        logger.debug("Starting with %s %r %r", dataContainer.getName(), catName, kwargs)
+        try:
+            if not (
+                    dataContainer.exists("entity_poly")
+                    or dataContainer.exists("atom_site")):
+                return False
+            if catName != "rcsb_polymer_instance_info":
+                return False
+
+            # Create the new target category
+            if not dataContainer.exists(catName):
+                dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
+            cObj = dataContainer.getObj(catName)
+            ii = cObj.getRowCount()
+
+            eObj = dataContainer.getObj("entry")
+            entryId = eObj.getValue("id", 0)
+            asymIdD = self.__commonU.getInstanceEntityMap(dataContainer)
+            asymAuthIdD = self.__commonU.getAsymAuthIdMap(dataContainer)
+            instTypeD = self.__commonU.getInstanceTypes(dataContainer)
+            repModelId = self.__commonU.getRepresentativeModelId(dataContainer)
+            instanceModeledMonomerCountD = self.__commonU.getInstanceModeledMonomerCounts(dataContainer, modelId=repModelId)
+            for asymId, authAsymId in asymAuthIdD.items():
+                if instTypeD[asymId] not in ["polymer"]:
+                    continue
+                entityId = asymIdD[asymId]
+                modeledResCount = instanceModeledMonomerCountD[asymId]
+                if not modeledResCount:
+                    continue
+                # Populate new category
+                cObj.setValue(entryId, "entry_id", ii)
+                cObj.setValue(entityId, "entity_id", ii)
+                cObj.setValue(asymId, "asym_id", ii)
+                cObj.setValue(authAsymId, "auth_asym_id", ii)
+                cObj.setValue(repModelId, "model_id", ii)
+                cObj.setValue(modeledResCount, "modeled_residue_count", ii)
+                ii += 1
+            return True
+        except Exception as e:
+            logger.exception("For %s populating rcsb_polymer_instance_info failing with %s", dataContainer.getName(), str(e))
         return False
