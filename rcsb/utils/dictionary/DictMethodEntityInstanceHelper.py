@@ -2988,6 +2988,12 @@ class DictMethodEntityInstanceHelper(object):
 
             if not (
                 dataContainer.exists("entity_poly")
+                and dataContainer.exists("pdbx_poly_seq_scheme")
+            ):
+                return False
+
+            if not (
+                dataContainer.exists("ihm_sphere_obj_site")
                 or dataContainer.exists("atom_site")
             ):
                 return False
