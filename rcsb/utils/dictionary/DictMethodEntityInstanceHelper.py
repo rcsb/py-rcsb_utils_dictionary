@@ -2983,11 +2983,13 @@ class DictMethodEntityInstanceHelper(object):
         """
         logger.debug("Starting with %s %r %r", dataContainer.getName(), catName, kwargs)
         try:
-            if not (
-                    dataContainer.exists("entity_poly")
-                    or dataContainer.exists("atom_site")):
-                return False
             if catName != "rcsb_polymer_instance_info":
+                return False
+
+            if not (
+                dataContainer.exists("entity_poly")
+                or dataContainer.exists("atom_site")
+            ):
                 return False
 
             # Create the new target category
