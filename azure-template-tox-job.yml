@@ -58,11 +58,15 @@ jobs:
             displayName: "Check bison"
       # ----------------------------------------------
       - ${{ if startsWith(parameters.os, 'linux') }}:
+          - script: lsb_release -a
+            displayName: "Ubuntu kernal version"
           - script: which apt
             displayName: "Installing OS dependencies"
           - script: apt-cache policy | grep http | awk '{print $2 $3}' | sort -u
             displayName: "Checking for repos"
           #
+          - script: sudo apt-get update
+            displayName: "update apt"
           - script: sudo apt-get install flex
             displayName: "Install flex"
           - script: sudo apt-get install bison
@@ -125,9 +129,6 @@ jobs:
         #
       - script: pip install .[tests]
         displayName: "Install dependencies"
-      #
-      - script: python -c "import nltk; nltk.download('popular')"
-        displayName: "Download NLTK data"
       #
       # - task: DownloadSecureFile@1
       #   name: oelicense
