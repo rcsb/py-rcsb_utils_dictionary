@@ -145,3 +145,4 @@
 04-May-2025 - V1.32 Add methods and support for IHM structure loading
 12-Jun-2025 - V1.33 Add transformation to populate rcsb_entry_container_identifiers.pubmed_id and rcsb_polymer_entity_container_identifiers.uniprot_ids
 27-Jun-2025 - V1.34 Add transformation to populate rcsb_polymer_instance_info
+ 4-Nov-2025 - V1.35 Strip newline characters from 'chem_comp.name'

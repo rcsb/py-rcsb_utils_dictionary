@@ -10,6 +10,7 @@
 #   18-Sep-2023 dwp Load COD references separately from CCDC/CSD references
 #    3-May-2024 dwp Change BIRD citation method to copy categories instead of just renaming, and only apply to BIRD entries
 #   25-Jul-2024 dwp Fix assignment logic of Pharos data for rcsb_chem_comp_related.related_mapping_method in addChemCompRelated()
+#    4-Nov-2025 dwp Strip newline characters from 'chem_comp.name'
 ##
 """
 Helper class implements external method references supporting chemical
@@ -901,6 +902,8 @@ class DictMethodChemRefHelper(object):
             ccObj = dataContainer.getObj("chem_comp")
             ccId = ccObj.getValue("id", 0)
             ccName = ccObj.getValue("name", 0)
+            if ccName:
+                ccName = ccName.replace("\n", "")  # strip newline characters
             # ccSynonymL = []
             # if ccObj.hasAttribute("pdbx_synonyms"):
             #    ccSynonymL = str(ccObj.getValue("pdbx_synonyms", 0)).split(";")
