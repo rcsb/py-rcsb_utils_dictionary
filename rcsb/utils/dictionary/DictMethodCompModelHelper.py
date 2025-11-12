@@ -381,7 +381,7 @@ class DictMethodCompModelHelper(object):
                 return False
 
             if catName != "rcsb_comp_model_provenance":
-                logger.warning("input catName (%s) not 'rcsb_comp_model_provenance'")
+                logger.warning("input catName (%s) not 'rcsb_comp_model_provenance'", catName)
 
             catName = "rcsb_comp_model_provenance"
 
