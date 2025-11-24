@@ -4990,7 +4990,7 @@ class DictMethodCommonUtils(object):
                         rsr = vObj.getValueOrDefault("RSR", ii, defaultValue=None)
                         rsrZ = vObj.getValueOrDefault("RSRZ", ii, defaultValue=None)
                         nAtomsEds = vObj.getValueOrDefault("natoms_eds", ii, defaultValue=None)
-                        qScore = None # Q_score is not defined in pdbx_vrpt_model_instance_density
+                        qScore = None  # Q_score is not defined in pdbx_vrpt_model_instance_density
                         vD[instId] = [rsrCc, rsr, rsrZ, nAtomsEds, qScore]
 
             gObj = None
