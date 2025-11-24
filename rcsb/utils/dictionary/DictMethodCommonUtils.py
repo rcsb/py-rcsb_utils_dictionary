@@ -96,7 +96,7 @@ NonpolymerValidationFields = (
     "rsr",
     "rscc",
     "nAtomsEds",
-    "QScore",
+    "qScore",
     "mogul_bonds_rmsz",
     "mogul_angles_rmsz",
     "numAnglesRmsZ",
@@ -4972,8 +4972,8 @@ class DictMethodCommonUtils(object):
                         rsr = vObj.getValueOrDefault("RSR", ii, defaultValue=None)
                         rsrZ = vObj.getValueOrDefault("RSRZ", ii, defaultValue=None)
                         nAtomsEds = vObj.getValueOrDefault("natoms_eds", ii, defaultValue=None)
-                        QScore = vObj.getValueOrDefault("Q_score", ii, defaultValue=None)
-                        vD[instId] = [rsrCc, rsr, rsrZ, nAtomsEds, QScore]
+                        qScore = vObj.getValueOrDefault("Q_score", ii, defaultValue=None)
+                        vD[instId] = [rsrCc, rsr, rsrZ, nAtomsEds, qScore]
             elif dataContainer.exists("pdbx_vrpt_model_instance_density"):
                 vObj = dataContainer.getObj("pdbx_vrpt_model_instance_density")
                 # kL = vObj.selectIndicesWhereOpConditions(cndL3)
@@ -4990,8 +4990,8 @@ class DictMethodCommonUtils(object):
                         rsr = vObj.getValueOrDefault("RSR", ii, defaultValue=None)
                         rsrZ = vObj.getValueOrDefault("RSRZ", ii, defaultValue=None)
                         nAtomsEds = vObj.getValueOrDefault("natoms_eds", ii, defaultValue=None)
-                        QScore = None # QScore is not defined in pdbx_vrpt_model_instance_density
-                        vD[instId] = [rsrCc, rsr, rsrZ, nAtomsEds, QScore]
+                        qScore = None # Q_score is not defined in pdbx_vrpt_model_instance_density
+                        vD[instId] = [rsrCc, rsr, rsrZ, nAtomsEds, qScore]
 
             gObj = None
             gD = {}
@@ -5020,11 +5020,11 @@ class DictMethodCommonUtils(object):
                 if str(modelId) != repModelId:  # Skip non-representative models
                     continue
                 if not seqId:
-                    rsr = rsrZ = rsrCc = nAtomsEds = QScore = None
+                    rsr = rsrZ = rsrCc = nAtomsEds = qScore = None
                     anglesRmsZ = bondsRmsZ = numAnglesRmsZ = numBondsRmsZ = avgOccupancy = software = None
                     # Get the matching data from pdbx_vrpt_model_instance_density or pdbx_vrpt_model_instance_map_fitting
                     if instId in vD:
-                        [rsrCc, rsr, rsrZ, nAtomsEds, QScore] = vD[instId]
+                        [rsrCc, rsr, rsrZ, nAtomsEds, qScore] = vD[instId]
                     # Get the matching data from pdbx_vrpt_model_instance_geometry
                     if instId in gD:
                         [anglesRmsZ, bondsRmsZ, numAnglesRmsZ, numBondsRmsZ, avgOccupancy, software] = gD[instId]
@@ -5041,7 +5041,7 @@ class DictMethodCommonUtils(object):
                             float(rsr) if rsr else None,
                             float(rsrCc) if rsrCc else None,
                             int(nAtomsEds) if nAtomsEds else None,
-                            float(QScore) if QScore else None,
+                            float(qScore) if qScore else None,
                             float(bondsRmsZ) if bondsRmsZ else None,
                             float(anglesRmsZ) if anglesRmsZ else None,
                             int(numAnglesRmsZ) if numAnglesRmsZ else None,

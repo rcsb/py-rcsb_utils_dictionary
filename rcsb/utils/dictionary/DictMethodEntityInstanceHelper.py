@@ -2635,7 +2635,7 @@ class DictMethodEntityInstanceHelper(object):
                 cObj.setValue(vTup.rsr, "RSR", ii)
                 cObj.setValue(vTup.rscc, "RSCC", ii)
                 cObj.setValue(vTup.nAtomsEds, "natoms_eds", ii)
-                cObj.setValue(vTup.QScore, "Q_score", ii)
+                cObj.setValue(vTup.qScore, "Q_score", ii)
                 cObj.setValue(vTup.numAnglesRmsZ, "num_mogul_angles_RMSZ", ii)
                 cObj.setValue(vTup.numBondsRmsZ, "num_mogul_bonds_RMSZ", ii)
                 cObj.setValue(vTup.mogul_angles_rmsz, "mogul_angles_RMSZ", ii)
