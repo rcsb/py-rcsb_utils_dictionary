@@ -20,6 +20,7 @@
 #   28-Mar-2023  dwp Add transient '_entity_src_nat.rcsb_provenance_source' attribute to use later for populating '_rcsb_entity_source_organism.provenance_source';
 #                    Update assignment of '_entity_src_nat.pdbx_src_id'
 #    4-Mar-2024  dwp Populate rcsb_comp_model_provenance using deterministic logic instead of relying on external cache file
+#   24-Nov-2024   bv Fix logger warning in buildCompModelProvenance following dwp's updates in https://github.com/rcsb/py-rcsb_utils_dictionary/pull/91
 ##
 """
 Helper class implements computed model method references in the RCSB dictionary extension.
@@ -381,7 +382,7 @@ class DictMethodCompModelHelper(object):
                 return False
 
             if catName != "rcsb_comp_model_provenance":
-                logger.warning("input catName (%s) not 'rcsb_comp_model_provenance'")
+                logger.warning("input catName (%s) not 'rcsb_comp_model_provenance'", catName)
 
             catName = "rcsb_comp_model_provenance"
 

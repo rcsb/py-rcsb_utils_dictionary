@@ -33,6 +33,7 @@
 #  16-Jan-2025 dwp Only load features for the representative model
 #  15-Feb-2025  bv Add support for integrative structures
 #  27-Jun-2025  bv Add transformation to populate rcsb_polymer_instance_info
+#  19-Nov-2025  bv RO-4761: Add support for ligand Q_scores
 #
 ##
 """
@@ -2634,6 +2635,7 @@ class DictMethodEntityInstanceHelper(object):
                 cObj.setValue(vTup.rsr, "RSR", ii)
                 cObj.setValue(vTup.rscc, "RSCC", ii)
                 cObj.setValue(vTup.nAtomsEds, "natoms_eds", ii)
+                cObj.setValue(vTup.qScore, "Q_score", ii)
                 cObj.setValue(vTup.numAnglesRmsZ, "num_mogul_angles_RMSZ", ii)
                 cObj.setValue(vTup.numBondsRmsZ, "num_mogul_bonds_RMSZ", ii)
                 cObj.setValue(vTup.mogul_angles_rmsz, "mogul_angles_RMSZ", ii)
