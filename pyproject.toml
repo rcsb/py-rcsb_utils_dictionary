@@ -1,0 +1,87 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "rcsb.utils.dictionary"
+description = "RCSB Python Dictionary Utility Classes"
+version = "1.36"
+readme = "README.md"
+authors = [
+    { name="John Westbrook", email="john.westbrook@rcsb.org" }
+]
+maintainers = [
+    { name="Dennis Piehl", email="dennis.piehl@rcsb.org" }
+]
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.9"
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "scipy",
+    "numpy",
+    "mmcif >= 0.91.0",
+    "rcsb.utils.chemref >= 0.91",
+    "rcsb.utils.citation >= 0.25",
+    "rcsb.utils.config >= 0.40",
+    "rcsb.utils.ec >= 0.25",
+    "rcsb.utils.io >= 1.52",
+    "rcsb.utils.multiproc >= 0.19",
+    "rcsb.utils.repository >= 0.50",
+    "rcsb.utils.seq >= 0.82",
+    "rcsb.utils.struct >= 0.47",
+    "rcsb.utils.targets >= 0.88",
+    "rcsb.utils.taxonomy >= 0.43",
+    "rcsb.utils.validation >= 0.31",
+    "rcsb.utils.insilico3d >= 0.42",
+]
+
+[project.optional-dependencies]
+tests = ["tox", "pylint", "black>=21.5b1", "flake8", "coverage", "check-manifest"]
+
+[project.urls]
+Homepage = "https://github.com/rcsb/py-rcsb_utils_dictionary"
+
+# ----------------  hatch configuration ----------------
+[tool.hatch.build.targets.sdist]
+include = [
+    "/rcsb/**",
+    "/README.md",
+    "/LICENSE",
+    "/HISTORY.txt",
+    "/pyproject.toml",
+]
+exclude = [
+    "/rcsb/mock-*",
+    "/rcsb/utils/test*/test*-*",
+    "/rcsb/utils/test*/**.cif",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["rcsb"]
+exclude = [
+    "/rcsb/utils/test*",
+    "/rcsb/mock-*",
+]
+
+[tool.hatch.envs.default]
+skip-install = true
+
+# ----------------  test configuration ----------------
+[tool.hatch.envs.hatch-test]
+dependencies = ["tox"]
+
+[tool.hatch.envs.hatch-test.scripts]
+run = ["tox"]
+
+# ----------------  UV configuration ----------------
+# Add this to prevent uv from automatically creating venvs within individual packages when running 'uv run ...' from within the package directory
+[tool.uv]
+managed = false
