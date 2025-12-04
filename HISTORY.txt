@@ -146,3 +146,6 @@
 12-Jun-2025 - V1.33 Add transformation to populate rcsb_entry_container_identifiers.pubmed_id and rcsb_polymer_entity_container_identifiers.uniprot_ids
 27-Jun-2025 - V1.34 Add transformation to populate rcsb_polymer_instance_info
 21-Nov-2025 - V1.35 Add support for ligand Q_scores
+ 2-Dec-2025 - V1.36 Switch to 'pyproject.toml' file and hatch build system, and update pipelines to Python 3.13;
+                    Add failover and error logging for cases where 'ncbi_taxonomy_id' is not an integer
+                    
