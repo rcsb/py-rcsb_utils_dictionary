@@ -23,7 +23,7 @@ git clone --recurse-submodules https://github.com/rcsb/py-rcsb_utils_dictionary.
 
 ```
 
-Optionally, run test suite (Python versions 3.7+) using
+Optionally, run test suite (Python versions 3.9+) using
 [tox](http://tox.readthedocs.io/en/latest/example/platform.html):
 
 ```bash
