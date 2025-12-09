@@ -738,12 +738,15 @@ class DictMethodEntityHelper(object):
                             fgL = self.__filterCaseDuplicates(tgL)
                             cObj.setValue(";".join(fgL), at, iRow)
                             cObj.setValue(";".join([provSource for jj in range(len(tgL))]), "rcsb_gene_name_provenance_source", iRow)
-                        elif at == "ncbi_taxonomy_id" and v[ii] and v[ii] not in [".", "?"]:
+                        else:
+                            cObj.setValue(v[ii], at, iRow)
+                        if at == "ncbi_taxonomy_id" and v[ii] and v[ii] not in [".", "?"]:
                             if not v[ii].strip().isdigit():
                                 logger.warning("Entry %r entity %r source attribute 'ncbi_taxonomy_id' value is not integer: %r. Will attempt to sanitize.", entryId, entityId, v[ii])
                             reTaxId = self.__reNonDigit.sub("", v[ii])
                             if not reTaxId.isdigit():
-                                logger.error("Entry %r entity %r source attribute 'ncbi_taxonomy_id' value is not integer: %r", entryId, entityId, v[ii])
+                                logger.error("Entry %r entity %r source attribute 'ncbi_taxonomy_id' value is not integer: %r. Will omit from container.", entryId, entityId, v[ii])
+                                cObj.setValue(None, at, iRow)
                             else:
                                 taxId = int(reTaxId)
                                 taxId = taxU.getMergedTaxId(taxId)
@@ -771,8 +774,6 @@ class DictMethodEntityHelper(object):
                                     cObj.setValue(";".join([str(tup[2]) for tup in OrderedDict.fromkeys(linL)]), "taxonomy_lineage_name", iRow)
                                 else:
                                     logger.warning("%s taxId %r lineage %r", dataContainer.getName(), taxId, linL)
-                        else:
-                            cObj.setValue(v[ii], at, iRow)
 
                     logger.debug("%r entity %r - UPDATED %r %r", sType, entityId, atL, v)
                     iRow += 1
@@ -799,12 +800,14 @@ class DictMethodEntityHelper(object):
                 for v in tvL:
                     hObj.setValue(provSource, "provenance_source", iRow)
                     for ii, at in enumerate(atL):
+                        hObj.setValue(v[ii], at, iRow)
                         if at == "ncbi_taxonomy_id" and v[ii] and v[ii] not in [".", "?"]:
                             if not v[ii].strip().isdigit():
                                 logger.warning("Entry %r entity %r host attribute 'ncbi_taxonomy_id' value is not integer: %r. Will attempt to sanitize.", entryId, entityId, v[ii])
                             reTaxId = self.__reNonDigit.sub("", v[ii])
                             if not reTaxId.isdigit():
-                                logger.error("Entry %r entity %r host attribute 'ncbi_taxonomy_id' value is not integer: %r", entryId, entityId, v[ii])
+                                logger.error("Entry %r entity %r host attribute 'ncbi_taxonomy_id' value is not integer: %r. Will omit from container.", entryId, entityId, v[ii])
+                                hObj.setValue(None, at, iRow)
                             else:
                                 taxId = int(reTaxId)
                                 taxId = taxU.getMergedTaxId(taxId)
@@ -828,8 +831,6 @@ class DictMethodEntityHelper(object):
                                     hObj.setValue(";".join([str(tup[2]) for tup in OrderedDict.fromkeys(linL)]), "taxonomy_lineage_name", iRow)
                                 else:
                                     logger.warning("%s taxId %r lineage %r", dataContainer.getName(), taxId, linL)
-                        else:
-                            hObj.setValue(v[ii], at, iRow)
                     logger.debug("%r entity %r - UPDATED %r %r", sType, entityId, atL, v)
                     iRow += 1
             # -------------------------------------------------------------------------
