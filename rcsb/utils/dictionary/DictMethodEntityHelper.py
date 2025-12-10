@@ -589,9 +589,6 @@ class DictMethodEntityHelper(object):
             if not dataContainer.exists(hostCatName):
                 dataContainer.append(DataCategory(hostCatName, attributeNameList=self.__dApi.getAttributeNameList(hostCatName)))
             #
-            entryObj = dataContainer.getObj("entry")
-            entryId = entryObj.getValue("id", 0)
-            #
             rP = kwargs.get("resourceProvider")
             taxU = rP.getResource("TaxonomyProvider instance") if rP else None
             #
@@ -742,10 +739,20 @@ class DictMethodEntityHelper(object):
                             cObj.setValue(v[ii], at, iRow)
                         if at == "ncbi_taxonomy_id" and v[ii] and v[ii] not in [".", "?"]:
                             if not v[ii].strip().isdigit():
-                                logger.warning("Entry %r entity %r source attribute 'ncbi_taxonomy_id' value is not integer: %r. Will attempt to sanitize.", entryId, entityId, v[ii])
+                                logger.warning(
+                                    "Entry %r entity %r source attribute 'ncbi_taxonomy_id' value is not integer: %r. Will attempt to sanitize.",
+                                    dataContainer.getName(),
+                                    entityId,
+                                    v[ii]
+                                )
                             reTaxId = self.__reNonDigit.sub("", v[ii])
                             if not reTaxId.isdigit():
-                                logger.error("Entry %r entity %r source attribute 'ncbi_taxonomy_id' value is not integer: %r. Will omit from container.", entryId, entityId, v[ii])
+                                logger.error(
+                                    "Entry %r entity %r source attribute 'ncbi_taxonomy_id' value is not integer: %r. Will omit from container.",
+                                    dataContainer.getName(),
+                                    entityId,
+                                    v[ii]
+                                )
                                 cObj.setValue(None, at, iRow)
                             else:
                                 taxId = int(reTaxId)
@@ -803,10 +810,20 @@ class DictMethodEntityHelper(object):
                         hObj.setValue(v[ii], at, iRow)
                         if at == "ncbi_taxonomy_id" and v[ii] and v[ii] not in [".", "?"]:
                             if not v[ii].strip().isdigit():
-                                logger.warning("Entry %r entity %r host attribute 'ncbi_taxonomy_id' value is not integer: %r. Will attempt to sanitize.", entryId, entityId, v[ii])
+                                logger.warning(
+                                    "Entry %r entity %r host attribute 'ncbi_taxonomy_id' value is not integer: %r. Will attempt to sanitize.",
+                                    dataContainer.getName(),
+                                    entityId,
+                                    v[ii]
+                                )
                             reTaxId = self.__reNonDigit.sub("", v[ii])
                             if not reTaxId.isdigit():
-                                logger.error("Entry %r entity %r host attribute 'ncbi_taxonomy_id' value is not integer: %r. Will omit from container.", entryId, entityId, v[ii])
+                                logger.error(
+                                    "Entry %r entity %r host attribute 'ncbi_taxonomy_id' value is not integer: %r. Will omit from container.",
+                                    dataContainer.getName(),
+                                    entityId,
+                                    v[ii]
+                                )
                                 hObj.setValue(None, at, iRow)
                             else:
                                 taxId = int(reTaxId)
