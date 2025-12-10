@@ -22,7 +22,7 @@
 #   7-Jan-2025  bv Stop populating rcsb_nonpolymer_instance_feature_summary from rcsb_entity_instance_validation_feature_summary
 #  15-Feb-2025  bv Add support for integrative structures
 #  12-Jun-2025  bv Add tranformation to populate rcsb_polymer_entity_container_identifiers.uniprot_ids
-#  12-Nov-2025 dwp Add failover for cases where ncbi_taxonomy_id is not an integer, and log an error
+#  10-Dec-2025 dwp Add failover for cases where ncbi_taxonomy_id is not an integer, and log an error
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
