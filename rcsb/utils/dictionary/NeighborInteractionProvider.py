@@ -14,12 +14,14 @@ import logging
 import os.path
 import time
 
-from rcsb.utils.dictionary import __version__
+from importlib.metadata import version as get_package_version
 from rcsb.utils.dictionary.DictMethodCommonUtils import DictMethodCommonUtils, LigandTargetInstance
 from rcsb.utils.io.MarshalUtil import MarshalUtil
 from rcsb.utils.io.StashableBase import StashableBase
 from rcsb.utils.multiproc.MultiProcUtil import MultiProcUtil
 from rcsb.utils.repository.RepositoryProvider import RepositoryProvider
+
+__version__ = get_package_version("rcsb.utils.dictionary")
 
 logger = logging.getLogger(__name__)
 

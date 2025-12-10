@@ -21,7 +21,8 @@
 #  20-Aug-2024 dwp Add support for accessing target cofactor data from MongoDB
 #   7-Jan-2025  bv Stop populating rcsb_nonpolymer_instance_feature_summary from rcsb_entity_instance_validation_feature_summary
 #  15-Feb-2025  bv Add support for integrative structures
-#  12-June-2025 bv Add tranformation to populate rcsb_polymer_entity_container_identifiers.uniprot_ids
+#  12-Jun-2025  bv Add tranformation to populate rcsb_polymer_entity_container_identifiers.uniprot_ids
+#  10-Dec-2025 dwp Add failover for cases where ncbi_taxonomy_id is not an integer, and log an error
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
@@ -736,34 +737,50 @@ class DictMethodEntityHelper(object):
                             cObj.setValue(";".join([provSource for jj in range(len(tgL))]), "rcsb_gene_name_provenance_source", iRow)
                         else:
                             cObj.setValue(v[ii], at, iRow)
-                        # if at == 'ncbi_taxonomy_id' and v[ii] and v[ii] not in ['.', '?'] and v[ii].isdigit():
                         if at == "ncbi_taxonomy_id" and v[ii] and v[ii] not in [".", "?"]:
-                            taxId = int(self.__reNonDigit.sub("", v[ii]))
-                            taxId = taxU.getMergedTaxId(taxId)
-                            cObj.setValue(str(taxId), "ncbi_taxonomy_id", iRow)
-                            entryTaxIdD[taxId] += 1
-                            entityTaxIdD.setdefault(entityId, set()).add(taxId)
-                            #
-                            sn = taxU.getScientificName(taxId)
-                            if sn:
-                                cObj.setValue(sn, "ncbi_scientific_name", iRow)
-                            #
-                            psn = taxU.getParentScientificName(taxId)
-                            if psn:
-                                cObj.setValue(psn, "ncbi_parent_scientific_name", iRow)
-                            #
-                            cnL = taxU.getCommonNames(taxId)
-                            if cnL:
-                                fcnL = self.__filterCaseDuplicates(cnL)
-                                cObj.setValue(";".join(list(OrderedDict.fromkeys(fcnL))), "ncbi_common_names", iRow)
-                            # Add lineage -
-                            linL = taxU.getLineageWithNames(taxId)
-                            if linL is not None:
-                                cObj.setValue(";".join([str(tup[0]) for tup in OrderedDict.fromkeys(linL)]), "taxonomy_lineage_depth", iRow)
-                                cObj.setValue(";".join([str(tup[1]) for tup in OrderedDict.fromkeys(linL)]), "taxonomy_lineage_id", iRow)
-                                cObj.setValue(";".join([str(tup[2]) for tup in OrderedDict.fromkeys(linL)]), "taxonomy_lineage_name", iRow)
+                            if not v[ii].strip().isdigit():
+                                logger.warning(
+                                    "Entry %r entity %r source attribute 'ncbi_taxonomy_id' value is not integer: %r. Will attempt to sanitize.",
+                                    dataContainer.getName(),
+                                    entityId,
+                                    v[ii]
+                                )
+                            reTaxId = self.__reNonDigit.sub("", v[ii])
+                            if not reTaxId.isdigit():
+                                logger.error(
+                                    "Entry %r entity %r source attribute 'ncbi_taxonomy_id' value is not integer: %r. Will omit from container.",
+                                    dataContainer.getName(),
+                                    entityId,
+                                    v[ii]
+                                )
+                                cObj.setValue(None, at, iRow)
                             else:
-                                logger.warning("%s taxId %r lineage %r", dataContainer.getName(), taxId, linL)
+                                taxId = int(reTaxId)
+                                taxId = taxU.getMergedTaxId(taxId)
+                                cObj.setValue(str(taxId), "ncbi_taxonomy_id", iRow)
+                                entryTaxIdD[taxId] += 1
+                                entityTaxIdD.setdefault(entityId, set()).add(taxId)
+                                #
+                                sn = taxU.getScientificName(taxId)
+                                if sn:
+                                    cObj.setValue(sn, "ncbi_scientific_name", iRow)
+                                #
+                                psn = taxU.getParentScientificName(taxId)
+                                if psn:
+                                    cObj.setValue(psn, "ncbi_parent_scientific_name", iRow)
+                                #
+                                cnL = taxU.getCommonNames(taxId)
+                                if cnL:
+                                    fcnL = self.__filterCaseDuplicates(cnL)
+                                    cObj.setValue(";".join(list(OrderedDict.fromkeys(fcnL))), "ncbi_common_names", iRow)
+                                # Add lineage -
+                                linL = taxU.getLineageWithNames(taxId)
+                                if linL is not None:
+                                    cObj.setValue(";".join([str(tup[0]) for tup in OrderedDict.fromkeys(linL)]), "taxonomy_lineage_depth", iRow)
+                                    cObj.setValue(";".join([str(tup[1]) for tup in OrderedDict.fromkeys(linL)]), "taxonomy_lineage_id", iRow)
+                                    cObj.setValue(";".join([str(tup[2]) for tup in OrderedDict.fromkeys(linL)]), "taxonomy_lineage_name", iRow)
+                                else:
+                                    logger.warning("%s taxId %r lineage %r", dataContainer.getName(), taxId, linL)
 
                     logger.debug("%r entity %r - UPDATED %r %r", sType, entityId, atL, v)
                     iRow += 1
@@ -791,30 +808,46 @@ class DictMethodEntityHelper(object):
                     hObj.setValue(provSource, "provenance_source", iRow)
                     for ii, at in enumerate(atL):
                         hObj.setValue(v[ii], at, iRow)
-                        #  if at == 'ncbi_taxonomy_id' and v[ii] and v[ii] not in ['.', '?'] and v[ii].isdigit():
                         if at == "ncbi_taxonomy_id" and v[ii] and v[ii] not in [".", "?"]:
-                            taxId = int(self.__reNonDigit.sub("", v[ii]))
-                            taxId = taxU.getMergedTaxId(taxId)
-                            hObj.setValue(str(taxId), "ncbi_taxonomy_id", iRow)
-                            sn = taxU.getScientificName(taxId)
-                            if sn:
-                                hObj.setValue(sn, "ncbi_scientific_name", iRow)
-                            #
-                            psn = taxU.getParentScientificName(taxId)
-                            if psn:
-                                hObj.setValue(psn, "ncbi_parent_scientific_name", iRow)
-                            #
-                            cnL = taxU.getCommonNames(taxId)
-                            if cnL:
-                                hObj.setValue(";".join(sorted(set(cnL))), "ncbi_common_names", iRow)
-                            # Add lineage -
-                            linL = taxU.getLineageWithNames(taxId)
-                            if linL is not None:
-                                hObj.setValue(";".join([str(tup[0]) for tup in OrderedDict.fromkeys(linL)]), "taxonomy_lineage_depth", iRow)
-                                hObj.setValue(";".join([str(tup[1]) for tup in OrderedDict.fromkeys(linL)]), "taxonomy_lineage_id", iRow)
-                                hObj.setValue(";".join([str(tup[2]) for tup in OrderedDict.fromkeys(linL)]), "taxonomy_lineage_name", iRow)
+                            if not v[ii].strip().isdigit():
+                                logger.warning(
+                                    "Entry %r entity %r host attribute 'ncbi_taxonomy_id' value is not integer: %r. Will attempt to sanitize.",
+                                    dataContainer.getName(),
+                                    entityId,
+                                    v[ii]
+                                )
+                            reTaxId = self.__reNonDigit.sub("", v[ii])
+                            if not reTaxId.isdigit():
+                                logger.error(
+                                    "Entry %r entity %r host attribute 'ncbi_taxonomy_id' value is not integer: %r. Will omit from container.",
+                                    dataContainer.getName(),
+                                    entityId,
+                                    v[ii]
+                                )
+                                hObj.setValue(None, at, iRow)
                             else:
-                                logger.warning("%s taxId %r lineage %r", dataContainer.getName(), taxId, linL)
+                                taxId = int(reTaxId)
+                                taxId = taxU.getMergedTaxId(taxId)
+                                hObj.setValue(str(taxId), "ncbi_taxonomy_id", iRow)
+                                sn = taxU.getScientificName(taxId)
+                                if sn:
+                                    hObj.setValue(sn, "ncbi_scientific_name", iRow)
+                                #
+                                psn = taxU.getParentScientificName(taxId)
+                                if psn:
+                                    hObj.setValue(psn, "ncbi_parent_scientific_name", iRow)
+                                #
+                                cnL = taxU.getCommonNames(taxId)
+                                if cnL:
+                                    hObj.setValue(";".join(sorted(set(cnL))), "ncbi_common_names", iRow)
+                                # Add lineage -
+                                linL = taxU.getLineageWithNames(taxId)
+                                if linL is not None:
+                                    hObj.setValue(";".join([str(tup[0]) for tup in OrderedDict.fromkeys(linL)]), "taxonomy_lineage_depth", iRow)
+                                    hObj.setValue(";".join([str(tup[1]) for tup in OrderedDict.fromkeys(linL)]), "taxonomy_lineage_id", iRow)
+                                    hObj.setValue(";".join([str(tup[2]) for tup in OrderedDict.fromkeys(linL)]), "taxonomy_lineage_name", iRow)
+                                else:
+                                    logger.warning("%s taxId %r lineage %r", dataContainer.getName(), taxId, linL)
                     logger.debug("%r entity %r - UPDATED %r %r", sType, entityId, atL, v)
                     iRow += 1
             # -------------------------------------------------------------------------
