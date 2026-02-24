@@ -29,6 +29,7 @@
 #   9-May-2024 dwp Change providerTypeExclude to be a list, 'providerTypeExcludeL'
 #  25-Jul-2024 dwp Remove NeighborInteractionProvider from provider list (since calculating on the fly from now on)
 #  20-Aug-2024 dwp Add support for accessing target cofactor data from MongoDB
+#  23-Feb-2026 dwp Turn off RcsbLigandScoreProvider 'buildable' configuration, to force use of pre-built cache or remote stash
 ##
 """
 Resource provider for dictionary method runner and DictMethodHelper tools.
@@ -231,7 +232,7 @@ class DictMethodResourceProvider(SingletonClass):
                 "class": RcsbLigandScoreProvider,
                 "configArgMap": {},
                 "stashable": True,
-                "buildable": True,
+                "buildable": False,
                 "providerType": "core",
             },
             "ResidProvider instance": {
