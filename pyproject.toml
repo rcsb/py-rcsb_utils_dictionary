@@ -41,7 +41,6 @@ dependencies = [
     "rcsb.utils.targets >= 0.88",
     "rcsb.utils.taxonomy >= 0.43",
     "rcsb.utils.validation >= 0.31",
-    "rcsb.utils.insilico3d >= 0.42",
 ]
 
 [project.optional-dependencies]

@@ -32,7 +32,6 @@ from rcsb.utils.dictionary.DictMethodResourceProvider import DictMethodResourceP
 from rcsb.utils.repository.RepositoryProvider import RepositoryProvider
 from rcsb.utils.config.ConfigUtil import ConfigUtil
 
-# from rcsb.utils.insilico3d.AlphaFoldModelProvider import AlphaFoldModelProvider
 from rcsb.utils.io.FileUtil import FileUtil
 from rcsb.utils.io.MarshalUtil import MarshalUtil
 
@@ -92,11 +91,6 @@ class DictMethodRunnerModelsTests(unittest.TestCase):
             h1 = uId[-6:-4]
             oPath = os.path.join(self.__cachePath, "computed-models", h1, h2, h3, fn)
             fU.put(iPath, oPath)
-
-    # def testFetchModels(self):
-    #    aFMP = AlphaFoldModelProvider(cachePath=self.__cachePath, useCache=True, alphaFoldRequestedSpeciesList=["Staphylococcus aureus"])
-    #    ok = aFMP.testCache()
-    #    self.assertTrue(ok)
 
     def testMethodModelRunner(self):
         """Test method runner for multiple content types."""
