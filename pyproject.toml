@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "rcsb.utils.dictionary"
 description = "RCSB Python Dictionary Utility Classes"
-version = "1.36"
+version = "1.37"
 readme = "README.md"
 authors = [
     { name="John Westbrook", email="john.westbrook@rcsb.org" }
@@ -29,7 +29,7 @@ dependencies = [
     "scipy",
     "numpy",
     "mmcif >= 0.91.0",
-    "rcsb.utils.chemref >= 0.91",
+    "rcsb.utils.chemref >= 0.98",
     "rcsb.utils.citation >= 0.25",
     "rcsb.utils.config >= 0.40",
     "rcsb.utils.ec >= 0.25",
