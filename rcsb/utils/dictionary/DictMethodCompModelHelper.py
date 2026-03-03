@@ -369,8 +369,6 @@ class DictMethodCompModelHelper(object):
 
         For example:
 
-        _rcsb_comp_model_provenance.source_filename
-        _rcsb_comp_model_provenance.source_url
         _rcsb_comp_model_provenance.source_db
         _rcsb_comp_model_provenance.entry_id
         ...
@@ -388,10 +386,6 @@ class DictMethodCompModelHelper(object):
 
             if not dataContainer.exists(catName):
                 dataContainer.append(DataCategory(catName, attributeNameList=self.__dApi.getAttributeNameList(catName)))
-
-            # Remove this when done switching to 200 million BCIF load, since only needed for original ~1 million AF load
-            rP = kwargs.get("resourceProvider")
-            mcP = rP.getResource("ModelHoldingsProvider instance") if rP else None
 
             cObj = dataContainer.getObj(catName)
 
@@ -413,20 +407,8 @@ class DictMethodCompModelHelper(object):
             if not sourceId:
                 return False
 
-            sourceModelFileName, sourceModelUrl, sourceModelPaeUrl = self.__getCompModelSourceDetails(sourceDb, sourceId)
-
-            # Remove these lines when done switching to 200 million BCIF load, since fragmented AF models are not included in the Google Cloud dataset
-            isFragmented = False
-            if mcP and mcP.getModelFragmentsDict():
-                isFragmented = mcP.checkIfFragmentedModel(entryId)
-
             cObj.setValue(sourceId, "entry_id", 0)
             cObj.setValue(sourceDb, "source_db", 0)
-            cObj.setValue(sourceModelFileName, "source_filename", 0)
-            if sourceModelUrl and not isFragmented:
-                cObj.setValue(sourceModelUrl, "source_url", 0)
-            if sourceModelPaeUrl and not isFragmented:
-                cObj.setValue(sourceModelPaeUrl, "source_pae_url", 0)
 
             return True
 
@@ -434,26 +416,6 @@ class DictMethodCompModelHelper(object):
             logger.exception("For %s failing with %s", catName, str(e))
 
         return False
-
-    def __getCompModelSourceDetails(self, sourceDb, sourceId):
-        """Construct the source URL based on the model name and source DB.
-
-        Args:
-            sourceDb (str): "AlphaFoldDB" or "ModelArchive"
-            sourceId (str): original entry.id as assigned by source DB
-        """
-        sourceModelFileName, sourceModelUrl, sourceModelPaeUrl = None, None, None
-        if sourceDb == "AlphaFoldDB":
-            sourceModelFileName = str(sourceId) + "-model_v4.cif.gz"  # sourceModelFileName is gzipped, URL is not
-            if sourceId.upper().endswith("F1"):
-                sourceModelUrl = "https://alphafold.ebi.ac.uk/files/" + str(sourceId) + "-model_v4.cif"
-                sourceModelPaeUrl = "https://alphafold.ebi.ac.uk/files/" + str(sourceId) + "-predicted_aligned_error_v4.json"
-        elif sourceDb == "ModelArchive":
-            sourceModelFileName = str(sourceId) + ".cif.gz"  # sourceModelFileName is gzipped, URL is not
-            sourceModelUrl = "https://www.modelarchive.org/api/projects/" + str(sourceId) + "?type=basic__model_file_name"  # for .cif file
-            # sourceModelUrl = "https://www.modelarchive.org/doi/10.5452/" + str(sourceId) + ".cif.gz"  # for .cif.gz file
-            sourceModelPaeUrl = None
-        return sourceModelFileName, sourceModelUrl, sourceModelPaeUrl
 
     def addStructInfo(self, dataContainer, catName, **kwargs):
         """Add missing struct table
