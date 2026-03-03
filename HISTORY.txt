@@ -149,3 +149,4 @@
 10-Dec-2025 - V1.36 Switch to 'pyproject.toml' file and hatch build system, and update pipelines to Python 3.13;
                     Add failover and error logging for cases where 'ncbi_taxonomy_id' is not an integer
 23-Feb-2026 - V1.37 Update RcsbLigandScoreProvider configuration in DictMethodResourceProvider
+ 2-Mar-2026 - V1.38 Remove dependence on CSM holdings file and stop loading CSM URLs
