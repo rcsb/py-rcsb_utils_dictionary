@@ -36,6 +36,8 @@
 #                 Fix modelId assignment in getNeighborInfo
 # 13-Feb-2025  bv Add methods to support integrative structures
 # 19-Nov-2025  bv RO-4761: Add support for ligand Q_scores
+# 04-Apr-2026  bv RO-4917: Update how microheterogeneity is handled while loading validation data as positional features
+#              bv RO-4342: Add method getEntityFormulaWeightNonSolvent to support calculation of assembly molecular weight 
 #
 ##
 """
@@ -214,6 +216,20 @@ class DictMethodCommonUtils(object):
             wD = self.__getEntityAndInstanceTypes(dataContainer)
             self.__entityAndInstanceMapCache.set(dataContainer.getName(), wD)
         return wD
+
+    def getEntityFormulaWeightNonSolvent(self, dataContainer):
+        """Return a dictionary of formula weight of each non-solvent entity in the deposited entry.
+            
+        Args:
+            dataContainer (object):  mmcif.api.DataContainer object instance
+            
+        Returns:
+            dict: {'entityId': <formula weight in kilodaltons>, ...}
+        """ 
+        if not dataContainer or not dataContainer.getName():
+            return {}
+        wD = self.__fetchEntityAndInstanceTypes(dataContainer)
+        return wD["eFwNonSolventD"] if "eFwNonSolventD" in wD else {}
 
     def getFormulaWeightNonSolvent(self, dataContainer):
         """Return a formula weight of the non-solvent entities in the deposited entry.
@@ -466,6 +482,7 @@ class DictMethodCommonUtils(object):
               seqModMonomerFeatureD[(entityId, seqId, compId, 'modified_monomer')] = set(compId)
               fwNonSolvent = float value (kilodaltons)
               fwTypeBoundD[entityType] = (minFw, maxFw)
+              eFwNonSolventD[entityId] = Molecular weight of non-solvent entities in kDa 
               entityPolymerLengthBounds = (minL, maxL)
               ccTargets = [compId, compId]
         """
@@ -575,10 +592,12 @@ class DictMethodCommonUtils(object):
             # Compute the total weight of polymer and non-polymer instances (full entities) - (kilodaltons)
             #
             fwNonSolvent = 0.0
+            eFwNonSolventD = {}
             for asymId, eType in instanceTypeD.items():
                 if eType not in ["water"]:
                     entityId = instEntityD[asymId]
                     fwNonSolvent += eFwD[entityId]
+                    eFwNonSolventD[entityId] = eFwD[entityId] / 1000.0
             fwNonSolvent = fwNonSolvent / 1000.0
             #
             # Get ligand of interest.
@@ -630,6 +649,7 @@ class DictMethodCommonUtils(object):
                 "seqModMonomerFeatureD": seqModMonomerFeatureD,
                 "fwNonSolvent": fwNonSolvent,
                 "fwTypeBoundD": fwTypeBoundD,
+                "eFwNonSolventD": eFwNonSolventD,
                 "entityPolymerLengthBounds": entityPolymerLengthBounds,
                 "ccTargets": ccTargets,
             }
@@ -4844,7 +4864,7 @@ class DictMethodCommonUtils(object):
         for k, v in vFields.items():
             value = vObj.getValueOrDefault(k, ii, defaultValue=None)
             if value is not None:
-                metricValD.setdefault((entityId, asymId, authAsymId, modelId, v, seqId and seqId not in [".", "?"]), {}).setdefault((seqId, compId), (compId, seqId, value))
+                metricValD.setdefault((entityId, asymId, authAsymId, modelId, v, seqId and seqId not in [".", "?"]), {}).setdefault((seqId), (compId, seqId, value))
 
     def __getLocalValidation(self, dataContainer):
         """ Get Local validation data from the Validation report

@@ -14,6 +14,7 @@
 # 01-Feb-2024 bv  Update methods 'addAssemblyInfo' and '__getAssemblyComposition' to support deuterated water molecule count
 # 16-Jan-2025 dwp Use simplified method call for getting representative model ID
 # 13-Feb-2025 bv  Update methods 'filterAssemblyDetails' and assignAssemblyCandidates to support integrative structures
+# 17-Apr-2026 bv  Update addAssemblyInfo method to support assembly molecular weight calculation
 #
 ##
 """
@@ -131,6 +132,9 @@ class DictMethodAssemblyHelper(object):
                 cObj.setValue(num1, "modeled_polymer_monomer_count", ii)
                 cObj.setValue(num2, "unmodeled_polymer_monomer_count", ii)
                 cObj.setValue(num1 + num2, "polymer_monomer_count", ii)
+                #
+                num = rD["assemblyFormulaWeightD"][assemblyId]
+                cObj.setValue(num, "formula_weight", ii)
                 #
                 dD = rD["assemblyPolymerClassD"][assemblyId]
                 cObj.setValue(dD["polymerCompClass"], "polymer_composition", ii)
@@ -637,6 +641,7 @@ class DictMethodAssemblyHelper(object):
         #
         assemblyEntityCountByPolymerTypeD = {}
         assemblyEntityCountByTypeD = {}
+        assemblyFormulaWeightD = {}
         # --------------
         #
         try:
@@ -752,7 +757,21 @@ class DictMethodAssemblyHelper(object):
                     }
                     #
                     # ---------------
+                    # Assembly Molecular Weight
                     #
+                    assemblyMw = 0.0
+                    fwD = self.__commonU.getEntityFormulaWeightNonSolvent(dataContainer)
+                    for asymId in asymIdList:
+                        if asymId in instanceTypeD and instanceTypeD[asymId] == "water":
+                            continue
+                        entityId = instEntityD[asymId]
+                        if not entityId:
+                            continue
+                        entityMw = fwD[entityId]
+                        if entityMw is None:
+                            continue
+                        assemblyMw += entityMw
+                    assemblyFormulaWeightD[assemblyId] = round(assemblyMw, 2)
             #
             logger.debug("%s assemblyInstanceCountByTypeD %r", dataContainer.getName(), assemblyInstanceCountByTypeD.items())
             logger.debug("%s assemblyHeavyAtomCountByTypeD %r", dataContainer.getName(), assemblyHeavyAtomCountByTypeD.items())
@@ -766,6 +785,7 @@ class DictMethodAssemblyHelper(object):
             logger.debug("%s assemblyInstanceCountByPolymerTypeD %r", dataContainer.getName(), assemblyInstanceCountByPolymerTypeD.items())
             logger.debug("%s assemblyEntityCountByPolymerTypeD %r", dataContainer.getName(), assemblyEntityCountByPolymerTypeD.items())
             logger.debug("%s assemblyEntityCountByTypeD %r", dataContainer.getName(), assemblyEntityCountByTypeD.items())
+            logger.debug("%s assemblyFormulaWeightD %r", dataContainer.getName(), assemblyFormulaWeightD.items())
             #
             rD = {
                 "assemblyInstanceCountByTypeD": assemblyInstanceCountByTypeD,
@@ -780,6 +800,7 @@ class DictMethodAssemblyHelper(object):
                 "assemblyPolymerClassD": assemblyPolymerClassD,
                 "assemblyEntityCountByPolymerTypeD": assemblyEntityCountByPolymerTypeD,
                 "assemblyEntityCountByTypeD": assemblyEntityCountByTypeD,
+                "assemblyFormulaWeightD": assemblyFormulaWeightD,
             }
         except Exception as e:
             logger.exception("Failing %s with %s", dataContainer.getName(), str(e))
