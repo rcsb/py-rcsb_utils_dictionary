@@ -37,7 +37,7 @@
 # 13-Feb-2025  bv Add methods to support integrative structures
 # 19-Nov-2025  bv RO-4761: Add support for ligand Q_scores
 # 04-Apr-2026  bv RO-4917: Update how microheterogeneity is handled while loading validation data as positional features
-#              bv RO-4342: Add method getEntityFormulaWeightNonSolvent to support calculation of assembly molecular weight 
+#              bv RO-4342: Add method getEntityFormulaWeightNonSolvent to support calculation of assembly molecular weight
 #
 ##
 """
@@ -219,13 +219,13 @@ class DictMethodCommonUtils(object):
 
     def getEntityFormulaWeightNonSolvent(self, dataContainer):
         """Return a dictionary of formula weight of each non-solvent entity in the deposited entry.
-            
+
         Args:
             dataContainer (object):  mmcif.api.DataContainer object instance
-            
+ 
         Returns:
             dict: {'entityId': <formula weight in kilodaltons>, ...}
-        """ 
+        """
         if not dataContainer or not dataContainer.getName():
             return {}
         wD = self.__fetchEntityAndInstanceTypes(dataContainer)
@@ -482,7 +482,7 @@ class DictMethodCommonUtils(object):
               seqModMonomerFeatureD[(entityId, seqId, compId, 'modified_monomer')] = set(compId)
               fwNonSolvent = float value (kilodaltons)
               fwTypeBoundD[entityType] = (minFw, maxFw)
-              eFwNonSolventD[entityId] = Molecular weight of non-solvent entities in kDa 
+              eFwNonSolventD[entityId] = Molecular weight of non-solvent entities in kDa
               entityPolymerLengthBounds = (minL, maxL)
               ccTargets = [compId, compId]
         """
