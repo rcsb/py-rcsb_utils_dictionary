@@ -764,10 +764,10 @@ class DictMethodAssemblyHelper(object):
                     for asymId in asymIdList:
                         if asymId in instanceTypeD and instanceTypeD[asymId] == "water":
                             continue
-                        entityId = instEntityD[asymId]
+                        entityId = instEntityD.get(asymId)
                         if not entityId:
                             continue
-                        entityMw = fwD[entityId]
+                        entityMw = fwD.get(entityId)
                         if entityMw is None:
                             continue
                         assemblyMw += entityMw

@@ -222,7 +222,7 @@ class DictMethodCommonUtils(object):
 
         Args:
             dataContainer (object):  mmcif.api.DataContainer object instance
- 
+
         Returns:
             dict: {'entityId': <formula weight in kilodaltons>, ...}
         """
