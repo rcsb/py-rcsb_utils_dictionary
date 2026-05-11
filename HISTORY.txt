@@ -152,3 +152,4 @@
 17-Apr-2026 - V1.38 Update how microheterogeneity is handled while loading validation data as positional features
                     Add methods to support calculation of assembly molecular weight 
  7-May-2026 - V1.39 Remove dependence on CSM holdings file and stop loading CSM URLs
+11-May-2026 - V1.40 Temporarily turn off building of DrugBank data until dataset becomes available again

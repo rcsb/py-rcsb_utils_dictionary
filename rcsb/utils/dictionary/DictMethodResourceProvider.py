@@ -171,10 +171,10 @@ class DictMethodResourceProvider(SingletonClass):
                 "configArgMap": {
                     "username": ("_DRUGBANK_AUTH_USERNAME", "configItem"),
                     "password": ("_DRUGBANK_AUTH_PASSWORD", "configItem"),
-                    # "urlTarget": ("DRUGBANK_MOCK_URL_TARGET", "configPath"),
                 },
                 "stashable": True,
-                "buildable": True,
+                # "buildable": True,
+                "buildable": False,  # temporary, until DrugBank data back online
                 "providerType": "core",
             },
             "AtcProvider instance": {
@@ -589,7 +589,11 @@ class DictMethodResourceProvider(SingletonClass):
         #
         cacheInstance = kwargs.get("cacheInstance", True)
         remotePrefix = kwargs.get("remotePrefix", None)
-        minCount = kwargs.get("remotePrefix", 5)
+        #
+        # # Just discovered we are setting this to 5 (on 11 May 2026), which is overriding defaults in the specific providers.
+        # # Should remove this definition here and instead rely solely on defaults set in provider classes
+        # minCount = kwargs.get("minCount", 5)
+        #
         if useCache:
             doRestore = kwargs.get("doRestore", True)
             try:
@@ -598,7 +602,8 @@ class DictMethodResourceProvider(SingletonClass):
                 if not ok and doRestore and isStashable:
                     prI.restore(cfgOb, configName, remotePrefix=remotePrefix, useStash=self.__restoreUseStash, useGit=self.__restoreUseGit)
                     prI = self.__providerD[providerName]["class"](cachePath=cachePath, useCache=True, **classArgs)
-                    ok = prI.testCache(minCount=minCount)
+                    # ok = prI.testCache(minCount=minCount)
+                    ok = prI.testCache()
             except Exception as e:
                 logger.exception("Failing with %s", str(e))
         else:
@@ -607,7 +612,8 @@ class DictMethodResourceProvider(SingletonClass):
                 prI = self.__providerD[providerName]["class"](cachePath=cachePath, useCache=useCache, **classArgs)
                 prI.restore(cfgOb, configName, remotePrefix=remotePrefix, useStash=self.__restoreUseStash, useGit=self.__restoreUseGit)
                 prI = self.__providerD[providerName]["class"](cachePath=cachePath, useCache=True, **classArgs)
-                ok = prI.testCache(minCount=minCount)
+                # ok = prI.testCache(minCount=minCount)
+                ok = prI.testCache()
                 if ok and doBackup and isStashable:
                     useGit = kwargs.get("useGit", False)
                     useStash = kwargs.get("useStash", True)
