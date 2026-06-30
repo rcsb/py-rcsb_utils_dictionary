@@ -294,6 +294,7 @@ class DictMethodEntityInstanceHelper(object):
 
             eObj = dataContainer.getObj("entry")
             entryId = eObj.getValue("id", 0)
+            shortId = entryId[-4:].upper()  # TODO: remove when fully switched over to extended IDs
             #
             asymIdD = self.__commonU.getInstanceEntityMap(dataContainer)
             asymAuthIdD = self.__commonU.getAsymAuthIdMap(dataContainer)
@@ -311,8 +312,11 @@ class DictMethodEntityInstanceHelper(object):
                         continue
                     entityId = asymIdD[asymId]
                     dL = cathU.getCathResidueRanges(entryId.lower(), authAsymId)
-                    logger.debug("%s asymId %s authAsymId %s dL %r", entryId, asymId, authAsymId, dL)
                     vL = cathU.getCathVersions(entryId.lower(), authAsymId)
+                    if not dL:  # TODO: remove when fully switched over to extended IDs
+                        dL = cathU.getCathResidueRanges(shortId.lower(), authAsymId)
+                        vL = cathU.getCathVersions(shortId.lower(), authAsymId)
+                    logger.debug("%s asymId %s authAsymId %s dL %r", entryId, asymId, authAsymId, dL)
                     for (cathId, domId, tId, authSeqBeg, authSeqEnd) in dL:
                         addPropTupL = []
                         begSeqId = pAuthAsymD[(authAsymId, str(authSeqBeg), None)]["seq_id"] if (authAsymId, str(authSeqBeg), None) in pAuthAsymD else None
@@ -376,6 +380,8 @@ class DictMethodEntityInstanceHelper(object):
                         continue
                     entityId = asymIdD[asymId]
                     dL = scopU.getScopResidueRanges(entryId.lower(), authAsymId)
+                    if not dL:  # TODO: remove when fully switched over to extended IDs
+                        dL = scopU.getScopResidueRanges(shortId.lower(), authAsymId)
                     version = scopU.getScopVersion()
                     for (sunId, domId, sccs, tId, authSeqBeg, authSeqEnd) in dL:
                         addPropTupL = []
@@ -455,7 +461,9 @@ class DictMethodEntityInstanceHelper(object):
                         continue
                     entityId = asymIdD[asymId]
                     # Family mappings
-                    dL = scopU.getFamilyResidueRanges(entryId.upper(), authAsymId)
+                    dL = scopU.getFamilyResidueRanges(entryId, authAsymId)
+                    if not dL:  # TODO: remove when fully switched over to extended IDs
+                        dL = scopU.getFamilyResidueRanges(shortId, authAsymId)
                     for (domId, familyId, _, authSeqBeg, authSeqEnd) in dL:
                         addPropTupL = []
                         # map to entity polymer coordinates
@@ -504,6 +512,8 @@ class DictMethodEntityInstanceHelper(object):
                     entityId = asymIdD[asymId]
                     # Family mappings
                     dL = scopU.getSuperFamilyResidueRanges(entryId.lower(), authAsymId)
+                    if not dL:  # TODO: remove when fully switched over to extended IDs
+                        dL = scopU.getSuperFamilyResidueRanges(shortId.lower(), authAsymId)
                     for (domId, superfamilyId, _, authSeqBeg, authSeqEnd) in dL:
                         addPropTupL = []
                         # map to entity polymer coordinates
@@ -551,6 +561,8 @@ class DictMethodEntityInstanceHelper(object):
                     entityId = asymIdD[asymId]
                     # Family mappings
                     dL = scopU.getSuperFamilyResidueRanges2B(entryId.lower(), authAsymId)
+                    if not dL:  # TODO: remove when fully switched over to extended IDs
+                        dL = scopU.getSuperFamilyResidueRanges2B(shortId.lower(), authAsymId)
                     for (domId, superfamilyId, _, authSeqBeg, authSeqEnd) in dL:
                         addPropTupL = []
                         # map to entity polymer coordinates
@@ -601,6 +613,8 @@ class DictMethodEntityInstanceHelper(object):
                     entityId = asymIdD[asymId]
                     # Family mappings
                     dL = ecodU.getFamilyResidueRanges(entryId.lower(), authAsymId)
+                    if not dL:  # TODO: remove when fully switched over to extended IDs
+                        dL = ecodU.getFamilyResidueRanges(shortId.lower(), authAsymId)
                     for (domId, familyId, _, authSeqBeg, authSeqEnd) in dL:
                         addPropTupL = []
                         # map to entity polymer coordinates
@@ -651,6 +665,8 @@ class DictMethodEntityInstanceHelper(object):
                         continue
                     entityId = asymIdD[asymId]
                     instId = entryId.lower() + "." + authAsymId
+                    if not sabdabP.hasAssignment(instId):  # TODO: remove when fully switched over to extended IDs
+                        instId = shortId.lower() + "." + authAsymId
                     for ky, fType in [
                         ("light_ctype", "SABDAB_ANTIBODY_LIGHT_CHAIN_TYPE"),
                         ("light_subclass", "SABDAB_ANTIBODY_LIGHT_CHAIN_SUBCLASS"),
@@ -2037,6 +2053,7 @@ class DictMethodEntityInstanceHelper(object):
 
             eObj = dataContainer.getObj("entry")
             entryId = eObj.getValue("id", 0)
+            shortId = entryId[-4:].upper()  # TODO: remove when fully switched over to extended IDs
             #
             asymIdD = self.__commonU.getInstanceEntityMap(dataContainer)
             asymAuthIdD = self.__commonU.getAsymAuthIdMap(dataContainer)
@@ -2055,8 +2072,11 @@ class DictMethodEntityInstanceHelper(object):
                         continue
                     entityId = asymIdD[asymId]
                     dL = cathU.getCathResidueRanges(entryId.lower(), authAsymId)
-                    logger.debug("%s asymId %s authAsymId %s dL %r", entryId, asymId, authAsymId, dL)
                     vL = cathU.getCathVersions(entryId.lower(), authAsymId)
+                    if not dL:  # TODO: remove when fully switched over to extended IDs
+                        dL = cathU.getCathResidueRanges(shortId.lower(), authAsymId)
+                        vL = cathU.getCathVersions(shortId.lower(), authAsymId)
+                    logger.debug("%s asymId %s authAsymId %s dL %r", entryId, asymId, authAsymId, dL)
                     qD = {}
                     for (cathId, domId, _, _, _) in dL:
                         if cathId in qD:
@@ -2092,6 +2112,8 @@ class DictMethodEntityInstanceHelper(object):
                         continue
                     entityId = asymIdD[asymId]
                     dL = scopU.getScopResidueRanges(entryId.lower(), authAsymId)
+                    if not dL:  # TODO: remove when fully switched over to extended IDs
+                        dL = scopU.getScopResidueRanges(shortId.lower(), authAsymId)
                     version = scopU.getScopVersion()
                     qD = {}
                     for (sunId, domId, _, _, _, _) in dL:
@@ -2130,7 +2152,9 @@ class DictMethodEntityInstanceHelper(object):
                         continue
                     entityId = asymIdD[asymId]
                     # Family mappings
-                    dL = scopU.getFamilyResidueRanges(entryId.upper(), authAsymId)
+                    dL = scopU.getFamilyResidueRanges(entryId, authAsymId)
+                    if not dL:  # TODO: remove when fully switched over to extended IDs
+                        dL = scopU.getFamilyResidueRanges(shortId, authAsymId)
                     qD = {}
                     for (domId, familyId, _, _, _) in dL:
                         if familyId in qD:
@@ -2166,6 +2190,8 @@ class DictMethodEntityInstanceHelper(object):
                     entityId = asymIdD[asymId]
                     # Family mappings
                     dL = scopU.getSuperFamilyResidueRanges(entryId.lower(), authAsymId)
+                    if not dL:  # TODO: remove when fully switched over to extended IDs
+                        dL = scopU.getSuperFamilyResidueRanges(shortId.lower(), authAsymId)
                     qD = {}
                     for (domId, superfamilyId, _, _, _) in dL:
                         if superfamilyId in qD:
@@ -2201,6 +2227,8 @@ class DictMethodEntityInstanceHelper(object):
                     entityId = asymIdD[asymId]
                     # Family mappings
                     dL = scopU.getSuperFamilyResidueRanges2B(entryId.lower(), authAsymId)
+                    if not dL:  # TODO: remove when fully switched over to extended IDs
+                        dL = scopU.getSuperFamilyResidueRanges2B(shortId.lower(), authAsymId)
                     qD = {}
                     for (domId, superfamilyId, _, _, _) in dL:
                         if superfamilyId in qD:
@@ -2238,6 +2266,8 @@ class DictMethodEntityInstanceHelper(object):
                     entityId = asymIdD[asymId]
                     # Family mappings
                     dL = ecodU.getFamilyResidueRanges(entryId.lower(), authAsymId)
+                    if not dL:  # TODO: remove when fully switched over to extended IDs
+                        dL = ecodU.getFamilyResidueRanges(shortId.lower(), authAsymId)
                     qD = {}
                     for (domId, familyId, _, _, _) in dL:
                         if familyId in qD:
