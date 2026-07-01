@@ -344,6 +344,7 @@ class DictMethodEntityHelper(object):
             ii = 0
             for entityId in entityIdL:
                 rcsbId = entryId + "_" + entityId
+                shortRcsbId = entryId[-4:].upper() + "_" + entityId
                 cObj.setValue(entryId, "entry_id", ii)
                 cObj.setValue(entityId, "entity_id", ii)
                 cObj.setValue(rcsbId, "rcsb_id", ii)
@@ -421,8 +422,16 @@ class DictMethodEntityHelper(object):
                                         refSeqIdD["dbIsoform"].append("?")
                 elif eType == "branched":
                     #
+                    gId = None
                     if rcsbId in branchedEntityIdD and "glyTouCanId" in branchedEntityIdD[rcsbId]:
                         gId = branchedEntityIdD[rcsbId]["glyTouCanId"]
+                        logger.info("rcsbId %r is in branchedEntityIdD (gId %r)", rcsbId, gId)
+                    # TODO: remove this "elif" when fully switched over to extended IDs
+                    #       Also re-adjust GlycanProvider
+                    elif shortRcsbId in branchedEntityIdD and "glyTouCanId" in branchedEntityIdD[shortRcsbId]:
+                        gId = branchedEntityIdD[shortRcsbId]["glyTouCanId"]
+                        logger.info("shortRcsbId %r is in branchedEntityIdD (gId %r)", shortRcsbId, gId)
+                    if gId is not None:
                         for resName in ["GlyTouCan", "GlyCosmos", "GlyGen"]:
                             if resName == "GlyGen" and not self.__ggP.hasGlycan(gId):
                                 logger.debug("%r skipping %r for GlyGen", rcsbId, gId)
