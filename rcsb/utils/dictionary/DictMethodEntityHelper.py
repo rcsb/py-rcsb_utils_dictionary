@@ -1884,7 +1884,10 @@ class DictMethodEntityHelper(object):
                     for ky, fType in [("antigen_name", "SABDAB_ANTIBODY_ANTIGEN_NAME")]:
                         fName = self.__sabdabP.getAssignment(instId, ky)
                         if not fName or fName in ["?", "unknown"]:
-                            continue
+                            instId = shortId.lower() + "." + authAsymId  # TODO: remove when fully switched over to extended IDs (should just continue here)
+                            fName = self.__sabdabP.getAssignment(instId, ky)
+                            if not fName or fName in ["?", "unknown"]:
+                                continue
                         # Full sequence feature
                         begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
                         endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
