@@ -95,9 +95,11 @@ class DictMethodEntityHelper(object):
         logger.debug("Dictionary entity method helper init")
 
     def __processSiftsAlignments(self, dataContainer):
-        # TODO: Update for extended IDs?
+        # TODO: Update for extended IDs (or update at source SiftsSummaryProvider?)
+        # should probably handle this at the SIFTS package level...
         tObj = dataContainer.getObj("entry")
         entryId = tObj.getValue("id", 0)
+        # shortId = entryId[-4:].upper()  # TODO: remove when fully switched over to extended IDs
         #
         asymIdD = self.__commonU.getInstanceEntityMap(dataContainer)
         asymAuthIdD = self.__commonU.getAsymAuthIdMap(dataContainer)
@@ -114,6 +116,9 @@ class DictMethodEntityHelper(object):
             #
             asymMaxAlignLength = asymMaxAlignLengthD.get((entryId, entityId), 0)
             asymSeqAlignObjL = self.__ssP.getSeqAlignObjList(entryId, authAsymId)
+            # if not asymSeqAlignObjL:
+            #     asymMaxAlignLength = asymMaxAlignLengthD.get((shortId, entityId), 0)
+            #     asymSeqAlignObjL = self.__ssP.getSeqAlignObjList(shortId, authAsymId)
             asaoLength = sum([seqAlignObj.getEntityAlignLength() for seqAlignObj in asymSeqAlignObjL])
             logger.debug("asaoLength %r for list: %r", asaoLength, asymSeqAlignObjL)
             #
