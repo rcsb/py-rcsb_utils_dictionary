@@ -5166,19 +5166,25 @@ class DictMethodCommonUtils(object):
                                -> dataContainer.getObj("entry").getValue("id", 0)
 
         Returns:
-            str: extended (12-character) ID (lower case)
+            str: extended 12-character PDB ID (lower case) or CSM ID (upper case)
             str: short (4-character) ID, if it exists (upper case)
         """
         extId, shortId = None, None
+        # If extended PDB ID:
         if entryId.lower().startswith("pdb_") and len(entryId) == 12:
             extId = entryId.lower()
             if entryId.lower().startswith("pdb_0000"):
                 shortId = entryId[-4:].upper()
             else:
                 logger.error(f"entryId {entryId} does not have short ID format")
+        # Else if 4-character PDB ID:
         elif len(entryId) == 4:
-            shortId = entryId.upper()
             extId = f"pdb_0000{entryId.lower()}"
+            shortId = entryId.upper()
+        # Else if CSM:
+        elif entryId.upper().startswith("MA_") or entryId.upper().startswith("AF_"):
+            extId = entryId.upper()
+            shortId = None
         else:
             raise ValueError(f"entryId {entryId} does not match short or extended ID format")
         #
