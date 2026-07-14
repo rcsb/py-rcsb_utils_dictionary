@@ -23,6 +23,8 @@
 #  15-Feb-2025  bv Add support for integrative structures
 #  12-Jun-2025  bv Add tranformation to populate rcsb_polymer_entity_container_identifiers.uniprot_ids
 #  10-Dec-2025 dwp Add failover for cases where ncbi_taxonomy_id is not an integer, and log an error
+#  13-Jul-2026 dwp Add [temporary] checking of both extended IDs and short IDs for external resource data (see TODOs).
+#                  These checks should be removed once all ExDB code is updated to support extended IDs.
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
@@ -95,11 +97,9 @@ class DictMethodEntityHelper(object):
         logger.debug("Dictionary entity method helper init")
 
     def __processSiftsAlignments(self, dataContainer):
-        # TODO: Update for extended IDs (or update at source SiftsSummaryProvider?)
-        # should probably handle this at the SIFTS package level...
+        # NOTE: Updated for extended IDs at source level in SiftsSummaryProvider
         tObj = dataContainer.getObj("entry")
         entryId = tObj.getValue("id", 0)
-        # shortId = entryId[-4:].upper()  # TODO: remove when fully switched over to extended IDs
         #
         asymIdD = self.__commonU.getInstanceEntityMap(dataContainer)
         asymAuthIdD = self.__commonU.getAsymAuthIdMap(dataContainer)
@@ -116,9 +116,6 @@ class DictMethodEntityHelper(object):
             #
             asymMaxAlignLength = asymMaxAlignLengthD.get((entryId, entityId), 0)
             asymSeqAlignObjL = self.__ssP.getSeqAlignObjList(entryId, authAsymId)
-            # if not asymSeqAlignObjL:
-            #     asymMaxAlignLength = asymMaxAlignLengthD.get((shortId, entityId), 0)
-            #     asymSeqAlignObjL = self.__ssP.getSeqAlignObjList(shortId, authAsymId)
             asaoLength = sum([seqAlignObj.getEntityAlignLength() for seqAlignObj in asymSeqAlignObjL])
             logger.debug("asaoLength %r for list: %r", asaoLength, asymSeqAlignObjL)
             #
@@ -418,7 +415,7 @@ class DictMethodEntityHelper(object):
                                     else:
                                         refSeqIdD["dbIsoform"].append("?")
                 elif eType == "branched":
-                    #
+                    # NOTE: Updated for extended IDs at source level in GlycanProvider
                     gId = self.__glyP.getGlycanIdentifier(entryId=entryId, entityIdSuffix=entityId, idTypeFilter="glyTouCanId") if self.__glyP else None
                     if gId is not None:
                         for resName in ["GlyTouCan", "GlyCosmos", "GlyGen"]:
@@ -1768,7 +1765,7 @@ class DictMethodEntityHelper(object):
 
             eObj = dataContainer.getObj("entry")
             entryId = eObj.getValue("id", 0)
-            shortId = entryId[-4:].upper()  # TODO: remove when fully switched over to extended IDs
+            extendedId, shortId = self.__commonU.getExtAndShortIds(entryId)  # TODO: remove when fully switched over to extended IDs
             asymIdD = self.__commonU.getInstanceEntityMap(dataContainer)
             asymAuthIdD = self.__commonU.getAsymAuthIdMap(dataContainer)
             instTypeD = self.__commonU.getInstanceTypes(dataContainer)
@@ -1804,11 +1801,12 @@ class DictMethodEntityHelper(object):
                     if instTypeD[asymId] not in ["polymer"]:
                         continue
                     entityId = asymIdD[asymId]
-                    instId = entryId.lower() + "." + authAsymId
-                    fDL = self.__imgtP.getFeatures(instId)
-                    if not fDL:  # TODO: remove when fully switched over to extended IDs
-                        instId = shortId.lower() + "." + authAsymId
-                        fDL = self.__imgtP.getFeatures(instId)
+                    # TODO: remove looping when fully switched over to extended IDs (and replace 'extendedId' with 'entryId')
+                    fDL = []
+                    for eId in [extendedId, shortId]:
+                        if eId and not fDL:
+                            instId = eId.lower() + "." + authAsymId
+                            fDL = self.__imgtP.getFeatures(instId)
                     if fDL and entityId in imgtEidD:
                         logger.debug("%r skipping duplicate IMGT annotation for entity %r authAsymId %r using prior authAsymId %r", entryId, entityId, authAsymId, imgtEidD[entityId])
                         continue
@@ -1846,11 +1844,12 @@ class DictMethodEntityHelper(object):
                 for entityId, eType in eTypeD.items():
                     if eType not in ["polymer"]:
                         continue
-                    eId = entryId + "_" + entityId
-                    fDL = self.__sabdabP.getFeatures(eId)
-                    if not fDL:  # TODO: remove when fully switched over to extended IDs
-                        eId = shortId + "_" + entityId
-                        fDL = self.__sabdabP.getFeatures(eId)
+                    # TODO: remove looping when fully switched over to extended IDs (and replace 'extendedId' with 'entryId')
+                    fDL = []
+                    for eId in [extendedId, shortId]:
+                        if eId and not fDL:
+                            rId = eId + "_" + entityId
+                            fDL = self.__sabdabP.getFeatures(rId)
                     fTypeD = {}
                     for fD in fDL:
                         if fD["type"] not in ["SABDAB_ANTIBODY_NAME", "SABDAB_ANTIBODY_TARGET"]:
@@ -1878,10 +1877,10 @@ class DictMethodEntityHelper(object):
                     if instTypeD[asymId] not in ["polymer"]:
                         continue
                     entityId = asymIdD[asymId]
-                    instId = entryId.lower() + "." + authAsymId
+                    instId = extendedId.lower() + "." + authAsymId  # TODO: replace 'extendedId' with 'entryId' when fully switched over to extended IDs
                     for ky, fType in [("antigen_name", "SABDAB_ANTIBODY_ANTIGEN_NAME")]:
                         fName = self.__sabdabP.getAssignment(instId, ky)
-                        if not fName or fName in ["?", "unknown"]:
+                        if (not fName or fName in ["?", "unknown"]) and shortId:
                             instId = shortId.lower() + "." + authAsymId  # TODO: remove when fully switched over to extended IDs (should just continue here)
                             fName = self.__sabdabP.getAssignment(instId, ky)
                             if not fName or fName in ["?", "unknown"]:
@@ -1904,9 +1903,11 @@ class DictMethodEntityHelper(object):
             if self.__pfP:
                 polymerIdMapD = self.__commonU.getPolymerIdMap(dataContainer)
                 instEntityD = self.__commonU.getInstanceEntityMap(dataContainer)
-                mDL = self.__pfP.getMapping(entryId)
-                if not mDL:  # TODO: remove when fully switched over to extended IDs
-                    mDL = self.__pfP.getMapping(shortId)
+                # TODO: remove looping when fully switched over to extended IDs (and replace 'extendedId' with 'entryId')
+                mDL = []
+                for eId in [extendedId, shortId]:
+                    if eId and not mDL:
+                        mDL = self.__pfP.getMapping(eId)
                 pfD = {}
                 for mD in mDL:
                     pfTupBeg = (mD["authAsymId"], str(mD["authSeqBeg"]), mD["insertBeg"])
@@ -2109,7 +2110,7 @@ class DictMethodEntityHelper(object):
             cObj = dataContainer.getObj(catName)
             eObj = dataContainer.getObj("entry")
             entryId = eObj.getValue("id", 0)
-            shortId = entryId[-4:].upper()  # TODO: remove when fully switched over to extended IDs
+            extendedId, shortId = self.__commonU.getExtAndShortIds(entryId)  # TODO: remove when fully switched over to extended IDs
             eTypeD = self.__commonU.getEntityTypes(dataContainer)
             #
             # ---------------
@@ -2120,11 +2121,12 @@ class DictMethodEntityHelper(object):
                 for entityId, eType in eTypeD.items():
                     if eType not in ["polymer", "branched"]:
                         continue
-                    eId = entryId + "_" + entityId
-                    tDL = self.__chemblA.getTargets(eId)
-                    if not tDL:  # TODO: remove when fully switched over to extended IDs
-                        eId = shortId + "_" + entityId
-                        tDL = self.__chemblA.getTargets(eId)
+                    # TODO: remove looping when fully switched over to extended IDs (and replace 'extendedId' with 'entryId')
+                    tDL = []
+                    for eId in [extendedId, shortId]:
+                        if eId and not tDL:
+                            rId = eId + "_" + entityId
+                            tDL = self.__chemblA.getTargets(rId)
                     dupD = {}
                     for tD in tDL:
                         if tD["query_id"] in dupD:
@@ -2154,11 +2156,12 @@ class DictMethodEntityHelper(object):
                 for entityId, eType in eTypeD.items():
                     if eType not in ["polymer", "branched"]:
                         continue
-                    eId = entryId + "_" + entityId
-                    tDL = self.__dbA.getTargets(eId)
-                    if not tDL:  # TODO: remove when fully switched over to extended IDs
-                        eId = shortId + "_" + entityId
-                        tDL = self.__dbA.getTargets(eId)
+                    # TODO: remove looping when fully switched over to extended IDs (and replace 'extendedId' with 'entryId')
+                    tDL = []
+                    for eId in [extendedId, shortId]:
+                        if eId and not tDL:
+                            rId = eId + "_" + entityId
+                            tDL = self.__dbA.getTargets(rId)
                     dupD = {}
                     for tD in tDL:
                         if tD["query_id"] in dupD:
@@ -2187,11 +2190,12 @@ class DictMethodEntityHelper(object):
                 for entityId, eType in eTypeD.items():
                     if eType not in ["polymer", "branched"]:
                         continue
-                    eId = entryId + "_" + entityId
-                    tDL = self.__phA.getTargets(eId)
-                    if not tDL:  # TODO: remove when fully switched over to extended IDs
-                        eId = shortId + "_" + entityId
-                        tDL = self.__phA.getTargets(eId)
+                    # TODO: remove looping when fully switched over to extended IDs (and replace 'extendedId' with 'entryId')
+                    tDL = []
+                    for eId in [extendedId, shortId]:
+                        if eId and not tDL:
+                            rId = eId + "_" + entityId
+                            tDL = self.__phA.getTargets(rId)
                     dupD = {}
                     for tD in tDL:
                         if tD["query_id"] in dupD:
@@ -2339,7 +2343,7 @@ class DictMethodEntityHelper(object):
             cObj = dataContainer.getObj(catName)
             eObj = dataContainer.getObj("entry")
             entryId = eObj.getValue("id", 0)
-            shortId = entryId[-4:].upper()  # TODO: remove when fully switched over to extended IDs
+            extendedId, shortId = self.__commonU.getExtAndShortIds(entryId)  # TODO: remove when fully switched over to extended IDs
             eTypeD = self.__commonU.getEntityTypes(dataContainer)
             #
             # ---------------
@@ -2351,11 +2355,12 @@ class DictMethodEntityHelper(object):
                 for entityId, eType in eTypeD.items():
                     if eType not in ["polymer", "branched"]:
                         continue
-                    eId = entryId + "_" + entityId
-                    tDL = self.__chemblA.getTargets(eId)
-                    if not tDL:  # TODO: remove when fully switched over to extended IDs
-                        eId = shortId + "_" + entityId
-                        tDL = self.__chemblA.getTargets(eId)
+                    # TODO: remove looping when fully switched over to extended IDs (and replace 'extendedId' with 'entryId')
+                    tDL = []
+                    for eId in [extendedId, shortId]:
+                        if eId and not tDL:
+                            rId = eId + "_" + entityId
+                            tDL = self.__chemblA.getTargets(rId)
                     # --
                     dupD = {}
                     # --
@@ -2397,11 +2402,12 @@ class DictMethodEntityHelper(object):
                 for entityId, eType in eTypeD.items():
                     if eType not in ["polymer", "branched"]:
                         continue
-                    eId = entryId + "_" + entityId
-                    tDL = self.__dbA.getTargets(eId)
-                    if not tDL:  # TODO: remove when fully switched over to extended IDs
-                        eId = shortId + "_" + entityId
-                        tDL = self.__dbA.getTargets(eId)
+                    # TODO: remove looping when fully switched over to extended IDs (and replace 'extendedId' with 'entryId')
+                    tDL = []
+                    for eId in [extendedId, shortId]:
+                        if eId and not tDL:
+                            rId = eId + "_" + entityId
+                            tDL = self.__dbA.getTargets(rId)
                     # --
                     dupD = {}
                     # --
@@ -2435,11 +2441,12 @@ class DictMethodEntityHelper(object):
                 for entityId, eType in eTypeD.items():
                     if eType not in ["polymer", "branched"]:
                         continue
-                    eId = entryId + "_" + entityId
-                    tDL = self.__phA.getTargets(eId)
-                    if not tDL:  # TODO: remove when fully switched over to extended IDs
-                        eId = shortId + "_" + entityId
-                        tDL = self.__phA.getTargets(eId)
+                    # TODO: remove looping when fully switched over to extended IDs (and replace 'extendedId' with 'entryId')
+                    tDL = []
+                    for eId in [extendedId, shortId]:
+                        if eId and not tDL:
+                            rId = eId + "_" + entityId
+                            tDL = self.__phA.getTargets(rId)
                     # --
                     dupD = {}
                     # --
@@ -2690,7 +2697,7 @@ class DictMethodEntityHelper(object):
             #
             eObj = dataContainer.getObj("entry")
             entryId = eObj.getValue("id", 0)
-            shortId = entryId[-4:].upper()  # TODO: remove when fully switched over to extended IDs
+            extendedId, shortId = self.__commonU.getExtAndShortIds(entryId)  # TODO: remove when fully switched over to extended IDs
             #
             # ---------------
             ii = cObj.getRowCount()
@@ -2718,9 +2725,11 @@ class DictMethodEntityHelper(object):
             if self.__pfP:
                 polymerIdMapD = self.__commonU.getPolymerIdMap(dataContainer)
                 instEntityD = self.__commonU.getInstanceEntityMap(dataContainer)
-                mDL = self.__pfP.getMapping(entryId)
-                if not mDL:  # TODO: remove when fully switched over to extended IDs
-                    mDL = self.__pfP.getMapping(shortId)
+                # TODO: remove looping when fully switched over to extended IDs (and replace 'extendedId' with 'entryId')
+                mDL = []
+                for eId in [extendedId, shortId]:
+                    if eId and not mDL:
+                        mDL = self.__pfP.getMapping(eId)
                 pfD = {}
                 for mD in mDL:
                     pfTup = (mD["authAsymId"], str(mD["authSeqBeg"]), mD["insertBeg"])
@@ -2752,11 +2761,12 @@ class DictMethodEntityHelper(object):
                 for entityId, eType in eTypeD.items():
                     if eType not in ["polymer"]:
                         continue
-                    eId = entryId + "_" + entityId
-                    fD = self.__cardP.getAnnotation(eId)
-                    if not fD:  # TODO: remove when fully switched over to extended IDs
-                        eId = shortId + "_" + entityId
-                        fD = self.__cardP.getAnnotation(eId)
+                    # TODO: remove looping when fully switched over to extended IDs (and replace 'extendedId' with 'entryId')
+                    fD = {}
+                    for eId in [extendedId, shortId]:
+                        if eId and not fD:
+                            rId = eId + "_" + entityId
+                            fD = self.__cardP.getAnnotation(rId)
                     if fD:
                         # First add "AMR Gene" annotation for entities with perfect CARD matches
                         if fD["perfect_match"] == "Y":

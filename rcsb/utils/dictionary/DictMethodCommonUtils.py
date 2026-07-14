@@ -38,6 +38,8 @@
 # 19-Nov-2025  bv RO-4761: Add support for ligand Q_scores
 # 04-Apr-2026  bv RO-4917: Update how microheterogeneity is handled while loading validation data as positional features
 #              bv RO-4342: Add method getEntityFormulaWeightNonSolvent to support calculation of assembly molecular weight
+# 13-Jul-2026 dwp Add method to return the extended and short IDs of an input entry ID (.getExtAndShortIds()).
+#                 This method can be removed once all ExDB code is updated to support extended IDs.
 #
 ##
 """
@@ -5153,3 +5155,31 @@ class DictMethodCommonUtils(object):
             return {}
         wD = self.__fetchLocalValidationData(dataContainer)
         return wD["instanceModelOutlierD"] if "instanceModelOutlierD" in wD else {}
+
+    def getExtAndShortIds(self, entryId):
+        # TODO: Remove this method after external resource prep is fully transitioned over to extended IDs
+        """
+        Return the short and extended versions of the entry ID.
+
+        Args:
+            entryId (object):  entry ID of mmcif.api.DataContainer object instance
+                               -> dataContainer.getObj("entry").getValue("id", 0)
+
+        Returns:
+            str: extended (12-character) ID (lower case)
+            str: short (4-character) ID, if it exists (upper case)
+        """
+        extId, shortId = None, None
+        if entryId.lower().startswith("pdb_") and len(entryId) == 12:
+            extId = entryId.lower()
+            if entryId.lower().startswith("pdb_0000"):
+                shortId = entryId[-4:].upper()
+            else:
+                logger.error(f"entryId {entryId} does not have short ID format")
+        elif len(entryId) == 4:
+            shortId = entryId.upper()
+            extId = f"pdb_0000{entryId.lower()}"
+        else:
+            raise ValueError(f"entryId {entryId} does not match short or extended ID format")
+        #
+        return extId, shortId

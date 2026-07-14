@@ -186,21 +186,30 @@ class DictMethodResourceProvider(SingletonClass):
             },
             "BirdProvider instance": {
                 "class": BirdProvider,
-                "configArgMap": {},
+                # NOTE: This change (and below) will be incompatible with existing workflow, so if
+                # wish to merge early, will need to update current config and impacted utilties,
+                # UNLESS if you leave rcsb.utils.chemref unmerged, this should be harmless
+                "configArgMap": {
+                    "basePdbRepoUrl": ("PDB_REPO_URL", "configItem"),
+                },
                 "stashable": True,
                 "buildable": True,
                 "providerType": "core",
             },
             "ChemCompModelProvider instance": {
                 "class": ChemCompModelProvider,
-                "configArgMap": {},
+                "configArgMap": {
+                    "basePdbRepoUrl": ("PDB_REPO_URL", "configItem"),
+                },
                 "stashable": True,
                 "buildable": True,
                 "providerType": "core",
             },
             "ChemCompProvider instance": {
                 "class": ChemCompProvider,
-                "configArgMap": {},
+                "configArgMap": {
+                    "basePdbRepoUrl": ("PDB_REPO_URL", "configItem"),
+                },
                 "stashable": True,
                 "buildable": True,
                 "providerType": "core",
