@@ -97,13 +97,13 @@ class DictMethodEntityHelper(object):
         logger.debug("Dictionary entity method helper init")
 
     def __processSiftsAlignments(self, dataContainer):
-        # NOTE: Updated for extended IDs at source level in SiftsSummaryProvider
         tObj = dataContainer.getObj("entry")
         entryId = tObj.getValue("id", 0)
         #
         asymIdD = self.__commonU.getInstanceEntityMap(dataContainer)
         asymAuthIdD = self.__commonU.getAsymAuthIdMap(dataContainer)
         instTypeD = self.__commonU.getInstanceTypes(dataContainer)
+        extendedId, shortId = self.__commonU.getExtAndShortIds(entryId)  # TODO: remove when fully switched over to extended IDs
         siftsEntityAlignD = {}
         #
         # Process sifts alignments -
@@ -115,7 +115,11 @@ class DictMethodEntityHelper(object):
             entityId = asymIdD[asymId]
             #
             asymMaxAlignLength = asymMaxAlignLengthD.get((entryId, entityId), 0)
-            asymSeqAlignObjL = self.__ssP.getSeqAlignObjList(entryId, authAsymId)
+            # TODO: remove looping when fully switched over to extended IDs (and replace 'extendedId' with 'entryId')
+            asymSeqAlignObjL = []
+            for eId in [extendedId, shortId]:
+                if eId and not asymSeqAlignObjL:
+                    asymSeqAlignObjL = self.__ssP.getSeqAlignObjList(eId, authAsymId)
             asaoLength = sum([seqAlignObj.getEntityAlignLength() for seqAlignObj in asymSeqAlignObjL])
             logger.debug("asaoLength %r for list: %r", asaoLength, asymSeqAlignObjL)
             #
@@ -314,6 +318,7 @@ class DictMethodEntityHelper(object):
             tObj = dataContainer.getObj("entry")
             entryId = tObj.getValue("id", 0)
             cObj.setValue(entryId, "entry_id", 0)
+            extendedId, shortId = self.__commonU.getExtAndShortIds(entryId)  # TODO: remove when fully switched over to extended IDs
             #
             isCompModel = False
             provSourceDefault = "PDB"
@@ -364,7 +369,12 @@ class DictMethodEntityHelper(object):
                     if self.__useSiftsAlign and not isCompModel:
                         dbIdL = []
                         for authAsymId in authAsymIdL:
-                            dbIdL.extend(self.__ssP.getIdentifiers(entryId, authAsymId, idType="UNPID"))
+                            # TODO: remove looping when fully switched over to extended IDs (and replace 'extendedId' with 'entryId')
+                            sspIds = []
+                            for eId in [extendedId, shortId]:
+                                if eId and not sspIds:
+                                    sspIds = self.__ssP.getIdentifiers(eId, authAsymId, idType="UNPID")
+                            dbIdL.extend(sspIds)
                         # If SIFTS is defined
                         if dbIdL:
                             for dbId in sorted(set(dbIdL)):
@@ -415,16 +425,20 @@ class DictMethodEntityHelper(object):
                                     else:
                                         refSeqIdD["dbIsoform"].append("?")
                 elif eType == "branched":
-                    # NOTE: Updated for extended IDs at source level in GlycanProvider
-                    gId = self.__glyP.getGlycanIdentifier(entryId=entryId, entityIdSuffix=entityId, idTypeFilter="glyTouCanId") if self.__glyP else None
-                    if gId is not None:
-                        for resName in ["GlyTouCan", "GlyCosmos", "GlyGen"]:
-                            if resName == "GlyGen" and not self.__ggP.hasGlycan(gId):
-                                logger.debug("%r skipping %r for GlyGen", rcsbId, gId)
-                                continue
-                            refIdD["resName"].append(resName)
-                            refIdD["resAccession"].append(gId)
-                            refIdD["provSource"].append("RCSB")  # Comes from internal processing of WURCS data mapped to GlyTouCan IDs at https://api.glycosmos.org/
+                    if self.__glyP:
+                        # TODO: remove looping when fully switched over to extended IDs (and replace 'extendedId' with 'entryId')
+                        gId = None
+                        for eId in [extendedId, shortId]:
+                            if eId and not gId:
+                                gId = self.__glyP.getGlycanIdentifier(entryId=eId, entityIdSuffix=entityId, idTypeFilter="glyTouCanId")
+                        if gId is not None:
+                            for resName in ["GlyTouCan", "GlyCosmos", "GlyGen"]:
+                                if resName == "GlyGen" and not self.__ggP.hasGlycan(gId):
+                                    logger.debug("%r skipping %r for GlyGen", rcsbId, gId)
+                                    continue
+                                refIdD["resName"].append(resName)
+                                refIdD["resAccession"].append(gId)
+                                refIdD["provSource"].append("RCSB")  # Comes from internal processing of WURCS data mapped to GlyTouCan IDs at https://api.glycosmos.org/
                 #
                 if asymIdL:
                     cObj.setValue(",".join(sorted(set(asymIdL))).strip(), "asym_ids", ii)

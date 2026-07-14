@@ -186,9 +186,8 @@ class DictMethodResourceProvider(SingletonClass):
             },
             "BirdProvider instance": {
                 "class": BirdProvider,
-                # NOTE: This change (and below) will be incompatible with existing workflow, so if
-                # wish to merge early, will need to update current config and impacted utilties,
-                # UNLESS if you leave rcsb.utils.chemref unmerged, this should be harmless
+                # NOTE: This (and below) change should still be compatible with existing workflow so long as it is merged
+                # with 'rcsb.utils.chemref' (ro-5076) and the trailing '/pub' is consistently used in the ExDB config file
                 "configArgMap": {
                     "basePdbRepoUrl": ("PDB_REPO_URL", "configItem"),
                 },
