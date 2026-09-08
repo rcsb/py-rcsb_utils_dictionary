@@ -34,6 +34,7 @@
 #  15-Feb-2025  bv Add support for integrative structures
 #  27-Jun-2025  bv Add transformation to populate rcsb_polymer_instance_info
 #  19-Nov-2025  bv RO-4761: Add support for ligand Q_scores
+#  08-Sep-2026  bv PTM/PCM: Populate pdbx_modification_feature.rcsb_modified_residue_id
 #
 ##
 """
@@ -3031,4 +3032,42 @@ class DictMethodEntityInstanceHelper(object):
             return True
         except Exception as e:
             logger.exception("For %s populating rcsb_polymer_instance_info failing with %s", dataContainer.getName(), str(e))
+        return False
+
+    def buildInstanceModifiedResidues(self, dataContainer, catName, atName, **kwargs):
+        """Populate pdbx_modification_feature.rcsb_modified_residue_id.
+
+        Args:
+            dataContainer (object): mmif.api.DataContainer object instance
+            catName (str): Category name
+            atName (str): Attribute name
+
+        Returns:
+            bool: True for success or False otherwise
+        """
+        logger.debug("Starting catName %s atName %s kwargs %r", catName, atName, kwargs)
+        try:
+            if catName != "pdbx_modification_feature":
+                return False
+            if atName != "rcsb_modified_residue_id":
+                return False
+            if not dataContainer.exists(catName):
+                return False
+            #
+            mObj = dataContainer.getObj(catName)
+            if not mObj.hasAttribute(atName):
+                mObj.appendAttribute(atName)
+            for ii in range(mObj.getRowCount()):
+                modResId1 = mObj.getValueOrDefault("modified_residue_id", ii, defaultValue=None)
+                modResId2 = mObj.getValueOrDefault("modified_residue_label_comp_id", ii, defaultValue=None)
+                if modResId1 and modResId1 not in ["?", "."]:
+                    modResId = modResId1
+                elif modResId2 and modResId2 not in ["?", "."]:
+                    modResId = modResId2
+                else:
+                    modResId = "?"
+                mObj.setValue(modResId, "rcsb_modified_residue_id", ii)
+            return True
+        except Exception as e:
+            logger.exception("Failing populating pdbx_modification_feature.rcsb_modified_residue_id for %r with %s", dataContainer.getName(), str(e))
         return False
