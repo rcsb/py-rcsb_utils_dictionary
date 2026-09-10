@@ -3034,13 +3034,12 @@ class DictMethodEntityInstanceHelper(object):
             logger.exception("For %s populating rcsb_polymer_instance_info failing with %s", dataContainer.getName(), str(e))
         return False
 
-    def buildInstanceModifiedResidues(self, dataContainer, catName, atName, **kwargs):
+    def buildInstanceModifiedResidues(self, dataContainer, catName, **kwargs):
         """Populate pdbx_modification_feature.rcsb_modified_residue_id and remove redundant rows in pdbx_modification_feature.
 
         Args:
             dataContainer (object): mmif.api.DataContainer object instance
             catName (str): Category name
-            atName (str): Attribute name
 
         Returns:
             bool: True for success or False otherwise
@@ -3049,14 +3048,12 @@ class DictMethodEntityInstanceHelper(object):
         try:
             if catName != "pdbx_modification_feature":
                 return False
-            if atName != "rcsb_modified_residue_id":
-                return False
-            if not dataContainer.exists(catName):
+            if not dataContainer.exists("pdbx_modification_feature"):
                 return False
             #
-            mObj = dataContainer.getObj(catName)
-            if not mObj.hasAttribute(atName):
-                mObj.appendAttribute(atName)
+            mObj = dataContainer.getObj("pdbx_modification_feature")
+            if not mObj.hasAttribute("rcsb_modified_residue_id"):
+                mObj.appendAttribute("rcsb_modified_residue_id")
             #
             seenRows = set()
             rowsToRemove = []
