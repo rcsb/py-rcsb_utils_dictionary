@@ -3062,19 +3062,20 @@ class DictMethodEntityInstanceHelper(object):
             rowsToRemove = []
             # attributeNameListFull = self.__dApi.getAttributeNameList(catName)
             attributeNameListFull = mObj.getAttributeList()
-            attributeNameIgnoreList = ["ordinal",
-                                       "label_alt_id",
-                                       "modified_residue_label_alt_id",
-                                       "auth_comp_id",
-                                       "auth_asym_id",
-                                       "auth_seq_id",
-                                       "PDB_ins_code",
-                                       "modified_residue_auth_comp_id",
-                                       "modified_residue_auth_asym_id",
-                                       "modified_residue_auth_seq_id",
-                                       "modified_residue_PDB_ins_code",
-                                       "ref_pcm_id",
-                                       "ref_comp_id"
+            attributeNameIgnoreList = [
+                "ordinal",
+                "label_alt_id",
+                "modified_residue_label_alt_id",
+                "auth_comp_id",
+                "auth_asym_id",
+                "auth_seq_id",
+                "PDB_ins_code",
+                "modified_residue_auth_comp_id",
+                "modified_residue_auth_asym_id",
+                "modified_residue_auth_seq_id",
+                "modified_residue_PDB_ins_code",
+                "ref_pcm_id",
+                "ref_comp_id"
             ]
             # Remove attributes that are not included in the RCSB schemas
             attributeNameList = [atName for atName in attributeNameListFull if atName not in attributeNameIgnoreList]
