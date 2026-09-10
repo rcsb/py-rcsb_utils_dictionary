@@ -3044,7 +3044,7 @@ class DictMethodEntityInstanceHelper(object):
         Returns:
             bool: True for success or False otherwise
         """
-        logger.debug("Starting catName %s atName %s kwargs %r", catName, atName, kwargs)
+        logger.debug("Starting catName %s kwargs %r", catName, kwargs)
         try:
             if catName != "pdbx_modification_feature":
                 return False
