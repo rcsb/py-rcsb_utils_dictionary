@@ -34,7 +34,8 @@
 #  15-Feb-2025  bv Add support for integrative structures
 #  27-Jun-2025  bv Add transformation to populate rcsb_polymer_instance_info
 #  19-Nov-2025  bv RO-4761: Add support for ligand Q_scores
-#  13-Jul-2026 dwp Add [temporary] checking of both extended IDs and short IDs for external resource data (see TODOs).
+#  10-Sep-2026  bv PTM/PCM: Populate pdbx_modification_feature.rcsb_modified_residue_id and remove redundant rows in pdbx_modification_feature
+#  15-Sep-2026 dwp Add [temporary] checking of both extended IDs and short IDs for external resource data (see TODOs).
 #                  These checks should be removed once all ExDB code is updated to support extended IDs.
 #
 ##
@@ -3088,4 +3089,82 @@ class DictMethodEntityInstanceHelper(object):
             return True
         except Exception as e:
             logger.exception("For %s populating rcsb_polymer_instance_info failing with %s", dataContainer.getName(), str(e))
+        return False
+
+    def buildInstanceModifiedResidues(self, dataContainer, catName, **kwargs):
+        """Populate pdbx_modification_feature.rcsb_modified_residue_id and remove redundant rows in pdbx_modification_feature.
+
+        Args:
+            dataContainer (object): mmif.api.DataContainer object instance
+            catName (str): Category name
+
+        Returns:
+            bool: True for success or False otherwise
+        """
+        logger.debug("Starting catName %s kwargs %r", catName, kwargs)
+        try:
+            if catName != "pdbx_modification_feature":
+                return False
+            if not dataContainer.exists("pdbx_modification_feature"):
+                return False
+            #
+            mObj = dataContainer.getObj("pdbx_modification_feature")
+            if not mObj.hasAttribute("rcsb_modified_residue_id"):
+                mObj.appendAttribute("rcsb_modified_residue_id")
+            #
+            seenRows = set()
+            rowsToRemove = []
+            # attributeNameListFull = self.__dApi.getAttributeNameList(catName)
+            attributeNameListFull = mObj.getAttributeList()
+            attributeNameIgnoreList = [
+                "ordinal",
+                "label_alt_id",
+                "modified_residue_label_alt_id",
+                "auth_comp_id",
+                "auth_asym_id",
+                "auth_seq_id",
+                "PDB_ins_code",
+                "modified_residue_auth_comp_id",
+                "modified_residue_auth_asym_id",
+                "modified_residue_auth_seq_id",
+                "modified_residue_PDB_ins_code",
+                "ref_pcm_id",
+                "ref_comp_id"
+            ]
+            # Remove attributes that are not included in the RCSB schemas
+            attributeNameList = [atName for atName in attributeNameListFull if atName not in attributeNameIgnoreList]
+            #
+            for ii in range(mObj.getRowCount()):
+                # Set value for rcsb_modified_residue_id
+                modResId1 = mObj.getValueOrDefault("modified_residue_id", ii, defaultValue=None)
+                modResId2 = mObj.getValueOrDefault("modified_residue_label_comp_id", ii, defaultValue=None)
+
+                if modResId1 and modResId1 not in ["?", "."]:
+                    modResId = modResId1
+                elif modResId2 and modResId2 not in ["?", "."]:
+                    modResId = modResId2
+                else:
+                    modResId = "?"
+
+                mObj.setValue(modResId, "rcsb_modified_residue_id", ii)
+
+                # Identify redundant rows
+                row = []
+                for attr in attributeNameList:
+                    value = mObj.getValueOrDefault(attr, ii, defaultValue=None)
+                    if value is not None and value.strip() not in ["", "?", "."]:
+                        row.append(value.strip())
+
+                rowT = tuple(row)
+
+                if rowT in seenRows:
+                    rowsToRemove.append(ii)
+                else:
+                    seenRows.add(rowT)
+
+            mObj.removeRows(list(set(rowsToRemove)))
+
+            return True
+        except Exception as e:
+            logger.exception("Failing populating pdbx_modification_feature.rcsb_modified_residue_id for %r with %s", dataContainer.getName(), str(e))
         return False
