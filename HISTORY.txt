@@ -153,5 +153,6 @@
                     Add methods to support calculation of assembly molecular weight 
  7-May-2026 - V1.39 Remove dependence on CSM holdings file and stop loading CSM URLs
 11-May-2026 - V1.40 Temporarily turn off building of DrugBank data until dataset becomes available again
-08-Sep-2026 - V1.41 Update modified_monomer to non_standard_monomer during ETL to rcsb_polymer_entity_feature and rcsb_entity_feature
+10-Sep-2026 - V1.41 Update modified_monomer to non_standard_monomer during ETL to rcsb_polymer_entity_feature and rcsb_entity_feature
                     PTM/PCM: Populate pdbx_modification_feature.rcsb_modified_residue_id
+                    PTM/PCM: Remove redundant rows in pdbx_modification_feature
