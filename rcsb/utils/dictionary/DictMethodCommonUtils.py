@@ -38,6 +38,7 @@
 # 19-Nov-2025  bv RO-4761: Add support for ligand Q_scores
 # 04-Apr-2026  bv RO-4917: Update how microheterogeneity is handled while loading validation data as positional features
 #              bv RO-4342: Add method getEntityFormulaWeightNonSolvent to support calculation of assembly molecular weight
+# 08-Sep-2026  bv Update modified_monomer to non_standard_monomer during ETL to rcsb_polymer_entity_feature and rcsb_entity_feature
 #
 ##
 """
@@ -406,7 +407,7 @@ class DictMethodCommonUtils(object):
             dataContainer (object):  mmcif.api.DataContainer object instance
 
         Returns:
-            dict: [(entityId, seqId, compId, 'modified_monomer')] = set(compId)
+            dict: [(entityId, seqId, compId, 'non_standard_monomer')] = set(compId)
 
         """
         if not dataContainer or not dataContainer.getName():
@@ -479,7 +480,7 @@ class DictMethodCommonUtils(object):
               entityPolymerLengthD[entityId] = polymer monomer length (from enumerated sequence)
               entityPolymerMonomerCountD[entityId][compId] = mononer count
               entityPolymerModifiedMonomers[entity]=[mod compId, mod compId]
-              seqModMonomerFeatureD[(entityId, seqId, compId, 'modified_monomer')] = set(compId)
+              seqModMonomerFeatureD[(entityId, seqId, compId, 'non_standard_monomer')] = set(compId)
               fwNonSolvent = float value (kilodaltons)
               fwTypeBoundD[entityType] = (minFw, maxFw)
               eFwNonSolventD[entityId] = Molecular weight of non-solvent entities in kDa
@@ -539,7 +540,7 @@ class DictMethodCommonUtils(object):
                     seqNum = epsObj.getValue("num", ii)
                     compId = epsObj.getValue("mon_id", ii)
                     if compId not in DictMethodCommonUtils.monDict3:
-                        seqModMonomerFeatureD.setdefault((entityId, seqNum, compId, "modified_monomer"), set()).add(compId)
+                        seqModMonomerFeatureD.setdefault((entityId, seqNum, compId, "non_standard_monomer"), set()).add(compId)
                     # handle heterogeneity with the entityId,seqNum tuple
                     tSeqD.setdefault(entityId, set()).add((entityId, seqNum))
                     if entityId not in entityPolymerMonomerCountD:
