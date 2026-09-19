@@ -71,6 +71,7 @@
 # 04-May-2025  bv Add methods 'ihmEntryPreProcess' and 'ihmAddDatasetInfo' to handle integrative structures
 #                 Update 'addEntryInfo' for integrative structures
 # 12-Jun-2025  bv Add tranformation to populate rcsb_entry_container_identifiers.pubmed_id
+# 18-Sep-2025  bv Add rcsb_entry_info.deposited_branched_entity_instance_count
 #
 ##
 """
@@ -1024,6 +1025,7 @@ class DictMethodEntryHelper(object):
             instanceTypeCountD = self.__commonU.getInstanceTypeCounts(dataContainer)
             cObj.setValue(instanceTypeCountD["polymer"], "deposited_polymer_entity_instance_count", 0)
             cObj.setValue(instanceTypeCountD["non-polymer"], "deposited_nonpolymer_entity_instance_count", 0)
+            cObj.setValue(instanceTypeCountD["branched"], "deposited_branched_entity_instance_count", 0)
 
             #
             # Various atom counts -
