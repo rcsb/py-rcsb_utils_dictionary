@@ -159,3 +159,4 @@
 18-SEP-2026 - V1.42 PTM/PCM: Populate pdbx_chem_comp_pcm.rcsb_modified_residue_id
                     PTM/PCM: Remove redundant rows in pdbx_chem_comp_pcm
                     Populate rcsb_entry_info.deposited_branched_entity_instance_count
+                    Update how redundant rows are removed in pdbx_modification_feature
