@@ -3094,8 +3094,8 @@ class DictMethodEntityInstanceHelper(object):
                 # Identify redundant rows
                 row = []
                 for attr in attributeNameList:
-                    value = mObj.getValueOrDefault(attr, ii, defaultValue=None)
-                    if value is not None and value.strip() not in ["", "?", "."]:
+                    value = mObj.getValueOrDefault(attr, ii, defaultValue="?")
+                    if value is not None:
                         row.append(value.strip())
 
                 rowT = tuple(row)
