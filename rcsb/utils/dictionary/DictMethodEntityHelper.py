@@ -25,6 +25,9 @@
 #  10-Dec-2025 dwp Add failover for cases where ncbi_taxonomy_id is not an integer, and log an error
 #  13-Jul-2026 dwp Add [temporary] checking of both extended IDs and short IDs for external resource data (see TODOs).
 #                  These checks should be removed once all ExDB code is updated to support extended IDs.
+#  19-Oct-2026 dwp Fix SAbDab antigen-name feature check so missing/placeholder names are skipped for IDs without
+#                  a short form (e.g., CSMs), instead of writing a feature with an empty name.
+#                  TODO: Assess speedup that would be gained by skipping steps that don't impact CSMs.
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
@@ -1895,10 +1898,10 @@ class DictMethodEntityHelper(object):
                     for ky, fType in [("antigen_name", "SABDAB_ANTIBODY_ANTIGEN_NAME")]:
                         fName = self.__sabdabP.getAssignment(instId, ky)
                         if (not fName or fName in ["?", "unknown"]) and shortId:
-                            instId = shortId.lower() + "." + authAsymId  # TODO: remove when fully switched over to extended IDs (should just continue here)
+                            instId = shortId.lower() + "." + authAsymId  # TODO: remove when fully switched over to extended IDs
                             fName = self.__sabdabP.getAssignment(instId, ky)
-                            if not fName or fName in ["?", "unknown"]:
-                                continue
+                        if not fName or fName in ["?", "unknown"]:
+                            continue
                         # Full sequence feature
                         begSeqId = asymIdRangesD[asymId]["begSeqId"] if asymId in asymIdRangesD else None
                         endSeqId = asymIdRangesD[asymId]["endSeqId"] if asymId in asymIdRangesD else None
