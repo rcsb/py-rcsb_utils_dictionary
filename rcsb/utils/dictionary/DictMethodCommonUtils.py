@@ -5177,7 +5177,8 @@ class DictMethodCommonUtils(object):
             if entryId.lower().startswith("pdb_0000"):
                 shortId = entryId[-4:].upper()
             else:
-                logger.error(f"entryId {entryId} does not have short ID format")
+                # Expected for new extended IDs, which have no short form
+                logger.debug(f"entryId {entryId} does not have short ID format")
         # Else if 4-character PDB ID:
         elif len(entryId) == 4:
             extId = f"pdb_0000{entryId.lower()}"
