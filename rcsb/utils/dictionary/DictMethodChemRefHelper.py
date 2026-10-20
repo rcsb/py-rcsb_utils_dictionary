@@ -10,6 +10,7 @@
 #   18-Sep-2023 dwp Load COD references separately from CCDC/CSD references
 #    3-May-2024 dwp Change BIRD citation method to copy categories instead of just renaming, and only apply to BIRD entries
 #   25-Jul-2024 dwp Fix assignment logic of Pharos data for rcsb_chem_comp_related.related_mapping_method in addChemCompRelated()
+#   18-Sep-2024  bv Add buildChemCompModifiedResidues to populate pdbx_chem_comp_pcm.rcsb_modified_residue_id
 ##
 """
 Helper class implements external method references supporting chemical
@@ -996,4 +997,65 @@ class DictMethodChemRefHelper(object):
         except Exception as e:
             logger.exception("For %s failing with %s", catName, str(e))
 
+        return False
+
+    def buildChemCompModifiedResidues(self, dataContainer, catName, **kwargs):
+        """Populate pdbx_chem_comp_pcm.rcsb_modified_residue_id and remove redundant rows in pdbx_chem_comp_pcm.
+
+        Args:
+            dataContainer (object): mmif.api.DataContainer object instance
+            catName (str): Category name
+
+        Returns:
+            bool: True for success or False otherwise
+        """
+        logger.debug("Starting catName %s kwargs %r", catName, kwargs)
+        try:
+            if catName != "pdbx_chem_comp_pcm":
+                return False
+            if not dataContainer.exists("pdbx_chem_comp_pcm"):
+                return False
+            #
+            mObj = dataContainer.getObj("pdbx_chem_comp_pcm")
+            if not mObj.hasAttribute("rcsb_modified_residue_id"):
+                mObj.appendAttribute("rcsb_modified_residue_id")
+            #
+            seenRows = set()
+            rowsToRemove = []
+            # attributeNameListFull = self.__dApi.getAttributeNameList(catName)
+            attributeNameListFull = mObj.getAttributeList()
+            attributeNameIgnoreList = ["pcm_id", "comp_id"]
+            # Remove attributes that are not included in the RCSB schemas
+            attributeNameList = [atName for atName in attributeNameListFull if atName not in attributeNameIgnoreList]
+            #
+            for ii in range(mObj.getRowCount()):
+                # Set value for rcsb_modified_residue_id
+                modResId1 = mObj.getValueOrDefault("modified_residue_id", ii, defaultValue=None)
+
+                if modResId1 and modResId1 not in ["?", "."]:
+                    modResId = modResId1
+                else:
+                    modResId = "?"
+
+                mObj.setValue(modResId, "rcsb_modified_residue_id", ii)
+
+                # Identify redundant rows
+                row = []
+                for attr in attributeNameList:
+                    value = mObj.getValueOrDefault(attr, ii, defaultValue="?")
+                    if value is not None:
+                        row.append(value.strip())
+
+                rowT = tuple(row)
+
+                if rowT in seenRows:
+                    rowsToRemove.append(ii)
+                else:
+                    seenRows.add(rowT)
+
+            mObj.removeRows(list(set(rowsToRemove)))
+
+            return True
+        except Exception as e:
+            logger.exception("Failing populating pdbx_chem_comp_pcm.rcsb_modified_residue_id for %r with %s", dataContainer.getName(), str(e))
         return False
