@@ -28,6 +28,7 @@
 #  19-Oct-2026 dwp Fix SAbDab antigen-name feature check so missing/placeholder names are skipped for IDs without
 #                  a short form (e.g., CSMs), instead of writing a feature with an empty name.
 #                  TODO: Assess speedup that would be gained by skipping steps that don't impact CSMs.
+#  20-Oct-2026 dwp Add plastic-degrading enzyme (PAZy and PlasticDB) annotations to rcsb_entity_annotation
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
@@ -91,6 +92,7 @@ class DictMethodEntityHelper(object):
         self.__pfP = rP.getResource("PfamProvider instance") if rP else None
         self.__birdP = rP.getResource("BirdProvider instance") if rP else None
         self.__cardP = rP.getResource("CARDTargetAnnotationProvider instance") if rP else None
+        self.__plasticEnzP = rP.getResource("PlasticEnzymeAnnotationProvider instance") if rP else None
         self.__imgtP = rP.getResource("IMGTTargetFeatureProvider instance") if rP else None
         self.__sabdabP = rP.getResource("SAbDabTargetFeatureProvider instance") if rP else None
         self.__chemblA = rP.getResource("ChEMBLTargetCofactorAccessor instance") if rP else None
@@ -2831,6 +2833,30 @@ class DictMethodEntityHelper(object):
                         #
                         ii += 1
                         #
+            # --- Plastic-degrading enzyme annotations (PAZy and PlasticDB; one row per matching enzyme)
+            if self.__plasticEnzP:
+                eTypeD = self.__commonU.getEntityTypes(dataContainer)
+                for entityId, eType in eTypeD.items():
+                    if eType not in ["polymer"]:
+                        continue
+                    # TODO: remove looping when fully switched over to extended IDs (and replace 'extendedId' with 'entryId')
+                    aDL = []
+                    for eId in [extendedId, shortId]:
+                        if eId and not aDL:
+                            aDL = self.__plasticEnzP.getAnnotation(eId + "_" + entityId) or []
+                    for aD in aDL:
+                        cObj.setValue(ii + 1, "ordinal", ii)
+                        cObj.setValue(entryId, "entry_id", ii)
+                        cObj.setValue(entityId, "entity_id", ii)
+                        cObj.setValue(aD["source_db"], "type", ii)
+                        cObj.setValue("%s (sequence-matched against PDB)" % aD["source_db"], "provenance_source", ii)
+                        cObj.setValue(aD["annotation_id"], "annotation_id", ii)
+                        cObj.setValue(aD["name"], "name", ii)
+                        if aD["substrates"]:
+                            cObj.setValue("PLASTIC_SUBSTRATES", "additional_properties_name", ii)
+                            cObj.setValue(",".join(aD["substrates"]), "additional_properties_values", ii)
+                        #
+                        ii += 1
             # ---
             skipBird = True  # JDW added this in: https://github.com/rcsb/py-rcsb_db/commit/c3432f32859557042cfb77d69cb9e2fea1b4bfac
             if not skipBird:
