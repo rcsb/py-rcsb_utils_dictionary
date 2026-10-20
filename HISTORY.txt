@@ -160,3 +160,7 @@
                     PTM/PCM: Remove redundant rows in pdbx_chem_comp_pcm
                     Populate rcsb_entry_info.deposited_branched_entity_instance_count
                     Update how redundant rows are removed in pdbx_modification_feature
+19-Oct-2026 - V1.43 Use the author-provided _pdbx_entry_details.has_ligand_of_interest flag, when present, in
+                    buildInstanceValidationScores: an explicit "N" suppresses all subject-of-investigation
+                    designations for the entry
+                    Add DictMethodCommonUtils.getHasLigandOfInterest()

@@ -35,6 +35,9 @@
 #  27-Jun-2025  bv Add transformation to populate rcsb_polymer_instance_info
 #  19-Nov-2025  bv RO-4761: Add support for ligand Q_scores
 #  10-Sep-2026  bv PTM/PCM: Populate pdbx_modification_feature.rcsb_modified_residue_id and remove redundant rows in pdbx_modification_feature
+#  16-Oct-2026 dwp Use the author-provided _pdbx_entry_details.has_ligand_of_interest flag, when present, in
+#                  buildInstanceValidationScores: an explicit "N" suppresses all subject-of-investigation
+#                  designations for the entry (rcsb_nonpolymer_instance_validation_score.is_subject_of_investigation)
 #
 ##
 """
@@ -2548,6 +2551,7 @@ class DictMethodEntityInstanceHelper(object):
             logger.debug("Length instanceModelValidationD %d", len(instanceModelValidationD))
             #
             ccTargets = self.__commonU.getTargetComponents(dataContainer)
+            hasLigandOfInterest = self.__commonU.getHasLigandOfInterest(dataContainer)
             #
             meanD, stdD, loadingD = self.__rlsP.getParameterStatistics()
             excludeList = self.__rlsP.getLigandExcludeList()
@@ -2615,6 +2619,23 @@ class DictMethodEntityInstanceHelper(object):
                 [compId in ccTargets for (modelId, asymId, altId, compId) in instanceModelValidationD if (modelId, asymId, altId, compId) in scoreD]
             )
             #
+            # The author-provided entry-level flag (_pdbx_entry_details.has_ligand_of_interest), when present,
+            # takes precedence over everything below.  An explicit "N" means the author stated that no ligand is
+            # the focus of the study, so no subject-of-investigation designation is made for this entry at all.
+            #
+            # A "Y" value is deliberately NOT used to suppress the RCSB molecular-weight heuristic.  The author's
+            # designated component(s) may be of a type that is not represented in this category (e.g. a branched
+            # oligosaccharide or a polymer residue), in which case suppressing the heuristic would leave the entry
+            # with no ligand of interest flagged at all.  Only the explicit "N" is acted upon here.
+            #
+            authorHasNoLoi = hasLigandOfInterest == "N"
+            if authorHasNoLoi and ccTargets:
+                logger.warning(
+                    "%s has_ligand_of_interest is 'N' but author-designated subject-of-investigation components %r are present - deferring to the 'N' flag",
+                    entryId,
+                    ccTargets,
+                )
+            #
             for (modelId, asymId, altId, compId), vTup in instanceModelValidationD.items():
                 if (modelId, asymId, altId, compId) not in scoreD:
                     continue
@@ -2662,7 +2683,10 @@ class DictMethodEntityInstanceHelper(object):
                 #
                 isTarget = "N"
                 isTargetProv = None
-                if compId in ccTargets:
+                if authorHasNoLoi:
+                    # Author explicitly indicated that no ligands are the subject of the current study.
+                    isTarget = "N"
+                elif compId in ccTargets:
                     isTarget = "Y"
                     isTargetProv = "Author"
                 elif compId in excludeList:

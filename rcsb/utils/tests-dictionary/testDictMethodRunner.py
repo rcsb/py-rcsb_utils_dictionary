@@ -7,6 +7,8 @@
 #    12-Nov-2018 jdw add chemical component and bird chemical component tests
 #     5-Jun-2019 jdw revise for new method runner api
 #    16-Jul-2019 jdw remove schema processing.
+#    16-Oct-2026 dwp add testSubjectOfInvestigationNoLigandOfInterest (31vo) covering
+#                    _pdbx_entry_details.has_ligand_of_interest = "N"
 ##
 """
 Tests for applying dictionary methods defined as references to helper plugin methods .
@@ -233,6 +235,57 @@ class DictMethodRunnerTests(unittest.TestCase):
         ok = rP.cacheResources(useCache=True, doRestore=True, useStash=False, useGit=True)
         self.assertTrue(ok)
 
+    def testSubjectOfInvestigationNoLigandOfInterest(self):
+        """Entry 31vo carries _pdbx_entry_details.has_ligand_of_interest = "N".
+
+        The author has stated that no ligand is the subject of the current study, so no
+        instance in rcsb_nonpolymer_instance_validation_score may be flagged.  Without the
+        flag, NAG (FW 221.21, absent from the ligand exclude list) would be designated
+        "Y"/"RCSB" by the molecular-weight heuristic, so this entry exercises that branch.
+        """
+        try:
+            cName, cObj = self.__applyMethodsForId("31vo")
+            self.assertIsNotNone(cObj, "%s is missing rcsb_nonpolymer_instance_validation_score" % cName)
+            #
+            compIdL = [cObj.getValue("comp_id", ii) for ii in range(cObj.getRowCount())]
+            logger.info("%s nonpolymer validation score comp_ids %r", cName, compIdL)
+            # Guard against a vacuous pass if the entry yielded no scored nonpolymer instances
+            self.assertIn("NAG", compIdL, "%s has no NAG row - was the validation report merged?" % cName)
+            #
+            for ii in range(cObj.getRowCount()):
+                compId = cObj.getValue("comp_id", ii)
+                isTarget = cObj.getValueOrDefault("is_subject_of_investigation", ii, defaultValue=None)
+                isTargetProv = cObj.getValueOrDefault("is_subject_of_investigation_provenance", ii, defaultValue=None)
+                self.assertEqual(isTarget, "N", "%s %s is_subject_of_investigation %r (expected 'N')" % (cName, compId, isTarget))
+                self.assertIsNone(isTargetProv, "%s %s unexpected provenance %r" % (cName, compId, isTargetProv))
+
+        except Exception as e:
+            logger.exception("Failing with %s", str(e))
+            self.fail()
+
+    def __applyMethodsForId(self, idCode, catName="rcsb_nonpolymer_instance_validation_score"):
+        """Apply the dictionary methods to a single pdbx_core entry and return (name, category object)."""
+        dP = DictionaryApiProviderWrapper(self.__cachePath, useCache=True, cfgOb=self.__cfgOb, configName=self.__configName)
+        dictApi = dP.getApiByName("pdbx_core")
+        rP = DictMethodResourceProvider(
+            self.__cfgOb,
+            configName=self.__configName,
+            cachePath=self.__cachePath,
+            restoreUseStash=False,
+            restoreUseGit=True,
+            providerTypeExcludeL=self.__excludeTypeL,
+        )
+        dmh = DictMethodRunner(dictApi, modulePathMap=self.__modulePathMap, resourceProvider=rP)
+        rpP = RepositoryProvider(cfgOb=self.__cfgOb, numProc=self.__numProc, fileLimit=None, cachePath=self.__cachePath)
+        locatorObjList = rpP.getLocatorObjList(contentType="pdbx_core", mergeContentTypes=["vrpt"], inputIdCodeList=[idCode])
+        self.assertEqual(len(locatorObjList), 1, "No locator for %s - is it in the current holdings list?" % idCode)
+        containerList = rpP.getContainerList(locatorObjList)
+        self.assertEqual(len(containerList), 1, "No container for %s" % idCode)
+        #
+        container = containerList[0]
+        dmh.apply(container)
+        return container.getName(), container.getObj(catName) if container.exists(catName) else None
+
     def testMethodRunnerSetup(self):
         """Test the setup methods for method runner class"""
         try:
@@ -258,6 +311,7 @@ class DictMethodRunnerTests(unittest.TestCase):
 def dictMethodRunnerSuite():
     suiteSelect = unittest.TestSuite()
     suiteSelect.addTest(DictMethodRunnerTests("testMethodRunner"))
+    suiteSelect.addTest(DictMethodRunnerTests("testSubjectOfInvestigationNoLigandOfInterest"))
     return suiteSelect
 
 
