@@ -457,6 +457,42 @@ class DictMethodCommonUtils(object):
         wD = self.__fetchEntityAndInstanceTypes(dataContainer)
         return wD["ccTargets"] if "ccTargets" in wD else []
 
+    def getHasLigandOfInterest(self, dataContainer):
+        """Return the author-provided entry-level ligand-of-interest flag, if present.
+
+        This is the depositor's answer to whether any ligand is the focus of the
+        study (_pdbx_entry_details.has_ligand_of_interest).  Note that this flag is
+        independent of entity type, so it may be set for entries whose designated
+        component is not represented in the nonpolymer instance categories (e.g. a
+        branched oligosaccharide or a polymer residue).
+
+        Args:
+            dataContainer (object):  mmcif.api.DataContainer object instance
+
+        Returns:
+            str or None: "Y" if the author indicated that ligand(s) of interest are present,
+                         "N" if the author indicated that no ligands of interest are present,
+                         or None if the flag is absent or uninterpretable.
+        """
+        if not dataContainer or not dataContainer.getName():
+            return None
+        try:
+            if not dataContainer.exists("pdbx_entry_details"):
+                return None
+            edObj = dataContainer.getObj("pdbx_entry_details")
+            if not edObj.hasAttribute("has_ligand_of_interest"):
+                return None
+            for ii in range(edObj.getRowCount()):
+                tV = edObj.getValueOrDefault("has_ligand_of_interest", ii, defaultValue=None)
+                if tV:
+                    tV = str(tV).strip().upper()
+                    if tV in ["Y", "N"]:
+                        return tV
+                    logger.warning("%s unexpected has_ligand_of_interest value %r", dataContainer.getName(), tV)
+        except Exception as e:
+            logger.exception("Failing for %s with %s", dataContainer.getName(), str(e))
+        return None
+
     def __getEntityAndInstanceTypes(self, dataContainer):
         """Internal method to collect and return entity/instance type, size and mapping information.
 
