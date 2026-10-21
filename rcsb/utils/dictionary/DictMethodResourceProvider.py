@@ -30,6 +30,7 @@
 #  25-Jul-2024 dwp Remove NeighborInteractionProvider from provider list (since calculating on the fly from now on)
 #  20-Aug-2024 dwp Add support for accessing target cofactor data from MongoDB
 #  23-Feb-2026 dwp Turn off RcsbLigandScoreProvider 'buildable' configuration, to force use of pre-built cache or remote stash
+#  21-Oct-2026 dwp Pass PDB_REPO_URL to BirdProvider, ChemCompModelProvider and ChemCompProvider (basePdbRepoUrl)
 ##
 """
 Resource provider for dictionary method runner and DictMethodHelper tools.
@@ -186,8 +187,9 @@ class DictMethodResourceProvider(SingletonClass):
             },
             "BirdProvider instance": {
                 "class": BirdProvider,
-                # NOTE: This (and below) change should still be compatible with existing workflow so long as it is merged
-                # with 'rcsb.utils.chemref' (ro-5076) and the trailing '/pub' is consistently used in the ExDB config file
+                # NOTE: basePdbRepoUrl (here and in the two providers below) requires rcsb.utils.chemref >= 1.01 (from its
+                # 'ext-ids' branch); older versions ignore it and use the current archive. A PDB_REPO_URL ending in '/pub'
+                # selects the current archive layout, and one without it selects the beta archive layout.
                 "configArgMap": {
                     "basePdbRepoUrl": ("PDB_REPO_URL", "configItem"),
                 },

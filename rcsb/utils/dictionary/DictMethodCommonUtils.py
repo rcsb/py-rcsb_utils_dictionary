@@ -41,6 +41,7 @@
 # 08-Sep-2026  bv Update modified_monomer to non_standard_monomer during ETL to rcsb_polymer_entity_feature and rcsb_entity_feature
 # 15-Sep-2026 dwp Add method to return the extended and short IDs of an input entry ID (.getExtAndShortIds()).
 #                 This method can be removed once all ExDB code is updated to support extended IDs.
+# 21-Oct-2026 dwp Use lazy logging format for the missing short ID debug message
 #
 ##
 """
@@ -5178,7 +5179,7 @@ class DictMethodCommonUtils(object):
                 shortId = entryId[-4:].upper()
             else:
                 # Expected for new extended IDs, which have no short form
-                logger.debug(f"entryId {entryId} does not have short ID format")
+                logger.debug("entryId %s does not have short ID format", entryId)
         # Else if 4-character PDB ID:
         elif len(entryId) == 4:
             extId = f"pdb_0000{entryId.lower()}"
