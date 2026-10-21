@@ -39,6 +39,9 @@
 # 04-Apr-2026  bv RO-4917: Update how microheterogeneity is handled while loading validation data as positional features
 #              bv RO-4342: Add method getEntityFormulaWeightNonSolvent to support calculation of assembly molecular weight
 # 08-Sep-2026  bv Update modified_monomer to non_standard_monomer during ETL to rcsb_polymer_entity_feature and rcsb_entity_feature
+# 15-Sep-2026 dwp Add method to return the extended and short IDs of an input entry ID (.getExtAndShortIds()).
+#                 This method can be removed once all ExDB code is updated to support extended IDs.
+# 21-Oct-2026 dwp Use lazy logging format for the missing short ID debug message
 #
 ##
 """
@@ -5154,3 +5157,38 @@ class DictMethodCommonUtils(object):
             return {}
         wD = self.__fetchLocalValidationData(dataContainer)
         return wD["instanceModelOutlierD"] if "instanceModelOutlierD" in wD else {}
+
+    def getExtAndShortIds(self, entryId):
+        # TODO: Remove this method after external resource prep is fully transitioned over to extended IDs
+        """
+        Return the short and extended versions of the entry ID.
+
+        Args:
+            entryId (object):  entry ID of mmcif.api.DataContainer object instance
+                               -> dataContainer.getObj("entry").getValue("id", 0)
+
+        Returns:
+            str: extended 12-character PDB ID (lower case) or CSM ID (upper case)
+            str: short (4-character) ID, if it exists (upper case)
+        """
+        extId, shortId = None, None
+        # If extended PDB ID:
+        if entryId.lower().startswith("pdb_") and len(entryId) == 12:
+            extId = entryId.lower()
+            if entryId.lower().startswith("pdb_0000"):
+                shortId = entryId[-4:].upper()
+            else:
+                # Expected for new extended IDs, which have no short form
+                logger.debug("entryId %s does not have short ID format", entryId)
+        # Else if 4-character PDB ID:
+        elif len(entryId) == 4:
+            extId = f"pdb_0000{entryId.lower()}"
+            shortId = entryId.upper()
+        # Else if CSM:
+        elif entryId.upper().startswith("MA_") or entryId.upper().startswith("AF_"):
+            extId = entryId.upper()
+            shortId = None
+        else:
+            raise ValueError(f"entryId {entryId} does not match short or extended ID format")
+        #
+        return extId, shortId

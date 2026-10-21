@@ -120,7 +120,7 @@ class NeighborInteractionProvider(StashableBase):
             (dict): {ligandAsymId: {(targetAsymId, targetAuthSeqId): nnIndex1, (): nnIndex2}
         """
         try:
-            return self.__neighborD["entries"][entryId.upper()]["ligandNeighborIndexD"]
+            return self.__neighborD["entries"][entryId]["ligandNeighborIndexD"]
         except Exception:
             pass
         return {}
@@ -136,7 +136,7 @@ class NeighborInteractionProvider(StashableBase):
 
         """
         try:
-            return self.__neighborD["entries"][entryId.upper()]["targetNeighborIndexD"]
+            return self.__neighborD["entries"][entryId]["targetNeighborIndexD"]
         except Exception:
             pass
         return {}
@@ -152,7 +152,7 @@ class NeighborInteractionProvider(StashableBase):
 
         """
         try:
-            return self.__neighborD["entries"][entryId.upper()]["nearestNeighbors"]
+            return self.__neighborD["entries"][entryId]["nearestNeighbors"]
         except Exception:
             pass
         return []
@@ -167,7 +167,7 @@ class NeighborInteractionProvider(StashableBase):
             (dict): {ligandAsymId: True if isBound,  ...  }
         """
         try:
-            return self.__neighborD["entries"][entryId.upper()]["ligandIsBoundD"]
+            return self.__neighborD["entries"][entryId]["ligandIsBoundD"]
         except Exception:
             pass
         return {}
@@ -182,7 +182,7 @@ class NeighborInteractionProvider(StashableBase):
             (dict): {asymId: {'FL': count, 'altA': count, 'altB': count, ... }}
         """
         try:
-            return self.__neighborD["entries"][entryId.upper()]["ligandAtomCountD"]
+            return self.__neighborD["entries"][entryId]["ligandAtomCountD"]
         except Exception:
             pass
         return {}
@@ -197,7 +197,7 @@ class NeighborInteractionProvider(StashableBase):
             (dict): {asymId: {'FL': count, 'altA': count, 'altB': count, ... }}
         """
         try:
-            return self.__neighborD["entries"][entryId.upper()]["ligandHydrogenAtomCountD"]
+            return self.__neighborD["entries"][entryId]["ligandHydrogenAtomCountD"]
         except Exception:
             pass
         return {}
@@ -212,7 +212,7 @@ class NeighborInteractionProvider(StashableBase):
             (dict): {asymId: {'FL': count, 'altA': count, 'altB': count, ... }}
         """
         try:
-            return self.__neighborD["entries"][entryId.upper()]["occupancySumD"]
+            return self.__neighborD["entries"][entryId]["occupancySumD"]
         except Exception:
             pass
         return {}
