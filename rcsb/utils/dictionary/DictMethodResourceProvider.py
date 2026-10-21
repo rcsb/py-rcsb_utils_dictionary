@@ -30,7 +30,9 @@
 #  25-Jul-2024 dwp Remove NeighborInteractionProvider from provider list (since calculating on the fly from now on)
 #  20-Aug-2024 dwp Add support for accessing target cofactor data from MongoDB
 #  23-Feb-2026 dwp Turn off RcsbLigandScoreProvider 'buildable' configuration, to force use of pre-built cache or remote stash
-#  20-Oct-2026 dwp Add PlasticEnzymeAnnotationProvider
+#  20-Oct-2026 dwp Add PlasticEnzymeAnnotationProvider; add optional 'preferLocalCache' provider setting, so that when
+#                  useCache=False a non-buildable provider uses valid local cache files and only restores from the stash
+#                  when they are missing or fail testCache()
 ##
 """
 Resource provider for dictionary method runner and DictMethodHelper tools.
@@ -358,6 +360,7 @@ class DictMethodResourceProvider(SingletonClass):
                 "configArgMap": {},
                 "stashable": True,
                 "buildable": False,
+                "preferLocalCache": True,
                 "providerType": "optional",
             },
             "IMGTTargetFeatureProvider instance": {
@@ -594,12 +597,14 @@ class DictMethodResourceProvider(SingletonClass):
 
                 buildable == False  only deliver stashed payloads from precomputed workflows
                                   (useCache = True)   deliver locally cached data payload (with optional restore)
-                                  (useCache = False)  restore stashed payload to local cache
+                                  (useCache = False)  restore stashed payload to local cache, or, with 'preferLocalCache',
+                                                      use the local cache if it passes testCache() and restore otherwise
 
         """
         logger.debug("providerName %r configName %s cachePath %s kwargs %r", providerName, configName, cachePath, kwargs)
         #
         classArgs = self.__getClassArgs(providerName, cfgOb, configName)
+        preferLocalCache = self.__providerD[providerName].get("preferLocalCache", False)
 
         isStashable = self.__providerD[providerName]["stashable"]
         logger.debug("%r classArgs %r", providerName, classArgs)
@@ -621,10 +626,16 @@ class DictMethodResourceProvider(SingletonClass):
         else:
             doBackup = kwargs.get("doBackup", False)
             try:
-                prI = self.__providerD[providerName]["class"](cachePath=cachePath, useCache=useCache, **classArgs)
-                prI.restore(cfgOb, configName, remotePrefix=remotePrefix, useStash=self.__restoreUseStash, useGit=self.__restoreUseGit)
-                prI = self.__providerD[providerName]["class"](cachePath=cachePath, useCache=True, **classArgs)
-                ok = prI.testCache()
+                ok = False
+                if preferLocalCache:
+                    prI = self.__providerD[providerName]["class"](cachePath=cachePath, useCache=True, **classArgs)
+                    ok = prI.testCache()
+                    logger.info("%r local cache status (%r)%s", providerName, ok, "" if ok else " - restoring from stash")
+                if not ok:
+                    prI = self.__providerD[providerName]["class"](cachePath=cachePath, useCache=useCache, **classArgs)
+                    prI.restore(cfgOb, configName, remotePrefix=remotePrefix, useStash=self.__restoreUseStash, useGit=self.__restoreUseGit)
+                    prI = self.__providerD[providerName]["class"](cachePath=cachePath, useCache=True, **classArgs)
+                    ok = prI.testCache()
                 if ok and doBackup and isStashable:
                     useGit = kwargs.get("useGit", False)
                     useStash = kwargs.get("useStash", True)
