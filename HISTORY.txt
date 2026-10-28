@@ -160,3 +160,11 @@
                     PTM/PCM: Remove redundant rows in pdbx_chem_comp_pcm
                     Populate rcsb_entry_info.deposited_branched_entity_instance_count
                     Update how redundant rows are removed in pdbx_modification_feature
+20-Oct-2026 - V1.43 Support extended PDB IDs (RO-5076): add DictMethodCommonUtils.getExtAndShortIds();
+                    look up external resource data (SIFTS, GlyGen, SAbDab, CATH, SCOP, ECOD, targets, etc.) by extended
+                    ID first, then by short ID (temporary, until all resources use extended IDs); handle CSM IDs;
+                    use other entry ID formats (e.g., IHM PDBDEV_ IDs) as-is, with no short ID;
+                    no forced upper case on entry IDs (NeighborInteractionProvider);
+                    pass PDB_REPO_URL to the chemref BIRD/chem comp model providers (basePdbRepoUrl);
+                    skip SAbDab antigen-name features with missing names for IDs without a short form (e.g., CSMs);
+                    require rcsb.utils.seq >= 0.88 (GlycanProvider.getGlycanIdentifier())
