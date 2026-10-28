@@ -42,6 +42,8 @@
 # 15-Sep-2026 dwp Add method to return the extended and short IDs of an input entry ID (.getExtAndShortIds()).
 #                 This method can be removed once all ExDB code is updated to support extended IDs.
 # 21-Oct-2026 dwp Use lazy logging format for the missing short ID debug message
+# 28-Oct-2026 dwp getExtAndShortIds() returns other ID formats (e.g., PDBDEV_) as-is with no short ID instead of
+#                 raising ValueError
 #
 ##
 """
@@ -5161,15 +5163,16 @@ class DictMethodCommonUtils(object):
     def getExtAndShortIds(self, entryId):
         # TODO: Remove this method after external resource prep is fully transitioned over to extended IDs
         """
-        Return the short and extended versions of the entry ID.
+        Return the extended and short versions of the entry ID.
 
         Args:
-            entryId (object):  entry ID of mmcif.api.DataContainer object instance
-                               -> dataContainer.getObj("entry").getValue("id", 0)
+            entryId (str):  entry ID of mmcif.api.DataContainer object instance
+                            -> dataContainer.getObj("entry").getValue("id", 0)
 
         Returns:
-            str: extended 12-character PDB ID (lower case) or CSM ID (upper case)
-            str: short (4-character) ID, if it exists (upper case)
+            str: extended 12-character PDB ID (lower case), CSM ID (upper case), or the input entry ID as-is
+                 for any other ID format (e.g., PDBDEV_00000001)
+            str: short (4-character) ID, if it exists (upper case), or None
         """
         extId, shortId = None, None
         # If extended PDB ID:
@@ -5189,6 +5192,8 @@ class DictMethodCommonUtils(object):
             extId = entryId.upper()
             shortId = None
         else:
-            raise ValueError(f"entryId {entryId} does not match short or extended ID format")
+            # Any other ID format (e.g., IHM PDBDEV_ IDs): use the entry ID as-is, as before extended ID support
+            logger.warning("entryId %s does not match short, extended or CSM ID format; using it as-is", entryId)
+            extId = entryId
         #
         return extId, shortId
