@@ -29,6 +29,8 @@
 #                  a short form (e.g., CSMs), instead of writing a feature with an empty name.
 #                  TODO: Assess speedup that would be gained by skipping steps that don't impact CSMs.
 #  20-Oct-2026 dwp Add plastic-degrading enzyme (PAZy and PlasticDB) annotations to rcsb_entity_annotation
+#  28-Oct-2026 dwp Skip plastic enzyme annotations missing a source DB or annotation ID (logged as an error), and
+#                  treat their name and substrates as optional
 ##
 """
 Helper class implements methods supporting entity-level item and category methods in the RCSB dictionary extension.
@@ -2845,14 +2847,18 @@ class DictMethodEntityHelper(object):
                         if eId and not aDL:
                             aDL = self.__plasticEnzP.getAnnotation(eId + "_" + entityId) or []
                     for aD in aDL:
+                        if not aD.get("source_db") or not aD.get("annotation_id"):
+                            logger.error("%s entity %s skipping plastic enzyme annotation missing source DB or annotation ID: %r", entryId, entityId, aD)
+                            continue
                         cObj.setValue(ii + 1, "ordinal", ii)
                         cObj.setValue(entryId, "entry_id", ii)
                         cObj.setValue(entityId, "entity_id", ii)
                         cObj.setValue(aD["source_db"], "type", ii)
                         cObj.setValue("%s (sequence-matched against PDB)" % aD["source_db"], "provenance_source", ii)
                         cObj.setValue(aD["annotation_id"], "annotation_id", ii)
-                        cObj.setValue(aD["name"], "name", ii)
-                        if aD["substrates"]:
+                        if aD.get("name"):
+                            cObj.setValue(aD["name"], "name", ii)
+                        if aD.get("substrates"):
                             cObj.setValue("PLASTIC_SUBSTRATES", "additional_properties_name", ii)
                             cObj.setValue(",".join(aD["substrates"]), "additional_properties_values", ii)
                         #
