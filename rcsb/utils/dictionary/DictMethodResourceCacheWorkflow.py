@@ -8,6 +8,7 @@
 #  14-Mar-2023 dwp  Replace CARDTargetFeatureProvider with CARDTargetAnnotationProvider
 #  16-Mar-2023 aae  Update configuration to use HERE and CACHE folder
 #   1-Jun-2023 aae  Don't back up resources to GitHub during cache update workflows
+#  20-Oct-2026 dwp  Add PlasticEnzymeAnnotationProvider to synced resources
 ##
 """
 Workflow to rebuild and stash "buildable" cache resources.
@@ -133,6 +134,7 @@ class DictMethodResourceCacheWorkflow(object):
             "PharosTargetCofactorProvider instance",
             "CARDTargetOntologyProvider instance",
             "CARDTargetAnnotationProvider instance",
+            "PlasticEnzymeAnnotationProvider instance",
             "IMGTTargetFeatureProvider instance",
             "SAbDabTargetFeatureProvider instance",
         ]:

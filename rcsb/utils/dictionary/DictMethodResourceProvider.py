@@ -30,6 +30,7 @@
 #  25-Jul-2024 dwp Remove NeighborInteractionProvider from provider list (since calculating on the fly from now on)
 #  20-Aug-2024 dwp Add support for accessing target cofactor data from MongoDB
 #  23-Feb-2026 dwp Turn off RcsbLigandScoreProvider 'buildable' configuration, to force use of pre-built cache or remote stash
+#  20-Oct-2026 dwp Add PlasticEnzymeAnnotationProvider
 #  21-Oct-2026 dwp Pass PDB_REPO_URL to BirdProvider, ChemCompModelProvider and ChemCompProvider (basePdbRepoUrl)
 ##
 """
@@ -72,6 +73,7 @@ from rcsb.utils.io.SingletonClass import SingletonClass
 from rcsb.utils.seq.GlycanProvider import GlycanProvider
 from rcsb.utils.seq.GlyGenProvider import GlyGenProvider
 from rcsb.utils.seq.PfamProvider import PfamProvider
+from rcsb.utils.seq.PlasticEnzymeAnnotationProvider import PlasticEnzymeAnnotationProvider
 from rcsb.utils.seq.SiftsSummaryProvider import SiftsSummaryProvider
 
 # ---
@@ -348,6 +350,13 @@ class DictMethodResourceProvider(SingletonClass):
             },
             "CARDTargetAnnotationProvider instance": {
                 "class": CARDTargetAnnotationProvider,
+                "configArgMap": {},
+                "stashable": True,
+                "buildable": False,
+                "providerType": "optional",
+            },
+            "PlasticEnzymeAnnotationProvider instance": {
+                "class": PlasticEnzymeAnnotationProvider,
                 "configArgMap": {},
                 "stashable": True,
                 "buildable": False,

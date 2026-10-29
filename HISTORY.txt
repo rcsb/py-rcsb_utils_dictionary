@@ -168,3 +168,5 @@
                     pass PDB_REPO_URL to the chemref BIRD/chem comp model providers (basePdbRepoUrl);
                     skip SAbDab antigen-name features with missing names for IDs without a short form (e.g., CSMs);
                     require rcsb.utils.seq >= 0.88 (GlycanProvider.getGlycanIdentifier())
+26-Oct-2026 - V1.44 Add PAZy and PlasticDB plastic-degrading enzyme annotations to rcsb_polymer_entity_annotation
+                    (PlasticEnzymeAnnotationProvider) (RO-5200); require rcsb.utils.seq >= 0.89
