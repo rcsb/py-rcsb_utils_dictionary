@@ -170,3 +170,7 @@
                     require rcsb.utils.seq >= 0.88 (GlycanProvider.getGlycanIdentifier())
 26-Oct-2026 - V1.44 Add PAZy and PlasticDB plastic-degrading enzyme annotations to rcsb_polymer_entity_annotation
                     (PlasticEnzymeAnnotationProvider) (RO-5200); require rcsb.utils.seq >= 0.89
+19-Oct-2026 - V1.46 Use the author-provided _pdbx_entry_details.has_ligand_of_interest flag, when present, in
+                    buildInstanceValidationScores: an explicit "N" suppresses all subject-of-investigation
+                    designations for the entry
+                    Add DictMethodCommonUtils.getHasLigandOfInterest()
