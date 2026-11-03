@@ -37,6 +37,7 @@
 #  10-Sep-2026  bv PTM/PCM: Populate pdbx_modification_feature.rcsb_modified_residue_id and remove redundant rows in pdbx_modification_feature
 #  15-Sep-2026 dwp Add [temporary] checking of both extended IDs and short IDs for external resource data (see TODOs).
 #                  These checks should be removed once all ExDB code is updated to support extended IDs.
+#  29-Oct-2026  bv Update "HAS_NO_COVALENT_LINKAGE" to instance annotations for cases without covalent linkages or metal coordination
 #
 ##
 """
@@ -2375,7 +2376,7 @@ class DictMethodEntityInstanceHelper(object):
                         #
                         jj += 1
 
-                if not any(["HAS_COVALENT_LINKAGE" in d["type"] for d in aL]):
+                if not any(d["type"] in ("HAS_COVALENT_LINKAGE", "HAS_METAL_COORDINATION_LINKAGE") for d in aL):
                     aL.append({
                         "type": "HAS_NO_COVALENT_LINKAGE",
                         "entity_id": asymIdD[asymId],
