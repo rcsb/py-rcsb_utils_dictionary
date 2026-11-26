@@ -38,6 +38,7 @@
 #  15-Sep-2026 dwp Add [temporary] checking of both extended IDs and short IDs for external resource data (see TODOs).
 #                  These checks should be removed once all ExDB code is updated to support extended IDs.
 #  29-Oct-2026  bv Update "HAS_NO_COVALENT_LINKAGE" to instance annotations for cases without covalent linkages or metal coordination
+#  26-Nov-2026  bv Add buildInstanceCoordinationSphereDescriptors to populate pdbx_nonpoly_atom_coordination.rcsb_coordination_sphere_descriptors
 #
 ##
 """
@@ -3168,4 +3169,51 @@ class DictMethodEntityInstanceHelper(object):
             return True
         except Exception as e:
             logger.exception("Failing populating pdbx_modification_feature.rcsb_modified_residue_id for %r with %s", dataContainer.getName(), str(e))
+        return False
+
+    def buildInstanceCoordinationSphereDescriptors(self, dataContainer, catName, **kwargs):
+        """Populate pdbx_nonpoly_atom_coordination.rcsb_coordination_sphere_descriptors.
+
+        Args:
+            dataContainer (object): mmcif.api.DataContainer object instance
+            catName (str): Category name
+
+        Returns:
+            bool: True for success or False otherwise
+        """
+        logger.debug("Starting catName %s kwargs %r", catName, kwargs)
+        try:
+            if catName != "pdbx_nonpoly_atom_coordination":
+                return False
+            if not (dataContainer.exists("pdbx_nonpoly_atom_coordination") and dataContainer.exists("pdbx_nonpoly_atom_coordination_sphere")):
+                return False
+            #
+            mObj = dataContainer.getObj("pdbx_nonpoly_atom_coordination")
+            sObj = dataContainer.getObj("pdbx_nonpoly_atom_coordination_sphere")
+            if not all(sObj.hasAttribute(a) for a in ("geometry_id", "provenance", "descriptor")):
+                return False
+            if not mObj.hasAttribute("rcsb_coordination_sphere_descriptors"):
+                mObj.appendAttributeExtendRows("rcsb_coordination_sphere_descriptors", defaultValue="?")
+            #
+            # Index descriptors by (geometry_id, provenance) in one pass
+            descD = {}
+            for jj in range(sObj.getRowCount()):
+                gId = sObj.getValueOrDefault("geometry_id", jj, defaultValue=None)
+                pv = sObj.getValueOrDefault("provenance", jj, defaultValue=None)
+                desc = sObj.getValueOrDefault("descriptor", jj, defaultValue=None)
+                if gId and pv and desc:
+                    descD.setdefault((gId, pv), []).append(desc)
+            #
+            for ii in range(mObj.getRowCount()):
+                sL = []
+                geomId = mObj.getValueOrDefault("geometry_id", ii, defaultValue=None)
+                prov = mObj.getValueOrDefault("provenance", ii, defaultValue=None)
+                if geomId and prov:
+                    sL = descD.get((geomId, prov), [])
+                if sL:
+                    sL = list(dict.fromkeys(sL))  # dedupe, keep order
+                    mObj.setValue(";".join(sL), "rcsb_coordination_sphere_descriptors", ii)
+            return True
+        except Exception as e:
+            logger.exception("Failing populating pdbx_nonpoly_atom_coordination.rcsb_coordination_sphere_descriptors for %r with %s", dataContainer.getName(), str(e))
         return False
