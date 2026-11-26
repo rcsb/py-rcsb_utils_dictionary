@@ -172,3 +172,5 @@
                     (PlasticEnzymeAnnotationProvider) (RO-5200); require rcsb.utils.seq >= 0.89
 29-Oct-2026 - V1.45 Update "HAS_NO_COVALENT_LINKAGE" to instance annotations for cases without covalent linkages or metal coordination,
                     undoing the updates from V1.17.
+26-Nov-2026 - V1.46 Add buildChemCompCoordinationSphereDescriptors to populate pdbx_chem_comp_atom_coordination.rcsb_coordination_sphere_descriptors
+                    Add buildInstanceCoordinationSphereDescriptors to populate pdbx_nonpoly_atom_coordination.rcsb_coordination_sphere_descriptors

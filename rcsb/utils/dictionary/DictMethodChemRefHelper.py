@@ -10,7 +10,8 @@
 #   18-Sep-2023 dwp Load COD references separately from CCDC/CSD references
 #    3-May-2024 dwp Change BIRD citation method to copy categories instead of just renaming, and only apply to BIRD entries
 #   25-Jul-2024 dwp Fix assignment logic of Pharos data for rcsb_chem_comp_related.related_mapping_method in addChemCompRelated()
-#   18-Sep-2024  bv Add buildChemCompModifiedResidues to populate pdbx_chem_comp_pcm.rcsb_modified_residue_id
+#   18-Sep-2026  bv Add buildChemCompModifiedResidues to populate pdbx_chem_comp_pcm.rcsb_modified_residue_id
+#   26-Nov-2026  bv Add buildChemCompCoordinationSphereDescriptors to populate pdbx_chem_comp_atom_coordination.rcsb_coordination_sphere_descriptors
 ##
 """
 Helper class implements external method references supporting chemical
@@ -1058,4 +1059,51 @@ class DictMethodChemRefHelper(object):
             return True
         except Exception as e:
             logger.exception("Failing populating pdbx_chem_comp_pcm.rcsb_modified_residue_id for %r with %s", dataContainer.getName(), str(e))
+        return False
+
+    def buildChemCompCoordinationSphereDescriptors(self, dataContainer, catName, **kwargs):
+        """Populate pdbx_chem_comp_atom_coordination.rcsb_coordination_sphere_descriptors.
+
+        Args:
+            dataContainer (object): mmcif.api.DataContainer object instance
+            catName (str): Category name
+
+        Returns:
+            bool: True for success or False otherwise
+        """
+        logger.debug("Starting catName %s kwargs %r", catName, kwargs)
+        try:
+            if catName != "pdbx_chem_comp_atom_coordination":
+                return False
+            if not (dataContainer.exists("pdbx_chem_comp_atom_coordination") and dataContainer.exists("pdbx_chem_comp_atom_coordination_sphere")):
+                return False
+            #
+            mObj = dataContainer.getObj("pdbx_chem_comp_atom_coordination")
+            sObj = dataContainer.getObj("pdbx_chem_comp_atom_coordination_sphere")
+            if not all(sObj.hasAttribute(a) for a in ("geometry_id", "provenance", "descriptor")):
+                return False
+            if not mObj.hasAttribute("rcsb_coordination_sphere_descriptors"):
+                mObj.appendAttributeExtendRows("rcsb_coordination_sphere_descriptors", defaultValue="?")
+            #
+            # Index descriptors by (geometry_id, provenance) in one pass
+            descD = {}
+            for jj in range(sObj.getRowCount()):
+                gId = sObj.getValueOrDefault("geometry_id", jj, defaultValue=None)
+                pv = sObj.getValueOrDefault("provenance", jj, defaultValue=None)
+                desc = sObj.getValueOrDefault("descriptor", jj, defaultValue=None)
+                if gId and pv and desc:
+                    descD.setdefault((gId, pv), []).append(desc)
+            #
+            for ii in range(mObj.getRowCount()):
+                sL = []
+                geomId = mObj.getValueOrDefault("geometry_id", ii, defaultValue=None)
+                prov = mObj.getValueOrDefault("provenance", ii, defaultValue=None)
+                if geomId and prov:
+                    sL = descD.get((geomId, prov), [])
+                if sL:
+                    sL = list(dict.fromkeys(sL))  # dedupe, keep order
+                    mObj.setValue(";".join(sL), "rcsb_coordination_sphere_descriptors", ii)
+            return True
+        except Exception as e:
+            logger.exception("Failing populating pdbx_chem_comp_atom_coordination.rcsb_coordination_sphere_descriptors for %r with %s", dataContainer.getName(), str(e))
         return False
